@@ -32,23 +32,44 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
+    const initializeAuth = async () => {
+      try {
+        // Get initial session
+        const { data: { session }, error } = await supabase.auth.getSession()
+        if (error) {
+          console.warn('Auth session error:', error.message)
+        }
+        setSession(session)
+        setUser(session?.user ?? null)
+        setLoading(false)
+      } catch (error) {
+        console.warn('Auth initialization failed:', error)
+        setLoading(false)
+      }
+    }
+
+    initializeAuth()
 
     // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
+    let subscription: any
+    try {
+      const {
+        data: { subscription: authSubscription },
+      } = supabase.auth.onAuthStateChange((_event, session) => {
+        setSession(session)
+        setUser(session?.user ?? null)
+        setLoading(false)
+      })
+      subscription = authSubscription
+    } catch (error) {
+      console.warn('Auth state change listener failed:', error)
+    }
 
-    return () => subscription.unsubscribe()
+    return () => {
+      if (subscription?.unsubscribe) {
+        subscription.unsubscribe()
+      }
+    }
   }, [])
 
   const signUp = async (email: string, password: string) => {

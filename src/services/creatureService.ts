@@ -17,18 +17,27 @@ export interface DatabaseCreature {
 export class CreatureService {
   // Get all creatures for the current user
   static async getUserCreatures(userId: string): Promise<DatabaseCreature[]> {
-    const { data, error } = await supabase
-      .from('creatures')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
+    try {
+      const { data, error } = await supabase
+        .from('creatures')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
 
-    if (error) {
-      console.error('Error fetching user creatures:', error)
-      throw error
+      if (error) {
+        console.error('Error fetching user creatures:', error)
+        // Return empty array instead of throwing when Supabase isn't configured
+        if (error.message?.includes('not configured')) {
+          return []
+        }
+        throw error
+      }
+
+      return data || []
+    } catch (error) {
+      console.error('Error in getUserCreatures:', error)
+      return []
     }
-
-    return data || []
   }
 
   // Get public creatures (for community gallery)
