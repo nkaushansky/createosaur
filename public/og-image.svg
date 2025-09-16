@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" fill="none">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0f1c"/>
+      <stop offset="100%" style="stop-color:#1a2332"/>
+    </linearGradient>
+    <linearGradient id="dnaGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00ffff"/>
+      <stop offset="50%" style="stop-color:#00ff88"/>
+      <stop offset="100%" style="stop-color:#88ff00"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  
+  <!-- DNA Pattern -->
+  <g opacity="0.1" fill="url(#dnaGradient)">
+    <circle cx="150" cy="100" r="2"/>
+    <circle cx="200" cy="150" r="2"/>
+    <circle cx="250" cy="120" r="2"/>
+    <circle cx="300" cy="180" r="2"/>
+    <circle cx="350" cy="140" r="2"/>
+    <circle cx="950" cy="400" r="2"/>
+    <circle cx="1000" cy="450" r="2"/>
+    <circle cx="1050" cy="420" r="2"/>
+    <circle cx="1100" cy="480" r="2"/>
+    <circle cx="1150" cy="440" r="2"/>
+  </g>
+  
+  <!-- Main Title -->
+  <text x="600" y="220" font-family="Arial, sans-serif" font-size="72" font-weight="bold" 
+        text-anchor="middle" fill="#ffffff" filter="url(#glow)">
+    Createosaur
+  </text>
+  
+  <!-- Subtitle -->
+  <text x="600" y="280" font-family="Arial, sans-serif" font-size="28" 
+        text-anchor="middle" fill="#00ffaa">
+    AI Dinosaur Creator &amp; Genetic Engineering Lab
+  </text>
+  
+  <!-- Dinosaur silhouette -->
+  <g transform="translate(400, 320)" fill="url(#dnaGradient)" opacity="0.8">
+    <!-- Simplified T-Rex silhouette -->
+    <path d="M0 120 Q20 100 40 110 Q60 90 80 100 Q100 80 120 90 Q140 70 160 80 Q180 60 200 70 Q220 50 240 60 Q260 40 280 50 Q300 30 320 40 Q340 20 360 30 Q380 10 400 20 L400 160 Q380 150 360 160 Q340 140 320 150 Q300 130 280 140 Q260 120 240 130 Q220 110 200 120 Q180 100 160 110 Q140 90 120 100 Q100 80 80 90 Q60 70 40 80 Q20 60 0 70 Z"/>
+  </g>
+  
+  <!-- DNA double helix decoration -->
+  <g transform="translate(100, 350)" stroke="url(#dnaGradient)" stroke-width="3" fill="none" opacity="0.6">
+    <path d="M0 0 Q25 -20 50 0 Q75 20 100 0 Q125 -20 150 0"/>
+    <path d="M0 20 Q25 0 50 20 Q75 40 100 20 Q125 0 150 20"/>
+    <circle cx="0" cy="0" r="4" fill="url(#dnaGradient)"/>
+    <circle cx="50" cy="0" r="4" fill="url(#dnaGradient)"/>
+    <circle cx="100" cy="0" r="4" fill="url(#dnaGradient)"/>
+    <circle cx="150" cy="0" r="4" fill="url(#dnaGradient)"/>
+  </g>
+  
+  <g transform="translate(950, 350)" stroke="url(#dnaGradient)" stroke-width="3" fill="none" opacity="0.6">
+    <path d="M0 0 Q25 -20 50 0 Q75 20 100 0 Q125 -20 150 0"/>
+    <path d="M0 20 Q25 0 50 20 Q75 40 100 20 Q125 0 150 20"/>
+    <circle cx="0" cy="0" r="4" fill="url(#dnaGradient)"/>
+    <circle cx="50" cy="0" r="4" fill="url(#dnaGradient)"/>
+    <circle cx="100" cy="0" r="4" fill="url(#dnaGradient)"/>
+    <circle cx="150" cy="0" r="4" fill="url(#dnaGradient)"/>
+  </g>
+  
+  <!-- Features -->
+  <text x="600" y="420" font-family="Arial, sans-serif" font-size="20" 
+        text-anchor="middle" fill="#ffffff" opacity="0.9">
+    🧬 Mix DNA • 🎨 Customize Traits • 🤖 AI Generation • 🔬 Scientific Analysis
+  </text>
+  
+  <!-- Call to action -->
+  <text x="600" y="520" font-family="Arial, sans-serif" font-size="24" font-weight="bold"
+        text-anchor="middle" fill="#00ffaa">
+    Create Your Prehistoric Creatures Today!
+  </text>
+  
+  <!-- Website -->
+  <text x="600" y="570" font-family="Arial, sans-serif" font-size="18" 
+        text-anchor="middle" fill="#ffffff" opacity="0.7">
+    createosaur.com
+  </text>
+</svg>

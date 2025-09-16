@@ -1,0 +1,218 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Genetic Lab Design System - DNA Hybrid Creator */
+
+@layer base {
+  :root {
+    /* Dark lab background with subtle patterns */
+    --background: 222 47% 5%;
+    --foreground: 180 100% 95%;
+
+    /* Glass-morphism cards */
+    --card: 200 50% 8%;
+    --card-foreground: 180 100% 95%;
+
+    /* Popovers and dropdowns */
+    --popover: 200 50% 8%;
+    --popover-foreground: 180 100% 95%;
+
+    /* Primary - Electric cyan for genetic themes */
+    --primary: 188 100% 50%;
+    --primary-foreground: 222 47% 5%;
+
+    /* Secondary - Deep teal for lab equipment */
+    --secondary: 200 50% 15%;
+    --secondary-foreground: 180 100% 95%;
+
+    /* Muted - Darker lab surfaces */
+    --muted: 200 30% 12%;
+    --muted-foreground: 180 30% 70%;
+
+    /* Accent - Electric green for DNA/life */
+    --accent: 120 100% 50%;
+    --accent-foreground: 222 47% 5%;
+
+    /* Destructive - Warning red */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 180 100% 95%;
+
+    /* Borders and inputs with glow */
+    --border: 188 50% 25%;
+    --input: 200 50% 12%;
+    --ring: 188 100% 50%;
+
+    --radius: 0.75rem;
+
+    /* DNA gradient themes */
+    --gradient-primary: linear-gradient(135deg, hsl(188 100% 50%), hsl(120 100% 50%));
+    --gradient-lab: linear-gradient(180deg, hsl(200 50% 8%), hsl(222 47% 5%));
+    --gradient-dna: linear-gradient(45deg, hsl(188 100% 40%), hsl(188 100% 60%));
+    
+    /* Glow effects for genetic elements */
+    --glow-primary: 0 0 20px hsl(188 100% 50% / 0.5);
+    --glow-accent: 0 0 20px hsl(120 100% 50% / 0.5);
+    --glow-soft: 0 0 40px hsl(188 100% 50% / 0.2);
+
+    /* Glass morphism */
+    --glass-bg: hsl(200 50% 8% / 0.8);
+    --glass-border: hsl(188 50% 50% / 0.2);
+
+    /* Animation timing */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+
+  .dark {
+    /* Keep same values for dark mode consistency */
+    --background: 222 47% 5%;
+    --foreground: 180 100% 95%;
+
+    --card: 200 50% 8%;
+    --card-foreground: 180 100% 95%;
+    --popover: 200 50% 8%;
+    --popover-foreground: 180 100% 95%;
+    --primary: 188 100% 50%;
+    --primary-foreground: 222 47% 5%;
+    --secondary: 200 50% 15%;
+    --secondary-foreground: 180 100% 95%;
+    --muted: 200 30% 12%;
+    --muted-foreground: 180 30% 70%;
+    --accent: 120 100% 50%;
+    --accent-foreground: 222 47% 5%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 180 100% 95%;
+    --border: 188 50% 25%;
+    --input: 200 50% 12%;
+    --ring: 188 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(200 50% 3%) 100%);
+    min-height: 100vh;
+  }
+
+  /* Static DNA pattern without animation */
+  .dna-pattern {
+    background-image: 
+      radial-gradient(circle at 20% 50%, hsl(188 100% 50% / 0.05) 0%, transparent 50%),
+      radial-gradient(circle at 80% 50%, hsl(120 100% 50% / 0.05) 0%, transparent 50%);
+    background-size: 60px 40px;
+  }
+
+  /* Glass morphism utility */
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+  }
+
+  /* Glow effects */
+  .glow-primary {
+    box-shadow: var(--glow-primary);
+  }
+  
+  .glow-accent {
+    box-shadow: var(--glow-accent);
+  }
+
+  .glow-soft {
+    box-shadow: var(--glow-soft);
+  }
+
+  /* Hover glow animation */
+  .hover-glow {
+    transition: var(--transition-smooth);
+  }
+  
+  .hover-glow:hover {
+    box-shadow: var(--glow-primary);
+    transform: translateY(-2px);
+  }
+}
+
+@layer components {
+  /* DNA strand animation */
+  .dna-strand {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .dna-strand::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.3), transparent);
+    animation: dna-scan 3s ease-in-out infinite;
+  }
+
+  /* Button variants */
+  .btn-genetic {
+    @apply bg-gradient-to-r from-primary/20 to-accent/20 border border-primary/50;
+    @apply hover:from-primary/30 hover:to-accent/30 hover:border-primary;
+    @apply transition-all duration-300 hover:glow-primary;
+  }
+
+  .btn-lab {
+    @apply bg-secondary/50 border border-border hover:bg-secondary/70;
+    @apply hover:border-primary/50 transition-all duration-300;
+  }
+}
+
+/* Enhanced interactions */
+.hover-scale {
+  transition: var(--transition-smooth);
+}
+
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+
+.loading-shimmer {
+  background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.1), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Enhanced button states */
+.btn-state-transition {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Keyframe animations - removed nauseating rotations */
+@keyframes dna-scan {
+  0% { left: "-100%"; }
+  50% { left: "100%"; }
+  100% { left: "100%"; }
+}
+
+@keyframes genetic-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
