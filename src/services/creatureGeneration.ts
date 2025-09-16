@@ -1,5 +1,6 @@
 import { imageGenerationService, GenerationConfig } from "@/services/imageGeneration";
 import { appConfig } from "@/config/app";
+import { generateEnhancedPrompt, EnhancedPromptConfig } from "./promptGeneration";
 
 /**
  * Generated creature data structure with full metadata
@@ -153,40 +154,61 @@ export async function generateHybridCreatures(
     onProgress?.('Sequencing', 40);
     await delay(800);
     
-    // Build trait description for prompt
-    let traitDescription = "";
-    if (includedTraits.length > 0) {
-      traitDescription += `The creature MUST have these traits: ${includedTraits.join(", ")}. `;
-    }
-    if (excludedTraits.length > 0) {
-      traitDescription += `The creature must NOT have these traits: ${excludedTraits.join(", ")}. `;
-    }
-    
-    // Fallback to automatic trait selection if no manual selections
-    if (includedTraits.length === 0 && excludedTraits.length === 0) {
-      const dominantTraits = activeDinosaurs
-        .sort((a, b) => b.percentage - a.percentage)
-        .flatMap(d => d.traits.slice(0, Math.ceil(d.percentage / 25)));
-      traitDescription = `The creature has ${dominantTraits.join(", ").toLowerCase()}. `;
+    // Build enhanced prompt configuration from genetics and traits
+    const genetics = activeDinosaurs.map(dino => ({
+      species: dino.name,
+      percentage: dino.percentage
+    }));
+
+    // Collect trait preferences - convert to array of strings
+    const selectedTraits: string[] = [];
+    activeDinosaurs.forEach(dino => {
+      const selections = traitSelections[dino.id] || {};
+      dino.traits.forEach(trait => {
+        const state = selections[trait] || "default";
+        if (state === "included") {
+          selectedTraits.push(trait);
+        }
+      });
+    });
+
+    // If no traits selected, use dominant species traits
+    if (selectedTraits.length === 0) {
+      const dominantDino = activeDinosaurs.reduce((prev, current) => 
+        (prev.percentage > current.percentage) ? prev : current
+      );
+      selectedTraits.push(...dominantDino.traits.slice(0, 3)); // Top 3 traits from dominant species
     }
 
-    // Build visual description
-    const effectsDescription = colorEffects.length > 0 ? ` with ${colorEffects.join(" and ")} effects` : "";
-    const textureDescription = selectedTexture ? ` with ${selectedTexture} texture` : "";
-    const sizeDescription = creatureSize < 25 ? " tiny" : creatureSize < 50 ? " small" : creatureSize < 75 ? " medium-sized" : " massive";
-    const ageDescription = ageStage === 'juvenile' ? " juvenile" : " adult";
+    // Map size number to size category
+    const sizeCategory = creatureSize < 25 ? 'tiny' : 
+                        creatureSize < 50 ? 'small' : 
+                        creatureSize < 75 ? 'medium' : 
+                        creatureSize > 85 ? 'massive' : 'large';
+
+    // Map background
+    const environment = selectedBackground === 'custom' ? 'ancient landscape' : selectedBackground;
+
+    // Build enhanced prompt configuration
+    const promptConfig: EnhancedPromptConfig = {
+      genetics,
+      traits: selectedTraits,
+      colors: selectedColors,
+      pattern: selectedPattern,
+      texture: selectedTexture || 'smooth',
+      size: sizeCategory as any,
+      age: ageStage,
+      environment,
+      style: 'scientific illustration style'
+    };
+
+    // Generate enhanced prompt with percentages and variation
+    const enhancedPrompt = generateEnhancedPrompt(promptConfig);
     
-    // Include background and weather in prompt
-    const backgroundDescription = selectedBackground === 'custom' ? '' : ` in a ${selectedBackground} environment`;
-    const weatherDescription = backgroundSettings.weatherEffect !== 'none' ? ` during ${backgroundSettings.weatherEffect}` : '';
-    const timeDescription = backgroundSettings.timeOfDay !== 'day' ? ` at ${backgroundSettings.timeOfDay}` : '';
+    // Add custom prompt text if provided
+    const finalPrompt = promptText ? `${promptText}. ${enhancedPrompt}` : enhancedPrompt;
     
-    // Construct final prompt
-    const basePrompt = `A prehistoric${sizeDescription}${ageDescription} hybrid dinosaur creature combining features from ${activeDinosaurs.map(d => d.name).join(", ")}. ${traitDescription}Colors: ${selectedColors.join(" and ")}${effectsDescription}. Pattern: ${selectedPattern}${textureDescription}${backgroundDescription}${weatherDescription}${timeDescription}. Ultra realistic, detailed, scientific illustration style, cinematic lighting.`;
-    
-    const finalPrompt = promptText ? `${promptText}. ${basePrompt}` : basePrompt;
-    
-    console.log("Generating with prompt:", finalPrompt);
+    console.log("🧬 Enhanced prompt with genetics:", finalPrompt);
 
     // Stage 3: Generating
     onProgress?.('Generating', 70);
