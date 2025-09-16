@@ -3,7 +3,7 @@ import { GeneticLab } from "@/components/GeneticLab";
 import { GenerationGallery } from "@/components/GenerationGallery";
 import { Button } from "@/components/ui/button";
 import { ThemeSelector } from "@/components/ThemeSelector";
-import { Dna, Beaker, Zap, ArrowLeft } from "lucide-react";
+import { Dna, Beaker, Zap, ArrowLeft, Key } from "lucide-react";
 import labBackground from "@/assets/lab-background.jpg";
 
 const Index = () => {
@@ -113,6 +113,22 @@ const Index = () => {
                 customize traits, and bring your ultimate hybrid creature to life 
                 using cutting-edge AI visualization technology.
               </p>
+
+              {/* API Key Notice */}
+              <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-6 max-w-2xl mx-auto">
+                <div className="flex items-start gap-3">
+                  <Key className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+                  <div className="text-left">
+                    <h4 className="font-medium text-amber-800 dark:text-amber-200 mb-1">
+                      Bring Your Own AI Key
+                    </h4>
+                    <p className="text-sm text-amber-700 dark:text-amber-300">
+                      To generate real creatures, you'll need your own free Hugging Face API key. 
+                      Without it, you'll see demo mode with placeholder images.
+                    </p>
+                  </div>
+                </div>
+              </div>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                 <Button 
