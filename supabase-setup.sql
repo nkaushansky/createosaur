@@ -97,6 +97,29 @@ CREATE TRIGGER on_auth_user_created
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
+-- ========================================
+-- STORAGE SETUP
+-- ========================================
+
+-- Create storage bucket for creature images
+INSERT INTO storage.buckets (id, name, public) VALUES ('creature-images', 'creature-images', true);
+
+-- Set up RLS policies for storage bucket
+CREATE POLICY "Users can upload images" ON storage.objects
+  FOR INSERT WITH CHECK (bucket_id = 'creature-images' AND auth.uid()::text = (storage.foldername(name))[1]);
+
+CREATE POLICY "Users can view own images" ON storage.objects
+  FOR SELECT USING (bucket_id = 'creature-images' AND auth.uid()::text = (storage.foldername(name))[1]);
+
+CREATE POLICY "Users can delete own images" ON storage.objects
+  FOR DELETE USING (bucket_id = 'creature-images' AND auth.uid()::text = (storage.foldername(name))[1]);
+
+CREATE POLICY "Anyone can view public images" ON storage.objects
+  FOR SELECT USING (bucket_id = 'creature-images');
+
+-- ========================================
+-- TEST DATA (OPTIONAL)
+-- ========================================
 
 -- Test data insert (optional - remove in production)
 -- This will help verify everything is working

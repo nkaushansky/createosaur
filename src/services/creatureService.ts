@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { ImageStorageService } from './imageStorage'
 
 export interface DatabaseCreature {
   id: string
@@ -70,11 +71,30 @@ export class CreatureService {
       rating?: number
     }
   ): Promise<DatabaseCreature> {
+    // Upload image to Supabase Storage if provided
+    let finalImageUrl = creatureData.image_url
+
+    if (creatureData.image_url) {
+      console.log('Uploading image to Supabase Storage...')
+      const uploadResult = await ImageStorageService.uploadImage(
+        creatureData.image_url,
+        userId
+      )
+
+      if (uploadResult.success && uploadResult.publicUrl) {
+        finalImageUrl = uploadResult.publicUrl
+        console.log('Image uploaded successfully:', finalImageUrl)
+      } else {
+        console.warn('Image upload failed, using original URL:', uploadResult.error)
+        // Continue with original URL if upload fails
+      }
+    }
+
     // Prepare the data for insertion, ensuring rating meets constraints
     const insertData = {
       user_id: userId,
       name: creatureData.name,
-      image_url: creatureData.image_url,
+      image_url: finalImageUrl,
       generation_params: creatureData.generation_params,
       traits: creatureData.traits,
       is_favorite: creatureData.is_favorite || false,
@@ -124,6 +144,18 @@ export class CreatureService {
 
   // Delete a creature
   static async deleteCreature(creatureId: string): Promise<void> {
+    // First, get the creature to obtain the image URL
+    const { data: creature, error: fetchError } = await supabase
+      .from('creatures')
+      .select('image_url')
+      .eq('id', creatureId)
+      .single()
+
+    if (fetchError) {
+      console.error('Error fetching creature for deletion:', fetchError)
+    }
+
+    // Delete the creature from database
     const { error } = await supabase
       .from('creatures')
       .delete()
@@ -132,6 +164,14 @@ export class CreatureService {
     if (error) {
       console.error('Error deleting creature:', error)
       throw error
+    }
+
+    // Clean up the associated image if it exists
+    if (creature?.image_url) {
+      const deleteSuccess = await ImageStorageService.deleteImage(creature.image_url)
+      if (!deleteSuccess) {
+        console.warn('Failed to delete associated image:', creature.image_url)
+      }
     }
   }
 
