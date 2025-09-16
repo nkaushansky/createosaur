@@ -1,5 +1,18 @@
 import { BaseAIProvider, AIProviderConfig, GenerationConfig, GenerationResponse } from './base';
 
+interface StabilityAPIRequest {
+  text_prompts: Array<{
+    text: string;
+    weight: number;
+  }>;
+  cfg_scale: number;
+  steps: number;
+  width: number;
+  height: number;
+  samples: number;
+  seed?: number;
+}
+
 export class StabilityAIProvider extends BaseAIProvider {
   readonly config: AIProviderConfig = {
     name: 'stability',
@@ -85,23 +98,32 @@ export class StabilityAIProvider extends BaseAIProvider {
 
     const enhancedPrompt = this.enhancePrompt(config.prompt);
 
-    const formData = new FormData();
-    formData.append('text_prompts[0][text]', enhancedPrompt);
-    formData.append('text_prompts[0][weight]', '1');
-    
+    // Stability AI v1 REST API expects JSON format
+    const requestBody: StabilityAPIRequest = {
+      text_prompts: [
+        {
+          text: enhancedPrompt,
+          weight: 1
+        }
+      ],
+      cfg_scale: config.guidance || 7.5,
+      steps: config.steps || 30,
+      width: config.width || 1024,
+      height: config.height || 1024,
+      samples: 1
+    };
+
+    // Add negative prompt if provided
     if (config.negativePrompt) {
-      formData.append('text_prompts[1][text]', config.negativePrompt);
-      formData.append('text_prompts[1][weight]', '-1');
+      requestBody.text_prompts.push({
+        text: config.negativePrompt,
+        weight: -1
+      });
     }
-    
-    formData.append('cfg_scale', (config.guidance || 7.5).toString());
-    formData.append('steps', (config.steps || 30).toString());
-    formData.append('width', (config.width || 1024).toString());
-    formData.append('height', (config.height || 1024).toString());
-    formData.append('samples', '1');
-    
+
+    // Add seed if provided
     if (config.seed) {
-      formData.append('seed', config.seed.toString());
+      requestBody.seed = config.seed;
     }
 
     console.log(`🔄 Stability AI: Generating with model ${model}`);
@@ -115,8 +137,9 @@ export class StabilityAIProvider extends BaseAIProvider {
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Accept': 'application/json',
+          'Content-Type': 'application/json',
         },
-        body: formData,
+        body: JSON.stringify(requestBody),
       });
 
       console.log('📡 Stability AI API Response status:', response.status);
