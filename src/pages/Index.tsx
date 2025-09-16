@@ -96,7 +96,10 @@ const Index = () => {
       traits: creature.traits || {},
       is_favorite: creature.isFavorite || false,
       is_public: false,
-      rating: creature.rating
+      // Only include rating if it's a valid number between 1-5
+      ...(creature.rating && creature.rating >= 1 && creature.rating <= 5 
+          ? { rating: creature.rating } 
+          : {})
     });
   };
   return (

@@ -70,14 +70,24 @@ export class CreatureService {
       rating?: number
     }
   ): Promise<DatabaseCreature> {
+    // Prepare the data for insertion, ensuring rating meets constraints
+    const insertData = {
+      user_id: userId,
+      name: creatureData.name,
+      image_url: creatureData.image_url,
+      generation_params: creatureData.generation_params,
+      traits: creatureData.traits,
+      is_favorite: creatureData.is_favorite || false,
+      is_public: creatureData.is_public || false,
+      // Only include rating if it's a valid number between 1-5
+      ...(creatureData.rating && creatureData.rating >= 1 && creatureData.rating <= 5 
+          ? { rating: creatureData.rating } 
+          : {})
+    }
+
     const { data, error } = await supabase
       .from('creatures')
-      .insert({
-        user_id: userId,
-        ...creatureData,
-        is_favorite: creatureData.is_favorite || false,
-        is_public: creatureData.is_public || false
-      })
+      .insert(insertData)
       .select()
       .single()
 
