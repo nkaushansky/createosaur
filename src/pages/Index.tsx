@@ -96,9 +96,14 @@ const Index = () => {
                   <h1 className="text-6xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent mb-2">
                     Createosaur
                   </h1>
-                  <p className="text-xl text-muted-foreground">
-                    Genetic Engineering Laboratory
-                  </p>
+                  <div className="flex items-center justify-center gap-2">
+                    <p className="text-xl text-muted-foreground">
+                      Genetic Engineering Laboratory
+                    </p>
+                    <span className="px-2 py-1 bg-green-500 text-white text-xs rounded-full animate-pulse">
+                      LIVE
+                    </span>
+                  </div>
                 </div>
                 <Beaker className="w-16 h-16 text-accent animate-genetic-pulse" />
               </div>
