@@ -14,9 +14,22 @@ interface ColorPaletteProps {
 }
 
 const standardColors = [
+  // Vibrant Colors
   "#00ffff", "#00ff00", "#ff6b00", "#ff0000", "#8b00ff", 
   "#ffff00", "#ff69b4", "#00bfff", "#32cd32", "#ff4500",
-  "#9400d3", "#ffd700", "#dc143c", "#00ced1", "#adff2f"
+  "#9400d3", "#ffd700", "#dc143c", "#00ced1", "#adff2f",
+  
+  // Natural Earth Tones
+  "#8B4513", "#D2691E", "#CD853F", "#F4A460", "#DEB887",
+  "#D2B48C", "#BC8F8F", "#F5DEB3", "#FFE4B5", "#FFDEAD",
+  
+  // Deep Forest Colors
+  "#228B22", "#006400", "#556B2F", "#8FBC8F", "#2E8B57",
+  "#3CB371", "#20B2AA", "#008B8B", "#4682B4", "#5F9EA0",
+  
+  // Muted Naturals
+  "#708090", "#778899", "#B0C4DE", "#E6E6FA", "#F5F5DC",
+  "#FFFAF0", "#FDF5E6", "#FAF0E6", "#FFEFD5", "#FFE4E1"
 ];
 
 const metallicColors = [

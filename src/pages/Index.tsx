@@ -1,46 +1,67 @@
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCreatures } from "@/hooks/useCreatures";
 import { GeneticLab } from "@/components/GeneticLab";
 import { GenerationGallery } from "@/components/GenerationGallery";
+import { AuthForm } from "@/components/AuthForm";
+import { UserProfile } from "@/components/UserProfile";
 import { Button } from "@/components/ui/button";
 import { ThemeSelector } from "@/components/ThemeSelector";
-import { Dna, Beaker, Zap, ArrowLeft, Key } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Dna, Beaker, Zap, ArrowLeft, User, LogIn, Cloud, Upload } from "lucide-react";
 import labBackground from "@/assets/lab-background.jpg";
 
 const Index = () => {
+  const { user, loading } = useAuth();
+  const { 
+    creatures, 
+    loading: creaturesLoading, 
+    error: creaturesError,
+    migrationStatus,
+    actions: {
+      saveCreature,
+      deleteCreature,
+      toggleFavorite,
+      updateRating,
+      renameCreature,
+      togglePublic
+    }
+  } = useCreatures();
+  
   const [currentView, setCurrentView] = useState<'home' | 'lab' | 'gallery'>('home');
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [regenerationParams, setRegenerationParams] = useState<any>(null);
-  const [creatures, setCreatures] = useState(() => {
-    // Load creatures from localStorage on component mount
-    const saved = localStorage.getItem('createosaur-creatures');
-    return saved ? JSON.parse(saved) : [];
-  });
 
-  // Save creatures to localStorage whenever the list changes
-  const saveCreatures = (newCreatures: any[]) => {
-    setCreatures(newCreatures);
-    localStorage.setItem('createosaur-creatures', JSON.stringify(newCreatures));
+  // Convert database creatures to the format expected by GenerationGallery
+  const adaptedCreatures = creatures.map(creature => ({
+    id: creature.id,
+    name: creature.name,
+    imageUrl: creature.image_url || '',
+    timestamp: new Date(creature.created_at),
+    algorithm: creature.generation_params?.algorithm || 'unknown',
+    generationParams: creature.generation_params,
+    traits: creature.traits,
+    isFavorite: creature.is_favorite,
+    rating: creature.rating,
+    tags: [] // Add empty tags array for compatibility
+  }));
+
+  const handleDeleteCreature = async (id: string) => {
+    await deleteCreature(id);
   };
 
-  const handleDeleteCreature = (id: string) => {
-    saveCreatures(creatures.filter((c: any) => c.id !== id));
+  const handleToggleFavorite = async (id: string) => {
+    await toggleFavorite(id);
   };
 
-  const handleToggleFavorite = (id: string) => {
-    saveCreatures(creatures.map((c: any) => 
-      c.id === id ? { ...c, isFavorite: !c.isFavorite } : c
-    ));
+  const handleRateCreature = async (id: string, rating: number) => {
+    await updateRating(id, rating);
   };
 
-  const handleRateCreature = (id: string, rating: number) => {
-    saveCreatures(creatures.map((c: any) => 
-      c.id === id ? { ...c, rating } : c
-    ));
-  };
-
-  const handleRenameCreature = (id: string, newName: string) => {
-    saveCreatures(creatures.map((c: any) => 
-      c.id === id ? { ...c, name: newName } : c
-    ));
+  const handleRenameCreature = async (id: string, newName: string) => {
+    await renameCreature(id, newName);
   };
 
   const handleSelectCreature = (creature: any) => {
@@ -67,8 +88,16 @@ const Index = () => {
     setCurrentView('lab');
   };
 
-  const handleNewCreature = (creature: any) => {
-    saveCreatures([creature, ...creatures]);
+  const handleNewCreature = async (creature: any) => {
+    await saveCreature({
+      name: creature.name || 'Unnamed Creature',
+      image_url: creature.imageUrl,
+      generation_params: creature.generationParams || {},
+      traits: creature.traits || {},
+      is_favorite: creature.isFavorite || false,
+      is_public: false,
+      rating: creature.rating
+    });
   };
   return (
     <div className="min-h-screen">
@@ -76,7 +105,7 @@ const Index = () => {
         <>
           {/* Hero Section */}
           <div 
-            className="relative min-h-screen flex items-center justify-center dna-pattern"
+            className="relative min-h-screen flex items-center justify-center dna-pattern px-4 sm:px-6 lg:px-8"
             style={{
               backgroundImage: `linear-gradient(rgba(34, 47, 62, 0.8), rgba(34, 47, 62, 0.9)), url(${labBackground})`,
               backgroundSize: 'cover',
@@ -85,55 +114,66 @@ const Index = () => {
           >
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/20 to-background"></div>
             
-            <div className="absolute top-4 right-4 z-10">
-              <ThemeSelector />
+            {/* Mobile-friendly header */}
+            <div className="absolute top-0 left-0 right-0 z-10 p-4 sm:p-6">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <Dna className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
+                  <span className="text-lg sm:text-xl font-bold text-white">Createosaur</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {user ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowProfileDialog(true)}
+                      className="bg-background/80 backdrop-blur-sm flex items-center gap-2"
+                    >
+                      <User className="w-4 h-4" />
+                      <span className="hidden sm:inline">Profile</span>
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowAuthDialog(true)}
+                      className="bg-background/80 backdrop-blur-sm flex items-center gap-2"
+                    >
+                      <LogIn className="w-4 h-4" />
+                      <span className="hidden sm:inline">Sign In</span>
+                    </Button>
+                  )}
+                  <ThemeSelector />
+                </div>
+              </div>
             </div>
 
-            <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
-              <div className="mb-8 flex items-center justify-center gap-4">
-                <Dna className="w-16 h-16 text-primary animate-genetic-pulse" />
+            <div className="relative z-10 text-center px-4 max-w-4xl mx-auto pt-20 sm:pt-24">
+              <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Dna className="w-12 h-12 sm:w-16 sm:h-16 text-primary animate-genetic-pulse" />
                 <div>
-                  <h1 className="text-6xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent mb-2">
+                  <h1 className="text-3xl sm:text-4xl lg:text-6xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent mb-2">
                     Createosaur
                   </h1>
                   <div className="flex items-center justify-center gap-2">
-                    <p className="text-xl text-muted-foreground">
+                    <p className="text-lg sm:text-xl text-muted-foreground">
                       Genetic Engineering Laboratory
                     </p>
-                    <span className="px-2 py-1 bg-green-500 text-white text-xs rounded-full animate-pulse">
-                      LIVE
-                    </span>
                   </div>
                 </div>
-                <Beaker className="w-16 h-16 text-accent animate-genetic-pulse" />
+                <Beaker className="w-12 h-12 sm:w-16 sm:h-16 text-accent animate-genetic-pulse" />
               </div>
               
-              <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+              <p className="text-base sm:text-lg text-muted-foreground mb-6 sm:mb-8 max-w-2xl mx-auto px-4">
                 Welcome to the future of prehistoric genetics. Combine dinosaur DNA, 
                 customize traits, and bring your ultimate hybrid creature to life 
                 using cutting-edge AI visualization technology.
               </p>
 
-              {/* API Key Notice */}
-              <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-6 max-w-2xl mx-auto">
-                <div className="flex items-start gap-3">
-                  <Key className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5" />
-                  <div className="text-left">
-                    <h4 className="font-medium text-amber-800 dark:text-amber-200 mb-1">
-                      Bring Your Own AI Key
-                    </h4>
-                    <p className="text-sm text-amber-700 dark:text-amber-300">
-                      To generate real creatures, you'll need your own free Hugging Face API key. 
-                      Without it, you'll see demo mode with placeholder images.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                 <Button 
                   size="lg" 
-                  className="btn-genetic px-8 py-6 text-lg hover:scale-105 transition-transform"
+                  className="btn-genetic w-full sm:w-auto px-8 py-6 text-lg hover:scale-105 transition-transform"
                   onClick={() => setCurrentView('lab')}
                 >
                   <Zap className="w-5 h-5 mr-2" />
@@ -143,7 +183,7 @@ const Index = () => {
                 <Button 
                   size="lg" 
                   variant="outline" 
-                  className="btn-lab px-8 py-6 text-lg"
+                  className="btn-lab w-full sm:w-auto px-8 py-6 text-lg"
                   onClick={() => {
                     console.log('Gallery button clicked, creatures:', creatures);
                     setCurrentView('gallery');
@@ -154,8 +194,8 @@ const Index = () => {
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16">
-                <div className="glass p-6 rounded-lg hover-glow">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-12 sm:mt-16 px-4">
+                <div className="glass p-4 sm:p-6 rounded-lg hover-glow">
                   <Dna className="w-8 h-8 text-primary mb-3 mx-auto" />
                   <h3 className="text-lg font-semibold mb-2">DNA Mixing</h3>
                   <p className="text-sm text-muted-foreground">
@@ -163,7 +203,7 @@ const Index = () => {
                   </p>
                 </div>
                 
-                <div className="glass p-6 rounded-lg hover-glow">
+                <div className="glass p-4 sm:p-6 rounded-lg hover-glow">
                   <Beaker className="w-8 h-8 text-accent mb-3 mx-auto" />
                   <h3 className="text-lg font-semibold mb-2">Custom Traits</h3>
                   <p className="text-sm text-muted-foreground">
@@ -171,7 +211,7 @@ const Index = () => {
                   </p>
                 </div>
                 
-                <div className="glass p-6 rounded-lg hover-glow">
+                <div className="glass p-4 sm:p-6 rounded-lg hover-glow sm:col-span-2 lg:col-span-1">
                   <Zap className="w-8 h-8 text-primary mb-3 mx-auto" />
                   <h3 className="text-lg font-semibold mb-2">AI Generation</h3>
                   <p className="text-sm text-muted-foreground">
@@ -186,17 +226,18 @@ const Index = () => {
 
       {currentView === 'lab' && (
         <div className="relative">
-          {/* Back Button */}
+          {/* Mobile-friendly Back Button */}
           <Button
             variant="outline"
-            className="fixed top-4 left-4 z-50"
+            size="sm"
+            className="fixed top-4 left-4 z-50 bg-background/80 backdrop-blur-sm"
             onClick={() => {
               setCurrentView('home');
               setRegenerationParams(null); // Clear regeneration params when going back
             }}
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Home
+            <ArrowLeft className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Back to Home</span>
           </Button>
           <GeneticLab 
             onNewCreature={handleNewCreature} 
@@ -207,16 +248,64 @@ const Index = () => {
 
       {currentView === 'gallery' && (
         <div className="min-h-screen dna-pattern">
-          <div className="container mx-auto px-4 py-8">
+          <div className="container mx-auto px-4 py-4 sm:py-8">
             {/* Header */}
-            <div className="flex items-center gap-4 mb-8">
-              <Button
-                variant="outline"
-                onClick={() => setCurrentView('home')}
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Home
-              </Button>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6 sm:mb-8">
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentView('home')}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span className="hidden sm:inline">Back to Home</span>
+                  <span className="sm:hidden">Back</span>
+                </Button>
+
+                <h1 className="text-xl sm:text-3xl font-bold">My Creatures</h1>
+              </div>
+              
+              {user && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Cloud className="w-4 h-4" />
+                  <span className="hidden sm:inline">Cloud Sync Enabled</span>
+                  <span className="sm:hidden">Synced</span>
+                </div>
+              )}
+            </div>
+
+            {/* Migration Status */}
+            {migrationStatus.completed && migrationStatus.migratedCount > 0 && (
+              <Alert className="mb-6">
+                <Upload className="h-4 w-4" />
+                <AlertDescription>
+                  Successfully migrated {migrationStatus.migratedCount} creatures from local storage to your cloud gallery!
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Error Display */}
+            {creaturesError && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertDescription>
+                  {creaturesError}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Auth Required Notice */}
+            {!user && (
+              <Alert className="mb-6">
+                <LogIn className="h-4 w-4" />
+                <AlertDescription>
+                  Sign in to save your creatures to the cloud and access them from any device!
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Gallery Header */}
+            <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-3">
                 <Dna className="w-8 h-8 text-primary animate-genetic-pulse" />
                 <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
@@ -234,7 +323,7 @@ const Index = () => {
 
             {/* Gallery Component */}
             <GenerationGallery
-              creatures={creatures}
+              creatures={adaptedCreatures}
               onDeleteCreature={handleDeleteCreature}
               onToggleFavorite={handleToggleFavorite}
               onRateCreature={handleRateCreature}
@@ -245,6 +334,20 @@ const Index = () => {
           </div>
         </div>
       )}
+
+      {/* Authentication Dialog */}
+      <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
+        <DialogContent className="sm:max-w-md">
+          <AuthForm onSuccess={() => setShowAuthDialog(false)} />
+        </DialogContent>
+      </Dialog>
+
+      {/* Profile Dialog */}
+      <Dialog open={showProfileDialog} onOpenChange={setShowProfileDialog}>
+        <DialogContent className="sm:max-w-2xl">
+          <UserProfile onClose={() => setShowProfileDialog(false)} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

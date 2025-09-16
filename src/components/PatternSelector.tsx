@@ -19,7 +19,19 @@ const patterns = [
   { id: "gradient", name: "Gradient", icon: Waves, description: "Smooth color transitions" },
   { id: "camouflage", name: "Camouflage", icon: Grid3X3, description: "Natural camouflage patterns" },
   { id: "rosettes", name: "Rosettes", icon: Grid3X3, description: "Jaguar-style rosette patterns" },
-  { id: "mottled", name: "Mottled", icon: Waves, description: "Irregular blotchy patterns" }
+  { id: "mottled", name: "Mottled", icon: Waves, description: "Irregular blotchy patterns" },
+  { id: "tribal", name: "Tribal", icon: Grid3X3, description: "Geometric tribal markings" },
+  { id: "hexagonal", name: "Hexagonal", icon: Shield, description: "Honeycomb-like hexagonal patterns" },
+  { id: "marble", name: "Marble", icon: Waves, description: "Marbled stone-like patterns" },
+  { id: "webbed", name: "Webbed", icon: Grid3X3, description: "Spider web-like interconnected lines" },
+  { id: "chevron", name: "Chevron", icon: Grid3X3, description: "V-shaped zigzag patterns" },
+  { id: "cellular", name: "Cellular", icon: Grid3X3, description: "Cell-like organic patterns" },
+  { id: "fractal", name: "Fractal", icon: Waves, description: "Complex mathematical patterns" },
+  { id: "ripple", name: "Ripple", icon: Waves, description: "Water ripple-like concentric circles" },
+  { id: "crystalline", name: "Crystalline", icon: Zap, description: "Crystal formation patterns" },
+  { id: "organic", name: "Organic", icon: TreePine, description: "Natural organic flowing patterns" },
+  { id: "defensive", name: "Defensive", icon: Shield, description: "Warning coloration patterns" },
+  { id: "iridescent", name: "Iridescent", icon: Zap, description: "Color-shifting metallic patterns" }
 ];
 
 const textures = [
@@ -30,7 +42,15 @@ const textures = [
   { id: "fur", name: "Fur/Hair", icon: TreePine, description: "Mammalian fur coating", category: "covering" },
   { id: "quills", name: "Quills", icon: Feather, description: "Defensive spine-like quills", category: "covering" },
   { id: "leather", name: "Leathery Hide", icon: Shield, description: "Thick, tough skin", category: "skin" },
-  { id: "crystalline", name: "Crystalline", icon: Zap, description: "Crystal-like formations", category: "special" }
+  { id: "crystalline", name: "Crystalline", icon: Zap, description: "Crystal-like formations", category: "special" },
+  { id: "scutes", name: "Scutes", icon: Shield, description: "Large bony scales", category: "skin" },
+  { id: "bumpy", name: "Bumpy", icon: Waves, description: "Rough textured surface", category: "skin" },
+  { id: "ridged", name: "Ridged", icon: Shield, description: "Raised ridge patterns", category: "skin" },
+  { id: "downy", name: "Downy", icon: Feather, description: "Soft downy feathers", category: "covering" },
+  { id: "bristles", name: "Bristles", icon: TreePine, description: "Stiff hair-like structures", category: "covering" },
+  { id: "chitin", name: "Chitinous", icon: Shield, description: "Insect-like exoskeleton", category: "special" },
+  { id: "metallic", name: "Metallic", icon: Zap, description: "Shimmering metallic surface", category: "special" },
+  { id: "translucent", name: "Translucent", icon: Waves, description: "Semi-transparent skin", category: "special" }
 ];
 
 const textureCategories = [

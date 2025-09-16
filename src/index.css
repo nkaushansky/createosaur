@@ -216,3 +216,46 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* Mobile-specific improvements */
+@media (max-width: 768px) {
+  /* Improve touch targets */
+  button, .btn, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Better spacing for small screens */
+  .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0.75rem;
+  }
+  
+  /* Ensure modals are mobile-friendly */
+  [role="dialog"] {
+    margin: 1rem;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+  }
+  
+  /* Improve slider interactions */
+  input[type="range"] {
+    height: 2rem;
+  }
+  
+  /* Better card spacing */
+  .glass {
+    margin-bottom: 0.75rem;
+  }
+}
+
+/* Improved touch interactions */
+@media (hover: none) and (pointer: coarse) {
+  .hover-glow:hover {
+    transform: none;
+  }
+  
+  .hover-glow:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease-in-out;
+  }
+}

@@ -642,13 +642,29 @@ export const GeneticLab = ({ onNewCreature, regenerationParams }: GeneticLabProp
               </div>
 
               <Tabs defaultValue="species" className="w-full">
-                <TabsList className="grid w-full grid-cols-6 mb-6">
-                  <TabsTrigger value="species">Species DNA</TabsTrigger>
-                  <TabsTrigger value="colors">Coloration</TabsTrigger>
-                  <TabsTrigger value="patterns">Patterns</TabsTrigger>
-                  <TabsTrigger value="size">Size & Age</TabsTrigger>
-                  <TabsTrigger value="science">Science</TabsTrigger>
-                  <TabsTrigger value="generation">Generation</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 mb-4 sm:mb-6 h-auto">
+                  <TabsTrigger value="species" className="text-xs sm:text-sm px-1 sm:px-3 py-2">
+                    <span className="hidden sm:inline">Species DNA</span>
+                    <span className="sm:hidden">Species</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="colors" className="text-xs sm:text-sm px-1 sm:px-3 py-2">
+                    <span className="hidden sm:inline">Coloration</span>
+                    <span className="sm:hidden">Colors</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="patterns" className="text-xs sm:text-sm px-1 sm:px-3 py-2">
+                    Patterns
+                  </TabsTrigger>
+                  <TabsTrigger value="size" className="text-xs sm:text-sm px-1 sm:px-3 py-2">
+                    <span className="hidden sm:inline">Size & Age</span>
+                    <span className="sm:hidden">Size</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="science" className="text-xs sm:text-sm px-1 sm:px-3 py-2">
+                    Science
+                  </TabsTrigger>
+                  <TabsTrigger value="generation" className="text-xs sm:text-sm px-1 sm:px-3 py-2">
+                    <span className="hidden sm:inline">Generation</span>
+                    <span className="sm:hidden">Gen</span>
+                  </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="species" className="space-y-4">
@@ -657,7 +673,7 @@ export const GeneticLab = ({ onNewCreature, regenerationParams }: GeneticLabProp
                     onAddSpecies={addSpecies}
                   />
                   
-                  <div className="grid md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {dinosaurs.map((dinosaur) => (
                       <div key={dinosaur.id} className="relative">
                         <DinosaurCard
@@ -685,14 +701,14 @@ export const GeneticLab = ({ onNewCreature, regenerationParams }: GeneticLabProp
                     ))}
                   </div>
                   
-                  <div className="flex gap-4 pt-4">
-                    <Button onClick={normalizePercentages} variant="outline" className="btn-lab">
+                  <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                    <Button onClick={normalizePercentages} variant="outline" className="btn-lab w-full sm:w-auto">
                       Normalize to 100%
                     </Button>
                     <Button 
                       onClick={randomizeAll} 
                       variant="outline" 
-                      className="btn-lab flex items-center gap-2"
+                      className="btn-lab flex items-center justify-center gap-2 w-full sm:w-auto"
                     >
                       <Shuffle className="w-4 h-4" />
                       Randomize
@@ -700,7 +716,7 @@ export const GeneticLab = ({ onNewCreature, regenerationParams }: GeneticLabProp
                     <Button 
                       onClick={() => generateHybrid()}
                       disabled={totalPercentage === 0 || isGenerating}
-                      className="btn-genetic flex items-center gap-2"
+                      className="btn-genetic flex items-center justify-center gap-2 w-full sm:w-auto"
                     >
                       <Zap className="w-4 h-4" />
                       {isGenerating ? "Engineering..." : "Generate Hybrid"}
@@ -873,31 +889,33 @@ export const GeneticLab = ({ onNewCreature, regenerationParams }: GeneticLabProp
           </div>
 
           {/* Results Display */}
-          <div className="lg:col-span-1">
-            {isGenerating && loadingStage ? (
-              <AdvancedLoading 
-                stage={loadingStage}
-                progress={loadingProgress}
-                subtext="Creating your genetic masterpiece..."
-              />
-            ) : (
-              <ResultsDisplay 
-                dinosaurs={dinosaurs}
-                isGenerating={isGenerating}
-                generatedImage={generatedImage}
-                selectedColors={selectedColors}
-                selectedPattern={selectedPattern}
-                selectedBackground={selectedBackground}
-                onBackgroundChange={setSelectedBackground}
-                colorEffects={colorEffects}
-                selectedTexture={selectedTexture}
-                creatureSize={creatureSize}
-                ageStage={ageStage}
-                traitSelections={traitSelections}
-                scientificProfile={scientificProfile}
-                onRetry={generateHybrid}
-              />
-            )}
+          <div className="lg:col-span-1 order-first lg:order-last">
+            <div className="sticky top-4">
+              {isGenerating && loadingStage ? (
+                <AdvancedLoading 
+                  stage={loadingStage}
+                  progress={loadingProgress}
+                  subtext="Creating your genetic masterpiece..."
+                />
+              ) : (
+                <ResultsDisplay 
+                  dinosaurs={dinosaurs}
+                  isGenerating={isGenerating}
+                  generatedImage={generatedImage}
+                  selectedColors={selectedColors}
+                  selectedPattern={selectedPattern}
+                  selectedBackground={selectedBackground}
+                  onBackgroundChange={setSelectedBackground}
+                  colorEffects={colorEffects}
+                  selectedTexture={selectedTexture}
+                  creatureSize={creatureSize}
+                  ageStage={ageStage}
+                  traitSelections={traitSelections}
+                  scientificProfile={scientificProfile}
+                  onRetry={generateHybrid}
+                />
+              )}
+            </div>
           </div>
         </div>
       </div>
