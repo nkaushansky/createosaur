@@ -25,8 +25,8 @@ export interface AppConfig {
 // Default configuration
 const defaultConfig: AppConfig = {
   imageGeneration: {
-    provider: 'huggingface',
-    defaultModel: 'stabilityai/stable-diffusion-xl-base-1.0',
+    provider: 'stability',
+    defaultModel: 'stable-diffusion-xl-1024-v1-0',
     fallbackToFree: true,
   },
   features: {
