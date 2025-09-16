@@ -2,6 +2,7 @@ import { BaseAIProvider, GenerationConfig, GenerationResponse } from './base';
 import { HuggingFaceProvider } from './huggingface';
 import { OpenAIProvider } from './openai';
 import { StabilityAIProvider } from './stability';
+import { ModelMapper, EnhancedGenerationConfig } from './modelMapping';
 
 export class AIProviderRegistry {
   private providers: Map<string, BaseAIProvider> = new Map();
@@ -52,16 +53,42 @@ export class AIProviderRegistry {
     return localStorage.getItem('createosaur-default-provider') || this.defaultProvider;
   }
 
+  /**
+   * Prepare generation config for a specific provider by mapping models appropriately
+   */
+  private prepareConfigForProvider(config: GenerationConfig, providerName: string): GenerationConfig {
+    const enhancedConfig = { ...config };
+    
+    if (config.model) {
+      try {
+        // If a specific model is requested, try to map it to the provider's format
+        const capability = ModelMapper.detectCapabilityFromLegacyModel(config.model);
+        const providerModel = ModelMapper.getModelForProvider(providerName, capability);
+        enhancedConfig.model = providerModel;
+      } catch (error) {
+        console.warn(`⚠️ Could not map model for ${providerName}, using default:`, error);
+        // Fallback: let the provider use its default model
+        delete enhancedConfig.model;
+      }
+    }
+    
+    return enhancedConfig;
+  }
+
   async generateWithFallback(config: GenerationConfig): Promise<GenerationResponse> {
     const preferredProviderName = config.provider || this.getDefaultProviderName();
     const preferredProvider = this.getProvider(preferredProviderName);
     
+    // Smart model mapping: convert legacy model IDs to provider-specific IDs
+    const enhancedConfig = this.prepareConfigForProvider(config, preferredProviderName);
+    
     // Try preferred provider first
     if (preferredProvider && preferredProvider.isConfigured()) {
       console.log(`🎯 Trying preferred provider: ${preferredProvider.config.displayName}`);
+      console.log(`🔧 Using model: ${enhancedConfig.model} for ${preferredProviderName}`);
       
       try {
-        const result = await preferredProvider.generateImage(config);
+        const result = await preferredProvider.generateImage(enhancedConfig);
         if (result.success) {
           return result;
         }
@@ -79,8 +106,12 @@ export class AIProviderRegistry {
     for (const provider of fallbackProviders) {
       console.log(`🔄 Trying fallback provider: ${provider.config.displayName}`);
       
+      // Prepare config specifically for this fallback provider
+      const fallbackConfig = this.prepareConfigForProvider(config, provider.config.name);
+      console.log(`🔧 Using model: ${fallbackConfig.model} for ${provider.config.name}`);
+      
       try {
-        const result = await provider.generateImage(config);
+        const result = await provider.generateImage(fallbackConfig);
         if (result.success) {
           console.log(`✅ Fallback provider succeeded: ${provider.config.displayName}`);
           return result;
