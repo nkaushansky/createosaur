@@ -210,6 +210,14 @@ export async function generateHybridCreatures(
     
     console.log("🧬 Enhanced prompt with genetics:", finalPrompt);
 
+    // Store prompt details for display in gallery
+    const promptDetails = {
+      enhancedPrompt,
+      finalPrompt,
+      customPrompt: promptText,
+      promptConfig
+    };
+
     // Stage 3: Generating
     onProgress?.('Generating', 70);
     
@@ -271,7 +279,7 @@ export async function generateHybridCreatures(
           rating: 0,
           isFavorite: false,
           tags: [selectedPattern, selectedTexture, ...colorEffects, 'failed'],
-          generationParams: { ...dinoParams, ...aiParams }
+          generationParams: { ...dinoParams, ...aiParams, promptDetails }
         };
       }
 
@@ -286,7 +294,7 @@ export async function generateHybridCreatures(
         rating: 0,
         isFavorite: false,
         tags: [selectedPattern, selectedTexture, ...colorEffects],
-        generationParams: { ...dinoParams, ...aiParams },
+        generationParams: { ...dinoParams, ...aiParams, promptDetails },
         metadata: result.metadata
       };
     });

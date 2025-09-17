@@ -624,6 +624,44 @@ export const GenerationGallery = ({
                   </div>
                 </Card>
 
+                {/* AI Prompt Details */}
+                {selectedCreature.generationParams?.promptDetails && (
+                  <Card className="p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <ImageIcon className="w-4 h-4 text-primary" />
+                      <h4 className="font-medium">AI Generation Prompt</h4>
+                    </div>
+                    <div className="space-y-3">
+                      {selectedCreature.generationParams.promptDetails.customPrompt && (
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Custom Instructions</Label>
+                          <p className="text-sm mt-1 p-2 bg-muted/50 rounded border">
+                            {selectedCreature.generationParams.promptDetails.customPrompt}
+                          </p>
+                        </div>
+                      )}
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Generated Prompt</Label>
+                        <div className="mt-1 p-2 bg-muted/50 rounded border max-h-32 overflow-y-auto">
+                          <p className="text-sm whitespace-pre-wrap font-mono leading-relaxed">
+                            {selectedCreature.generationParams.promptDetails.enhancedPrompt}
+                          </p>
+                        </div>
+                      </div>
+                      {selectedCreature.generationParams.promptDetails.finalPrompt !== selectedCreature.generationParams.promptDetails.enhancedPrompt && (
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Complete AI Prompt</Label>
+                          <div className="mt-1 p-2 bg-muted/50 rounded border max-h-32 overflow-y-auto">
+                            <p className="text-sm whitespace-pre-wrap font-mono leading-relaxed">
+                              {selectedCreature.generationParams.promptDetails.finalPrompt}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                )}
+
                 {/* Tags */}
                 {selectedCreature.tags?.length > 0 && (
                   <Card className="p-4">
