@@ -47,16 +47,21 @@ export function generateEnhancedPrompt(config: EnhancedPromptConfig): string {
   
   // 6. Add anatomical specificity
   const anatomicalDetails = generateAnatomicalDetails(genetics);
+  
+  // 7. Add specific head and facial emphasis
+  const headEmphasis = generateHeadEmphasis(genetics);
 
   const promptParts = [
     `A prehistoric ${size} ${age} hybrid dinosaur creature`,
     geneticDescription,
     enhancedTraits,
     anatomicalDetails,
+    headEmphasis,
     colorDescription,
     `with ${texture} texture in a ${environment} environment`,
     behavioralTraits,
     variationSeed,
+    'IMPORTANT: Show distinct head shape and facial features unique to the genetic combination',
     style,
     'ultra realistic, detailed, scientific illustration style, cinematic lighting'
   ].filter(part => part && part.trim() !== '');
@@ -113,7 +118,26 @@ function inferBehavioralTraits(genetics: Array<{ species: string; percentage: nu
 
 function generateVariationSeed(): string {
   const variations = [
-    'with unique scarring patterns',
+    'with unique scarring patterns across the skull',
+    'showing battle-worn cranial features',
+    'displaying seasonal head crest coloration',
+    'with distinct sexual dimorphism in skull shape',
+    'featuring age-specific cranial development',
+    'showing regional skull adaptation features',
+    'with distinctive facial markings and head patterns',
+    'displaying mating season head ornamentation',
+    'featuring weather-adapted facial structures',
+    'with individual cranial genetic mutations',
+    'showing pack hierarchy head markings',
+    'with distinctive hunting scars on the skull',
+    'displaying alpha predator facial features',
+    'featuring unique head camouflage patterns',
+    'with evolutionary head adaptation markers',
+    'showing distinctive eye ridge development',
+    'with unique nasal cavity adaptations',
+    'featuring prominent cheekbone structures',
+    'displaying distinctive jaw line definition',
+    'with unique ear opening placement',
     'showing battle-worn features',
     'displaying seasonal plumage variations',
     'with distinct sexual dimorphism traits',
@@ -122,16 +146,11 @@ function generateVariationSeed(): string {
     'with distinctive territorial markings',
     'displaying mating season coloration',
     'featuring weather-adapted features',
-    'with individual genetic mutations',
-    'showing pack hierarchy markings',
-    'with distinctive hunting scars',
-    'displaying alpha predator features',
-    'featuring unique camouflage patterns',
-    'with evolutionary adaptation markers'
+    'with individual genetic mutations'
   ];
   
-  // 70% chance to add a variation seed for uniqueness
-  return Math.random() < 0.7 ? variations[Math.floor(Math.random() * variations.length)] : '';
+  // 80% chance to add a variation seed for more uniqueness
+  return Math.random() < 0.8 ? variations[Math.floor(Math.random() * variations.length)] : '';
 }
 
 function enhanceTraitDescription(traits: string[], genetics: Array<{ species: string; percentage: number }>): string {
@@ -219,13 +238,16 @@ function createColorMixingDescription(colors: string[], pattern: string): string
 
 function generateAnatomicalDetails(genetics: Array<{ species: string; percentage: number }>): string {
   const anatomicalFeatures = genetics
-    .filter(({ percentage }) => percentage >= 20) // Only significant contributors
-    .map(({ species }) => {
+    .filter(({ percentage }) => percentage >= 15) // Include more contributors for variety
+    .map(({ species, percentage }) => {
       const dino = dinosaurDatabase.find(d => d.name === species);
       if (!dino) return null;
       
-      // Generate specific anatomical details based on species
       const features = [];
+      
+      // Add specific HEAD AND SKULL features based on species
+      const headFeatures = generateHeadFeatures(dino, percentage);
+      if (headFeatures.length > 0) features.push(...headFeatures);
       
       // Infer category from traits and characteristics
       const traits = dino.traits.map(t => t.toLowerCase());
@@ -257,6 +279,100 @@ function generateAnatomicalDetails(genetics: Array<{ species: string; percentage
   return anatomicalFeatures.length > 0 
     ? `Anatomical features include ${anatomicalFeatures.join('; ')}`
     : '';
+}
+
+function generateHeadFeatures(dino: any, percentage: number): string[] {
+  const features = [];
+  const prominence = getProminenceLevel(percentage);
+  
+  // Head shape based on species characteristics
+  const headShapes: Record<string, string[]> = {
+    'Tyrannosaurus': [`${prominence} massive skull with powerful jaw muscles`, 'broad cranium for enhanced bite force'],
+    'Velociraptor': [`${prominence} elongated narrow skull`, 'prominent sagittal crest'],
+    'Triceratops': [`${prominence} massive frill extending from skull`, 'broad facial shield with defensive capability'],
+    'Diplodocus': [`${prominence} extremely small head relative to body size`, 'pencil-like teeth arrangement'],
+    'Stegosaurus': [`${prominence} small triangular head`, 'narrow beak-like snout'],
+    'Ankylosaurus': [`${prominence} heavily armored skull with bony nodules`, 'wide low-profile head shape'],
+    'Pteranodon': [`${prominence} elongated cranial crest`, 'toothless elongated beak structure'],
+    'Spinosaurus': [`${prominence} crocodilian-style elongated snout`, 'narrow skull adapted for piscivory'],
+    'Carnotaurus': [`${prominence} distinctive horn-like projections above eyes`, 'extremely shortened face'],
+    'Parasaurolophus': [`${prominence} hollow tubular crest extending backward`, 'duck-bill shaped snout'],
+    'Allosaurus': [`${prominence} pronounced lacrimal horns above eyes`, 'moderately long skull with sharp features'],
+    'Brachiosaurus': [`${prominence} high-positioned nostrils on skull dome`, 'relatively small head for body size'],
+    'Deinonychus': [`${prominence} large eye sockets for enhanced vision`, 'sharp predatory facial features'],
+    'Maiasaura': [`${prominence} duck-billed hadrosaur skull structure`, 'flat broad snout for plant processing'],
+    'Compsognathus': [`${prominence} very small delicate skull`, 'sharp needle-like teeth'],
+    'Iguanodon': [`${prominence} distinctive thumb spike weapon`, 'horse-like elongated skull'],
+    'Therizinosaurus': [`${prominence} small head with beak-like structure`, 'tiny skull relative to massive body'],
+    'Kentrosaurus': [`${prominence} small head with protective spikes`, 'narrow snout for selective feeding'],
+    'Amargasaurus': [`${prominence} parallel spinal sails on neck`, 'elongated skull with forward-pointing teeth'],
+    'Carcharadontosaurus': [`${prominence} shark-like serrated teeth`, 'massive predatory skull with deep jaw'],
+    'Coelophysis': [`${prominence} slender elongated skull`, 'narrow snout with sharp predatory features'],
+    'Mosasaurus': [`${prominence} massive marine predator skull`, 'elongated jaw adapted for aquatic hunting'],
+    'Microraptor': [`${prominence} small bird-like skull with large eye sockets`, 'delicate cranial structure'],
+    'Dracorex': [`${prominence} dragon-like skull with prominent spikes`, 'ornate cranial ornamentation'],
+    'Utahraptor': [`${prominence} sickle-claw predator skull`, 'enhanced sensory processing cranium'],
+    'Borealopelta': [`${prominence} heavily armored nodosaur skull`, 'club-like defensive head structure'],
+    'Archaeopteryx': [`${prominence} transitional bird-dinosaur skull`, 'toothed beak with flight adaptations']
+  };
+  
+  // Get species-specific head features
+  const speciesFeatures = headShapes[dino.name] || [];
+  if (speciesFeatures.length > 0) {
+    features.push(...speciesFeatures);
+  }
+  
+  // Add diet-based jaw features
+  if (dino.diet === 'Carnivore') {
+    features.push(`${prominence} powerful jaw muscles for crushing bite force`);
+  } else if (dino.diet === 'Herbivore') {
+    features.push(`${prominence} grinding teeth arrangement for plant matter`);
+  } else if (dino.diet === 'Piscivore') {
+    features.push(`${prominence} needle-like teeth for catching fish`);
+  }
+  
+  // Add habitat-based sensory features
+  if (dino.habitat.includes('water')) {
+    features.push(`${prominence} elongated snout adapted for aquatic hunting`);
+  } else if (dino.habitat.includes('forest')) {
+    features.push(`${prominence} enhanced olfactory chambers in skull`);
+  }
+  
+  return features;
+}
+
+function generateHeadEmphasis(genetics: Array<{ species: string; percentage: number }>): string {
+  const dominantSpecies = genetics.find(g => g.percentage >= 25);
+  if (!dominantSpecies) return '';
+  
+  const dino = dinosaurDatabase.find(d => d.name === dominantSpecies.species);
+  if (!dino) return '';
+  
+  const headDescriptions: Record<string, string> = {
+    'Tyrannosaurus': 'The head displays a massive, broad skull with pronounced muscle attachments and powerful crushing jaws',
+    'Velociraptor': 'The head features an elongated, narrow skull with a distinctive curved profile and prominent brain case',
+    'Triceratops': 'The head showcases the iconic three-horned arrangement with a massive bony frill extending backward',
+    'Diplodocus': 'The head appears remarkably small and delicate compared to the body, with a horse-like elongated profile',
+    'Stegosaurus': 'The head displays a small, triangular shape with a narrow snout and distinctive beak-like mouth',
+    'Ankylosaurus': 'The head shows heavy armor plating with bony nodules covering the skull in a distinctive pattern',
+    'Spinosaurus': 'The head features a distinctly crocodilian appearance with an elongated snout adapted for fishing',
+    'Carnotaurus': 'The head displays the characteristic devil-like horns above the eyes with an extremely shortened face',
+    'Parasaurolophus': 'The head showcases the distinctive hollow tube-like crest extending dramatically backward',
+    'Allosaurus': 'The head features prominent ridges and crests above the eyes giving it a fierce, predatory appearance',
+    'Brachiosaurus': 'The head shows elevated nostrils and a relatively small cranium compared to the massive body',
+    'Deinonychus': 'The head displays enhanced sensory features with large eye sockets and sharp predatory characteristics',
+    'Maiasaura': 'The head features the characteristic duck-bill shape with broad flat snout for efficient plant processing',
+    'Compsognathus': 'The head appears extremely small and delicate with sharp needle-like teeth for small prey',
+    'Coelophysis': 'The head shows a slender, elongated skull with narrow snout perfect for swift predatory strikes',
+    'Mosasaurus': 'The head displays massive marine predator features with elongated jaws adapted for aquatic hunting',
+    'Microraptor': 'The head features bird-like characteristics with large eye sockets and delicate cranial structure',
+    'Dracorex': 'The head showcases dragon-like skull ornamentation with prominent spikes and ornate features',
+    'Borealopelta': 'The head displays heavy armor plating and defensive club-like structure for protection',
+    'Archaeopteryx': 'The head shows transitional bird-dinosaur features with toothed beak and flight adaptations'
+  };
+  
+  return headDescriptions[dominantSpecies.species] || 
+    `The head reflects the distinctive ${dominantSpecies.species} genetic influence with species-specific cranial features`;
 }
 
 function getColorName(hex: string): string {
