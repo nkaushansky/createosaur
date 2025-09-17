@@ -5,6 +5,7 @@ import { GeneticLab } from "@/components/GeneticLab";
 import { GenerationGallery } from "@/components/GenerationGallery";
 import { AuthForm } from "@/components/AuthForm";
 import { UserProfile } from "@/components/UserProfile";
+import { FreeTrialStatus } from "@/components/FreeTrialStatus";
 import { Button } from "@/components/ui/button";
 import { ThemeSelector } from "@/components/ThemeSelector";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -33,6 +34,21 @@ const Index = () => {
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [regenerationParams, setRegenerationParams] = useState<any>(null);
+
+  const handleUpgradeAction = (action: 'signup' | 'api-key' | 'credits') => {
+    switch (action) {
+      case 'signup':
+        setShowAuthDialog(true);
+        break;
+      case 'api-key':
+        setShowAuthDialog(true); // For now, redirect to auth - later we'll have API key setup
+        break;
+      case 'credits':
+        // TODO: Implement credit purchase flow
+        console.log('Credit purchase not yet implemented');
+        break;
+    }
+  };
 
   // Convert database creatures to the format expected by GenerationGallery
   const adaptedCreatures = creatures.map(creature => ({
@@ -149,6 +165,16 @@ const Index = () => {
                   <ThemeSelector />
                 </div>
               </div>
+              
+              {/* Free Trial Status for Anonymous Users */}
+              {!user && (
+                <div className="mt-4">
+                  <FreeTrialStatus 
+                    onUpgradeAction={handleUpgradeAction}
+                    className="bg-background/90 backdrop-blur-sm"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="relative z-10 text-center px-4 max-w-4xl mx-auto pt-20 sm:pt-24">
