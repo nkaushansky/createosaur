@@ -11,16 +11,6 @@ interface TrialUsage {
   sessionId: string;
 }
 
-interface BrowserFingerprint {
-  screen: string;
-  timezone: number;
-  language: string;
-  platform: string;
-  cookieEnabled: boolean;
-  canvas: string;
-  webgl: string;
-}
-
 export class FreeTrialService {
   private static readonly STORAGE_KEY = 'createosaur_trial';
   private static readonly SESSION_KEY = 'createosaur_session';
@@ -104,11 +94,22 @@ export class FreeTrialService {
     };
     
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(updated));
-    
-    // Also send to server for IP tracking (fire and forget)
-    this.recordServerUsage(updated).catch(console.warn);
-    
     return updated;
+  }
+
+  /**
+   * Sync local data with server response
+   */
+  static syncWithServer(serverUsed: number, serverMax: number): void {
+    const status = this.getTrialStatus();
+    const updated: TrialUsage = {
+      ...status,
+      generationsUsed: serverUsed,
+      maxGenerations: serverMax,
+      lastUsed: new Date().toISOString()
+    };
+    
+    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(updated));
   }
 
   /**
@@ -145,18 +146,21 @@ export class FreeTrialService {
    * Generate browser fingerprint for tracking
    */
   private static generateFingerprint(): string {
-    const fp: BrowserFingerprint = {
-      screen: `${screen.width}x${screen.height}x${screen.colorDepth}`,
-      timezone: new Date().getTimezoneOffset(),
-      language: navigator.language,
-      platform: navigator.platform,
-      cookieEnabled: navigator.cookieEnabled,
-      canvas: this.getCanvasFingerprint(),
-      webgl: this.getWebGLFingerprint()
-    };
-    
-    // Create hash of fingerprint
-    return this.simpleHash(JSON.stringify(fp));
+    try {
+      const fp = {
+        screen: `${screen.width}x${screen.height}x${screen.colorDepth}`,
+        timezone: new Date().getTimezoneOffset(),
+        language: navigator.language,
+        platform: navigator.platform,
+        cookieEnabled: navigator.cookieEnabled,
+        canvas: this.getCanvasFingerprint(),
+        webgl: this.getWebGLFingerprint()
+      };
+      
+      return this.simpleHash(JSON.stringify(fp));
+    } catch (e) {
+      return 'fingerprint-error';
+    }
   }
 
   /**
@@ -182,9 +186,9 @@ export class FreeTrialService {
       
       ctx.textBaseline = 'top';
       ctx.font = '14px Arial';
-      ctx.fillText('Createosaur fingerprint 🦕', 2, 2);
+      ctx.fillText('Createosaur fingerprint', 2, 2);
       
-      return canvas.toDataURL().slice(-50); // Last 50 chars
+      return canvas.toDataURL().slice(-50);
     } catch (e) {
       return 'canvas-error';
     }
@@ -219,34 +223,9 @@ export class FreeTrialService {
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
       hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
+      hash = hash & hash;
     }
     return Math.abs(hash).toString(36);
-  }
-
-  /**
-   * Record usage on server for IP tracking
-   */
-  private static async recordServerUsage(usage: TrialUsage): Promise<void> {
-    try {
-      // This would be an API call to your backend
-      // For now, we'll use Supabase to store anonymous usage
-      const { supabase } = await import('@/lib/supabase');
-      
-      await supabase
-        .from('anonymous_usage')
-        .insert({
-          fingerprint: usage.fingerprint,
-          session_id: usage.sessionId,
-          generations_used: usage.generationsUsed,
-          max_generations: usage.maxGenerations,
-          user_agent: navigator.userAgent,
-          created_at: new Date().toISOString()
-        });
-    } catch (error) {
-      // Silent fail - don't break user experience
-      console.warn('Failed to record server usage:', error);
-    }
   }
 
   /**

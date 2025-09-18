@@ -85,37 +85,86 @@ export const useGeneration = ({ onProgress, onNewCreature }: UseGenerationOption
     }
 
     try {
-      // For now, use the regular generation service but mark it as a trial
-      // In production, this would call your server-side anonymous API
-      const creatures = await generateHybridCreatures(
-        dinoParams,
-        aiParams,
-        scientificProfile,
-        onProgress
-      );
+      // Build the enhanced prompt using the existing system
+      const { generateEnhancedPrompt } = await import('@/services/promptGeneration');
+      
+      // Get active dinosaurs with DNA percentages
+      const activeDinosaurs = dinoParams.dinosaurs.filter(d => d.percentage > 0);
+      const genetics = activeDinosaurs.map(dino => ({
+        species: dino.name,
+        percentage: dino.percentage
+      }));
 
-      // Record the trial usage
-      try {
-        import('@/services/freeTrialService').then(({ FreeTrialService }) => {
-          FreeTrialService.recordGeneration();
-        });
-      } catch (e) {
-        console.warn('Failed to record trial usage:', e);
+      // Build prompt configuration
+      const promptConfig = {
+        genetics,
+        traits: Object.keys(dinoParams.traitSelections || {}).filter(trait => 
+          Object.values(dinoParams.traitSelections?.[trait] || {}).some(state => state === "included")
+        ),
+        colors: dinoParams.selectedColors,
+        pattern: dinoParams.selectedPattern,
+        texture: dinoParams.selectedTexture || 'smooth',
+        size: dinoParams.creatureSize > 80 ? 'massive' : 
+              dinoParams.creatureSize > 60 ? 'large' :
+              dinoParams.creatureSize > 40 ? 'medium' :
+              dinoParams.creatureSize > 20 ? 'small' : 'tiny',
+        age: dinoParams.ageStage,
+        environment: dinoParams.selectedBackground === 'custom' ? 'ancient landscape' : dinoParams.selectedBackground,
+        style: 'scientific illustration style'
+      };
+
+      const enhancedPrompt = generateEnhancedPrompt(promptConfig as any);
+      const finalPrompt = aiParams.promptText ? `${aiParams.promptText}. ${enhancedPrompt}` : enhancedPrompt;
+
+      onProgress?.('Generating', 70);
+
+      // Use the anonymous generation service
+      const result = await AnonymousGenerationService.generateImage({
+        prompt: finalPrompt,
+        negativePrompt: "blurry, low quality, distorted, deformed, mutated, extra limbs, missing limbs, ugly, bad anatomy, poorly drawn",
+        width: aiParams.width || 768,
+        height: aiParams.height || 768,
+        steps: aiParams.steps || 15,
+        guidance: aiParams.guidance || 7.5
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || 'Generation failed');
       }
 
-      creatures.forEach(creature => onNewCreature?.(creature));
+      // Create creature object
+      const creature: GeneratedCreature = {
+        id: `creature-${Date.now()}`,
+        name: 'Anonymous Hybrid',
+        scientificName: scientificProfile?.scientificName?.fullName,
+        imageUrl: result.imageUrl!,
+        timestamp: new Date(),
+        algorithm: aiParams.algorithm || 'genetic',
+        rating: 0,
+        isFavorite: false,
+        tags: [dinoParams.selectedPattern, dinoParams.selectedTexture || 'smooth', ...dinoParams.colorEffects],
+        generationParams: { 
+          ...dinoParams, 
+          ...aiParams,
+          promptDetails: {
+            enhancedPrompt,
+            finalPrompt,
+            customPrompt: aiParams.promptText,
+            promptConfig
+          }
+        }
+      };
 
-      // Get updated trial info
-      const updatedTrialInfo = AnonymousGenerationService.getTrialInfo();
+      onNewCreature?.(creature);
 
       // Show trial status toast
-      if (updatedTrialInfo.remainingGenerations === 0) {
+      if (result.remainingGenerations === 0) {
         toast({
-          title: "Trial Complete! 🎉",
+          title: "Trial Complete!",
           description: "Ready to create unlimited creatures? Add your API key or try our credit system.",
           duration: 6000
         });
-      } else if (updatedTrialInfo.remainingGenerations === 1) {
+      } else if (result.remainingGenerations === 1) {
         toast({
           title: "One More Free Generation!",
           description: "After this, you can continue with your own API key or our credit system.",
@@ -125,10 +174,10 @@ export const useGeneration = ({ onProgress, onNewCreature }: UseGenerationOption
 
       return {
         success: true,
-        creatures,
-        needsUpgrade: updatedTrialInfo.remainingGenerations === 0,
-        conversionMessage: updatedTrialInfo.conversionMessage,
-        remainingGenerations: updatedTrialInfo.remainingGenerations
+        creatures: [creature],
+        needsUpgrade: result.remainingGenerations === 0,
+        conversionMessage: result.conversionMessage,
+        remainingGenerations: result.remainingGenerations
       };
     } catch (error) {
       console.error('Anonymous generation failed:', error);

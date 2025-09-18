@@ -43,106 +43,60 @@ export class AnonymousGenerationService {
     }
 
     try {
-      // Record the generation attempt
-      const updatedUsage = FreeTrialService.recordGeneration();
+      // Get user fingerprint and session for server verification
+      const fingerprint = this.getUserFingerprint();
+      const sessionId = this.getSessionId();
       
-      // For now, we'll use the existing generation service with a mock "anonymous" mode
-      // In production, this would call your server-side API
-      const result = await this.mockServerGeneration(config);
-      
-      const remaining = FreeTrialService.getRemainingGenerations();
-      
+      // Call secure server-side API
+      const response = await fetch(this.API_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...config,
+          fingerprint,
+          sessionId
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: result.error || 'Generation failed',
+          remainingGenerations: result.remainingGenerations || 0,
+          trialStatus: result.remainingGenerations > 0 ? 'active' : 'exhausted',
+          conversionMessage: FreeTrialService.getConversionMessage()
+        };
+      }
+
+      // Update local trial tracking to match server
+      try {
+        FreeTrialService.syncWithServer(result.totalUsed, result.maxAllowed);
+      } catch (e) {
+        console.warn('Failed to sync trial data:', e);
+      }
+
       return {
-        success: result.success,
+        success: true,
         imageUrl: result.imageUrl,
-        error: result.error,
-        remainingGenerations: remaining,
-        trialStatus: remaining > 0 ? 'active' : 'exhausted',
+        remainingGenerations: result.remainingGenerations,
+        trialStatus: result.remainingGenerations > 0 ? 'active' : 'exhausted',
         conversionMessage: FreeTrialService.getConversionMessage()
       };
       
     } catch (error) {
+      console.error('Anonymous generation failed:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Generation failed',
+        error: error instanceof Error ? error.message : 'Network error',
         remainingGenerations: FreeTrialService.getRemainingGenerations(),
         trialStatus: 'active',
         conversionMessage: FreeTrialService.getConversionMessage()
       };
     }
-  }
-
-  /**
-   * Mock server generation for development
-   * In production, this would be a server-side API call
-   */
-  private static async mockServerGeneration(config: AnonymousGenerationRequest): Promise<{
-    success: boolean;
-    imageUrl?: string;
-    error?: string;
-  }> {
-    // For development, we'll use the existing image generation service
-    // but with a special "anonymous" flag
-    try {
-      const { imageGenerationService } = await import('./imageGeneration');
-      
-      const generationConfig: GenerationConfig = {
-        prompt: config.prompt,
-        negativePrompt: config.negativePrompt || 'blurry, low quality, distorted',
-        width: config.width || 1024,
-        height: config.height || 1024,
-        steps: config.steps || 20,
-        guidance: config.guidance || 7.5,
-        model: 'stable-diffusion-xl-base-1.0' // Use a reliable model for trials
-      };
-
-      const result = await imageGenerationService.generateImage(generationConfig);
-      
-      if (result.success && result.imageUrl) {
-        return {
-          success: true,
-          imageUrl: result.imageUrl
-        };
-      } else {
-        return {
-          success: false,
-          error: result.error || 'Generation failed'
-        };
-      }
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
-    }
-  }
-
-  /**
-   * Get trial status without generating
-   */
-  static getTrialInfo(): {
-    canGenerate: boolean;
-    remainingGenerations: number;
-    conversionMessage: string;
-    trialStatus: 'active' | 'exhausted';
-  } {
-    const canGenerate = FreeTrialService.canGenerate();
-    const remaining = FreeTrialService.getRemainingGenerations();
-    
-    return {
-      canGenerate,
-      remainingGenerations: remaining,
-      conversionMessage: FreeTrialService.getConversionMessage(),
-      trialStatus: remaining > 0 ? 'active' : 'exhausted'
-    };
-  }
-
-  /**
-   * Check if user should see upgrade prompts
-   */
-  static shouldShowUpgrade(): boolean {
-    const remaining = FreeTrialService.getRemainingGenerations();
-    return remaining <= 1; // Show upgrade hints when 1 or 0 remaining
   }
 
   /**
@@ -193,5 +147,121 @@ export class AnonymousGenerationService {
         }
       ];
     }
+  }
+
+  /**
+   * Get user fingerprint for server verification
+   */
+  private static getUserFingerprint(): string {
+    // Use the same fingerprinting logic as FreeTrialService
+    try {
+      const fp = {
+        screen: `${screen.width}x${screen.height}x${screen.colorDepth}`,
+        timezone: new Date().getTimezoneOffset(),
+        language: navigator.language,
+        platform: navigator.platform,
+        cookieEnabled: navigator.cookieEnabled,
+        canvas: this.getCanvasFingerprint(),
+        webgl: this.getWebGLFingerprint()
+      };
+      
+      return this.simpleHash(JSON.stringify(fp));
+    } catch (e) {
+      return 'fingerprint-error';
+    }
+  }
+
+  /**
+   * Get session ID
+   */
+  private static getSessionId(): string {
+    const sessionKey = 'createosaur_session';
+    let sessionId = sessionStorage.getItem(sessionKey);
+    if (!sessionId) {
+      sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      sessionStorage.setItem(sessionKey, sessionId);
+    }
+    return sessionId;
+  }
+
+  /**
+   * Canvas fingerprinting
+   */
+  private static getCanvasFingerprint(): string {
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return 'no-canvas';
+      
+      ctx.textBaseline = 'top';
+      ctx.font = '14px Arial';
+      ctx.fillText('Createosaur fingerprint', 2, 2);
+      
+      return canvas.toDataURL().slice(-50);
+    } catch (e) {
+      return 'canvas-error';
+    }
+  }
+
+  /**
+   * WebGL fingerprinting
+   */
+  private static getWebGLFingerprint(): string {
+    try {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl') as WebGLRenderingContext | null;
+      if (!gl) return 'no-webgl';
+      
+      const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+      if (!debugInfo) return 'no-debug-info';
+      
+      const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+      const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+      
+      return this.simpleHash(`${vendor}|${renderer}`).slice(-10);
+    } catch (e) {
+      return 'webgl-error';
+    }
+  }
+
+  /**
+   * Simple hash function
+   */
+  private static simpleHash(str: string): string {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return Math.abs(hash).toString(36);
+  }
+
+  /**
+   * Get trial status without generating
+   */
+  static getTrialInfo(): {
+    canGenerate: boolean;
+    remainingGenerations: number;
+    conversionMessage: string;
+    trialStatus: 'active' | 'exhausted';
+  } {
+    const canGenerate = FreeTrialService.canGenerate();
+    const remaining = FreeTrialService.getRemainingGenerations();
+    
+    return {
+      canGenerate,
+      remainingGenerations: remaining,
+      conversionMessage: FreeTrialService.getConversionMessage(),
+      trialStatus: remaining > 0 ? 'active' : 'exhausted'
+    };
+  }
+
+  /**
+   * Check if user should see upgrade prompts
+   */
+  static shouldShowUpgrade(): boolean {
+    const remaining = FreeTrialService.getRemainingGenerations();
+    return remaining <= 1; // Show upgrade hints when 1 or 0 remaining
   }
 }
