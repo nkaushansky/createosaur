@@ -1,0 +1,78 @@
+{
+  "name": "Createosaur - AI Dinosaur Creator & Genetic Engineering Lab",
+  "short_name": "Createosaur",
+  "description": "Create unique hybrid dinosaurs with AI-powered genetic engineering. Mix DNA from T-Rex, Triceratops, and more prehistoric species.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0f23",
+  "theme_color": "#8b5cf6",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en-US",
+  "categories": [
+    "education",
+    "entertainment",
+    "utilities",
+    "productivity"
+  ],
+  "keywords": [
+    "dinosaur",
+    "AI",
+    "creator",
+    "genetic",
+    "engineering",
+    "prehistoric",
+    "creatures",
+    "generator",
+    "art",
+    "education"
+  ],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "16x16 32x32 48x48",
+      "type": "image/x-icon"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/og-image.svg",
+      "sizes": "1200x630",
+      "type": "image/svg+xml",
+      "platform": "wide",
+      "label": "Createosaur main interface showing DNA mixing controls"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Create Dinosaur",
+      "short_name": "Create",
+      "description": "Start creating a new hybrid dinosaur",
+      "url": "/?action=create",
+      "icons": [
+        {
+          "src": "/favicon.svg",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Community Gallery",
+      "short_name": "Gallery",
+      "description": "Browse community dinosaur creations",
+      "url": "/?action=gallery",
+      "icons": [
+        {
+          "src": "/favicon.svg",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ]
+}
