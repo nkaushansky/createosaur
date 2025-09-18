@@ -32,7 +32,8 @@ export const useGeneration = ({ onProgress, onNewCreature }: UseGenerationOption
     try {
       console.log('🔐 Auth check - user:', user ? 'authenticated' : 'anonymous');
       
-      if (user) {
+      // TEMPORARY: Force anonymous path for testing
+      if (false && user) {
         // Authenticated user - use normal generation
         console.log('👤 Using authenticated generation path');
         const creatures = await generateHybridCreatures(
