@@ -21,6 +21,7 @@ import { GenerationGallery } from "./GenerationGallery";
 import { BehavioralSimulator } from "@/utils/BehavioralSimulator";
 import { ScientificNameGenerator } from "@/utils/ScientificNameGenerator";
 import { useUndoRedo, HistoryState } from "@/hooks/useUndoRedo";
+import { useGeneration } from "@/hooks/useGeneration";
 import { useToast } from "@/hooks/use-toast";
 import { DemoModeBanner } from "./APIKeySetup";
 import { Settings as SettingsComponent } from "./Settings";
@@ -110,6 +111,18 @@ interface GeneticLabProps {
 export const GeneticLab = ({ onNewCreature, regenerationParams }: GeneticLabProps = {}) => {
   const { toast } = useToast();
   
+  // Use generation hook for proper routing
+  const { generateCreatures, isGenerating: hookIsGenerating } = useGeneration({
+    onNewCreature: (creature) => {
+      setCurrentBatch(prev => [...prev, creature]);
+      onNewCreature?.(creature);
+    },
+    onProgress: (stage, progress) => {
+      setLoadingStage(stage);
+      setLoadingProgress(progress);
+    }
+  });
+  
   // Check for API key in localStorage
   useEffect(() => {
     const storedApiKey = localStorage.getItem('VITE_HUGGINGFACE_API_KEY');
@@ -175,7 +188,6 @@ export const GeneticLab = ({ onNewCreature, regenerationParams }: GeneticLabProp
     weatherEffect: "none",
     timeOfDay: "day"
   });
-  const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [traitSelections, setTraitSelections] = useState<{[dinosaurId: string]: TraitSelection}>({});
   
@@ -370,16 +382,12 @@ export const GeneticLab = ({ onNewCreature, regenerationParams }: GeneticLabProp
     });
   }, [saveStateToHistory, toast]);
 
-  // Enhanced generation with advanced parameters and real AI
+  // Enhanced generation with advanced parameters using the generation hook
   const generateHybrid = async (params?: GenerationParams) => {
-    setIsGenerating(true);
     setLoadingProgress(0);
     setCurrentBatch([]);
     
     try {
-      // Import the generation service dynamically to avoid module resolution issues
-      const { generateHybridCreatures } = await import("@/services/creatureGeneration");
-      
       // Prepare dinosaur parameters
       const dinoParams = {
         dinosaurs,
@@ -405,57 +413,40 @@ export const GeneticLab = ({ onNewCreature, regenerationParams }: GeneticLabProp
         height: params?.height || 1024
       };
 
-      // Progress callback
-      const onProgress = (stage: string, progress: number) => {
-        setLoadingStage(stage);
-        setLoadingProgress(progress);
-      };
-
-      // Generate creatures with real AI
-      const newCreatures = await generateHybridCreatures(
+      // Use the generation hook which handles routing
+      const result = await generateCreatures(
         dinoParams,
         aiParams,
-        scientificProfile,
-        onProgress
+        scientificProfile
       );
-      
-      // Update state with new creatures
-      setCurrentBatch(newCreatures);
-      setGeneratedCreatures(prev => [...prev, ...newCreatures]);
-      
-      // Notify parent component of new creatures
-      newCreatures.forEach(creature => {
-        onNewCreature?.(creature);
-      });
-      
-      // Set the first generated image as the primary result
-      if (newCreatures.length > 0 && newCreatures[0].imageUrl) {
-        setGeneratedImage(newCreatures[0].imageUrl);
-      } else {
-        setGeneratedImage(null);
-      }
-      
-      const batchSize = aiParams.batchSize;
-      const successfulGenerations = newCreatures.filter(c => !c.tags.includes('failed')).length;
-      
-      if (successfulGenerations > 0) {
-        if (isDemoMode) {
+
+      if (result.success && result.creatures.length > 0) {
+        // Update state with new creatures
+        setCurrentBatch(result.creatures);
+        setGeneratedCreatures(prev => [...prev, ...result.creatures]);
+        
+        // Set the first generated image as the primary result
+        if (result.creatures[0].imageUrl) {
+          setGeneratedImage(result.creatures[0].imageUrl);
+        } else {
+          setGeneratedImage(null);
+        }
+        
+        // Show trial status if needed
+        if (result.needsUpgrade) {
           toast({
-            title: "Demo Creature Generated!",
-            description: `Created ${successfulGenerations}/${batchSize} demo creature${batchSize > 1 ? 's' : ''}. Add API key for real AI generation.`,
+            title: "Trial Complete!",
+            description: result.conversionMessage || "Ready to continue with your own API key?",
+            duration: 6000
           });
         } else {
           toast({
             title: "Success!",
-            description: `Generated ${successfulGenerations}/${batchSize} creature${batchSize > 1 ? 's' : ''} successfully`,
+            description: `Generated ${result.creatures.length} hybrid creature${result.creatures.length > 1 ? 's' : ''}!`,
           });
         }
       } else {
-        toast({
-          title: "Generation Issues",
-          description: "Some generations failed. Check console for details.",
-          variant: "destructive",
-        });
+        throw new Error('Generation failed');
       }
       
     } catch (error) {
@@ -469,7 +460,6 @@ export const GeneticLab = ({ onNewCreature, regenerationParams }: GeneticLabProp
       // Fallback to placeholder
       setGeneratedImage(null);
     } finally {
-      setIsGenerating(false);
       setLoadingStage('');
       setLoadingProgress(0);
     }
@@ -715,11 +705,11 @@ export const GeneticLab = ({ onNewCreature, regenerationParams }: GeneticLabProp
                     </Button>
                     <Button 
                       onClick={() => generateHybrid()}
-                      disabled={totalPercentage === 0 || isGenerating}
+                      disabled={totalPercentage === 0 || hookIsGenerating}
                       className="btn-genetic flex items-center justify-center gap-2 w-full sm:w-auto"
                     >
                       <Zap className="w-4 h-4" />
-                      {isGenerating ? "Engineering..." : "Generate Hybrid"}
+                      {hookIsGenerating ? "Engineering..." : "Generate Hybrid"}
                     </Button>
                   </div>
                 </TabsContent>
@@ -869,7 +859,7 @@ export const GeneticLab = ({ onNewCreature, regenerationParams }: GeneticLabProp
                                 selectedColors,
                                 traitSelections,
                                 scientificProfile,
-                                isGenerating,
+                                isGenerating: hookIsGenerating,
                                 generatedImage
                               });
                             }}
@@ -891,7 +881,7 @@ export const GeneticLab = ({ onNewCreature, regenerationParams }: GeneticLabProp
           {/* Results Display */}
           <div className="lg:col-span-1 order-first lg:order-last">
             <div className="sticky top-4">
-              {isGenerating && loadingStage ? (
+              {hookIsGenerating && loadingStage ? (
                 <AdvancedLoading 
                   stage={loadingStage}
                   progress={loadingProgress}
@@ -900,7 +890,7 @@ export const GeneticLab = ({ onNewCreature, regenerationParams }: GeneticLabProp
               ) : (
                 <ResultsDisplay 
                   dinosaurs={dinosaurs}
-                  isGenerating={isGenerating}
+                  isGenerating={hookIsGenerating}
                   generatedImage={generatedImage}
                   selectedColors={selectedColors}
                   selectedPattern={selectedPattern}
