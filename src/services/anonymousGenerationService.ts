@@ -31,8 +31,11 @@ export class AnonymousGenerationService {
    * Generate image for anonymous user using server API keys
    */
   static async generateImage(config: AnonymousGenerationRequest): Promise<AnonymousGenerationResponse> {
+    console.log('🎯 AnonymousGenerationService.generateImage called with config:', config);
+    
     // Check trial status first
     if (!FreeTrialService.canGenerate()) {
+      console.log('❌ Trial limit exceeded');
       return {
         success: false,
         error: 'Trial limit exceeded',
@@ -43,9 +46,13 @@ export class AnonymousGenerationService {
     }
 
     try {
+      console.log('🚀 Making API call to:', this.API_ENDPOINT);
+      
       // Get user fingerprint and session for server verification
       const fingerprint = this.getUserFingerprint();
       const sessionId = this.getSessionId();
+      
+      console.log('📊 Fingerprint:', fingerprint, 'SessionId:', sessionId);
       
       // Call secure server-side API
       const response = await fetch(this.API_ENDPOINT, {
@@ -60,7 +67,9 @@ export class AnonymousGenerationService {
         })
       });
 
+      console.log('📡 API Response status:', response.status);
       const result = await response.json();
+      console.log('📄 API Response data:', result);
 
       if (!response.ok) {
         return {
