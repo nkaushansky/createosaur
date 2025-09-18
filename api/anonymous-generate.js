@@ -10,8 +10,8 @@ export default async function handler(req, res) {
     const {
       prompt,
       negativePrompt,
-      width = 768,
-      height = 768,
+      width = 1024,
+      height = 1024,
       steps = 15,
       guidance = 7.5,
       fingerprint,
@@ -163,7 +163,7 @@ async function generateWithStabilityAI({
     };
 
     const response = await fetch(
-      'https://api.stability.ai/v1/generation/stable-diffusion-v1-6/text-to-image',
+      'https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image',
       {
         method: 'POST',
         headers: {
