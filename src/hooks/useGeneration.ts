@@ -30,8 +30,11 @@ export const useGeneration = ({ onProgress, onNewCreature }: UseGenerationOption
     setIsGenerating(true);
 
     try {
+      console.log('🔐 Auth check - user:', user ? 'authenticated' : 'anonymous');
+      
       if (user) {
         // Authenticated user - use normal generation
+        console.log('👤 Using authenticated generation path');
         const creatures = await generateHybridCreatures(
           dinoParams,
           aiParams,
@@ -47,6 +50,7 @@ export const useGeneration = ({ onProgress, onNewCreature }: UseGenerationOption
         };
       } else {
         // Anonymous user - use trial system
+        console.log('🎯 Using anonymous generation path');
         return await generateAnonymousCreatures(dinoParams, aiParams, scientificProfile);
       }
     } catch (error) {
@@ -71,8 +75,11 @@ export const useGeneration = ({ onProgress, onNewCreature }: UseGenerationOption
     aiParams: AIGenerationParams,
     scientificProfile?: any
   ): Promise<GenerationResult> => {
+    console.log('🚀 Starting anonymous generation');
+    
     // Check trial status
     const trialInfo = AnonymousGenerationService.getTrialInfo();
+    console.log('📊 Trial info:', trialInfo);
     
     if (!trialInfo.canGenerate) {
       return {
