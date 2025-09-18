@@ -32,9 +32,27 @@ export const useGeneration = ({ onProgress, onNewCreature }: UseGenerationOption
     try {
       console.log('🔐 Auth check - user:', user ? 'authenticated' : 'anonymous');
       
-      // For now, always use anonymous generation to test the API
-      console.log('🎯 Using anonymous generation path (forced for testing)');
-      return await generateAnonymousCreatures(dinoParams, aiParams, scientificProfile);
+      if (user) {
+        // Authenticated user - use normal generation
+        console.log('👤 Using authenticated generation path');
+        const creatures = await generateHybridCreatures(
+          dinoParams,
+          aiParams,
+          scientificProfile,
+          onProgress
+        );
+
+        creatures.forEach(creature => onNewCreature?.(creature));
+
+        return {
+          success: true,
+          creatures
+        };
+      } else {
+        // Anonymous user - use trial system
+        console.log('🎯 Using anonymous generation path');
+        return await generateAnonymousCreatures(dinoParams, aiParams, scientificProfile);
+      }
     } catch (error) {
       console.error('Generation failed:', error);
       toast({
@@ -57,11 +75,8 @@ export const useGeneration = ({ onProgress, onNewCreature }: UseGenerationOption
     aiParams: AIGenerationParams,
     scientificProfile?: any
   ): Promise<GenerationResult> => {
-    console.log('🚀 Starting anonymous generation');
-    
     // Check trial status
     const trialInfo = AnonymousGenerationService.getTrialInfo();
-    console.log('📊 Trial info:', trialInfo);
     
     if (!trialInfo.canGenerate) {
       return {
