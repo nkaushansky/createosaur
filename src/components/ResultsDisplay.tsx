@@ -2,9 +2,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Download, Share2, RotateCcw, Loader2 } from "lucide-react";
+import { Download, Share2, RotateCcw, Loader2, Globe, Heart } from "lucide-react";
 import { BackgroundSelector, backgroundOptions } from '@/components/BackgroundSelector';
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCreatures } from "@/hooks/useCreatures";
 
 interface DinosaurData {
   id: string;
@@ -46,6 +48,8 @@ export const ResultsDisplay = ({
   onRetry
 }: ResultsDisplayProps) => {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { saveCreature } = useCreatures();
   const activeDinosaurs = dinosaurs.filter(d => d.percentage > 0);
   const totalPercentage = dinosaurs.reduce((sum, dino) => sum + dino.percentage, 0);
   const backgroundOption = backgroundOptions.find(bg => bg.id === selectedBackground);
@@ -126,6 +130,70 @@ export const ResultsDisplay = ({
           variant: "destructive"
         });
       }
+    }
+  };
+
+  const handleShareToCommunity = async (imageUrl: string) => {
+    if (!user) {
+      toast({
+        title: "Sign In Required",
+        description: "Please sign in to share creatures with the community.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Generate creature name
+      const hybridName = activeDinosaurs.length > 0 
+        ? `${activeDinosaurs.map(d => d.name.split(' ')[0]).join('-')} Hybrid`
+        : 'Mystery Hybrid';
+
+      // Prepare creature data
+      const creatureData = {
+        name: hybridName,
+        image_url: imageUrl,
+        generation_params: {
+          dinosaurs: activeDinosaurs,
+          selectedColors,
+          selectedPattern,
+          colorEffects,
+          selectedTexture,
+          creatureSize,
+          ageStage,
+          traitSelections,
+          selectedBackground,
+          scientificProfile
+        },
+        traits: {
+          species: activeDinosaurs.map(d => d.name),
+          colors: selectedColors,
+          pattern: selectedPattern,
+          texture: selectedTexture,
+          size: sizeLabel,
+          age: ageStage,
+          effects: colorEffects
+        },
+        is_public: true, // This makes it visible in the community gallery
+        is_favorite: false
+      };
+
+      const savedCreature = await saveCreature(creatureData);
+      
+      if (savedCreature) {
+        toast({
+          title: "Shared to Community! 🌟",
+          description: `"${hybridName}" is now visible in the community gallery for everyone to discover and get inspired by!`,
+          duration: 5000
+        });
+      }
+    } catch (error) {
+      console.error('Failed to share to community:', error);
+      toast({
+        title: "Share Failed",
+        description: "Could not share to community. Please try again.",
+        variant: "destructive"
+      });
     }
   };
   
@@ -228,7 +296,7 @@ export const ResultsDisplay = ({
               </div>
               
               {/* Action Buttons - compact and positioned at bottom */}
-              <div className="flex gap-2 justify-center pt-3 pb-1">
+              <div className="flex gap-2 justify-center pt-3 pb-1 flex-wrap">
                 <Button 
                   size="sm" 
                   variant="outline" 
@@ -247,6 +315,18 @@ export const ResultsDisplay = ({
                   <Share2 className="w-3 h-3 mr-1" />
                   Share
                 </Button>
+                {user && (
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="btn-lab bg-background/95 backdrop-blur-sm border-green-500/20 hover:bg-green-500/10 text-green-700 dark:text-green-400"
+                    onClick={() => handleShareToCommunity(generatedImage)}
+                  >
+                    <Globe className="w-3 h-3 mr-1" />
+                    <span className="hidden sm:inline">Community</span>
+                    <span className="sm:hidden">Public</span>
+                  </Button>
+                )}
                 {onRetry && (
                   <Button 
                     size="sm" 

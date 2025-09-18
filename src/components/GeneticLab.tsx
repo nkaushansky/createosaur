@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DinosaurCard, TraitSelection, TraitState } from "./DinosaurCard";
 import { AddSpeciesSelector } from "./AddSpeciesSelector";
 import { ColorPalette } from "./ColorPalette";
@@ -18,6 +19,7 @@ import { AdvancedGeneration, GenerationParams } from "./AdvancedGeneration";
 import { ShareExport } from "./ShareExport";
 import { BackgroundSelector } from "./BackgroundSelector";
 import { GenerationGallery } from "./GenerationGallery";
+import { CommunityGallery } from "./CommunityGallery";
 import { BehavioralSimulator } from "@/utils/BehavioralSimulator";
 import { ScientificNameGenerator } from "@/utils/ScientificNameGenerator";
 import { useUndoRedo, HistoryState } from "@/hooks/useUndoRedo";
@@ -26,7 +28,8 @@ import { useToast } from "@/hooks/use-toast";
 import { DemoModeBanner } from "./APIKeySetup";
 import { Settings as SettingsComponent } from "./Settings";
 import { getRandomDinosaurs } from "@/data/dinosaurDatabase";
-import { Dna, Zap, Beaker, X, Settings, Shuffle } from "lucide-react";
+import { DatabaseCreature } from "@/services/creatureService";
+import { Dna, Zap, Beaker, X, Settings, Shuffle, Globe } from "lucide-react";
 
 /**
  * Core dinosaur data structure for genetic mixing
@@ -204,6 +207,7 @@ export const GeneticLab = ({ onNewCreature, regenerationParams }: GeneticLabProp
   // Phase 5: Advanced Generation & Gallery
   const [generatedCreatures, setGeneratedCreatures] = useState<any[]>([]);
   const [currentBatch, setCurrentBatch] = useState<any[]>([]);
+  const [isCommunityGalleryOpen, setIsCommunityGalleryOpen] = useState(false);
 
   // Initialize undo/redo system
   const initialHistoryState: HistoryState = {
@@ -380,6 +384,78 @@ export const GeneticLab = ({ onNewCreature, regenerationParams }: GeneticLabProp
       title: "Randomized!",
       description: `Selected ${randomDinosaurs.length} random species with new colors, patterns, and size`,
     });
+  }, [saveStateToHistory, toast]);
+
+  // Handle creature inspiration from community gallery
+  const handleCreatureInspire = useCallback((creature: DatabaseCreature) => {
+    try {
+      const params = creature.generation_params;
+      
+      if (params) {
+        // Apply species if available
+        if (params.dinosaurs && Array.isArray(params.dinosaurs)) {
+          setDinosaurs(params.dinosaurs);
+        }
+        
+        // Apply colors
+        if (params.selectedColors) {
+          setSelectedColors(params.selectedColors);
+        }
+        
+        // Apply pattern
+        if (params.selectedPattern) {
+          setSelectedPattern(params.selectedPattern);
+        }
+        
+        // Apply texture
+        if (params.selectedTexture) {
+          setSelectedTexture(params.selectedTexture);
+        }
+        
+        // Apply size
+        if (params.creatureSize !== undefined) {
+          setCreatureSize(params.creatureSize);
+        }
+        
+        // Apply age stage
+        if (params.ageStage) {
+          setAgeStage(params.ageStage);
+        }
+        
+        // Apply color effects
+        if (params.colorEffects) {
+          setColorEffects(params.colorEffects);
+        }
+        
+        // Apply trait selections
+        if (params.traitSelections) {
+          setTraitSelections(params.traitSelections);
+        }
+        
+        // Apply background
+        if (params.selectedBackground) {
+          setSelectedBackground(params.selectedBackground);
+        }
+        
+        // Save to history
+        saveStateToHistory();
+        
+        // Close the community gallery
+        setIsCommunityGalleryOpen(false);
+        
+        toast({
+          title: "Configuration Loaded!",
+          description: `Using "${creature.name}" as inspiration. You can now modify and generate your own version.`,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load creature inspiration:', error);
+      toast({
+        title: "Load Failed",
+        description: "Could not load creature configuration. Please try again.",
+        variant: "destructive"
+      });
+    }
   }, [saveStateToHistory, toast]);
 
   // Enhanced generation with advanced parameters using the generation hook
@@ -582,8 +658,31 @@ export const GeneticLab = ({ onNewCreature, regenerationParams }: GeneticLabProp
             </h1>
             <Beaker className="w-8 h-8 text-accent animate-genetic-pulse" />
             
-            {/* Settings Button - positioned absolutely to the right */}
-            <div className="absolute right-0">
+            {/* Action Buttons - positioned absolutely to the right */}
+            <div className="absolute right-0 flex items-center gap-2">
+              <Dialog open={isCommunityGalleryOpen} onOpenChange={setIsCommunityGalleryOpen}>
+                <DialogTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border-green-500/20 hover:from-green-500/20 hover:to-blue-500/20"
+                  >
+                    <Globe className="w-4 h-4 mr-2" />
+                    Community
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <Globe className="w-5 h-5" />
+                      Community Gallery
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="overflow-y-auto max-h-[75vh]">
+                    <CommunityGallery onCreatureInspire={handleCreatureInspire} />
+                  </div>
+                </DialogContent>
+              </Dialog>
               <SettingsComponent onApiKeyChange={() => window.location.reload()} />
             </div>
           </div>
