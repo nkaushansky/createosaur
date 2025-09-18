@@ -49,7 +49,7 @@ export const ResultsDisplay = ({
 }: ResultsDisplayProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
-  const { saveCreature } = useCreatures();
+  const { actions } = useCreatures();
   const activeDinosaurs = dinosaurs.filter(d => d.percentage > 0);
   const totalPercentage = dinosaurs.reduce((sum, dino) => sum + dino.percentage, 0);
   const backgroundOption = backgroundOptions.find(bg => bg.id === selectedBackground);
@@ -178,7 +178,7 @@ export const ResultsDisplay = ({
         is_favorite: false
       };
 
-      const savedCreature = await saveCreature(creatureData);
+      const savedCreature = await actions.saveCreature(creatureData);
       
       if (savedCreature) {
         toast({
