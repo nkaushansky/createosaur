@@ -1,33 +1,7 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { createClient } from '@supabase/supabase-js';
+// Anonymous generation API for Vercel
+const rateLimitMap = new Map();
 
-// Rate limiting storage (in production, use Redis or similar)
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-
-interface AnonymousGenerationRequest {
-  prompt: string;
-  negativePrompt?: string;
-  width?: number;
-  height?: number;
-  steps?: number;
-  guidance?: number;
-  fingerprint: string;
-  sessionId: string;
-}
-
-interface StabilityAPIRequest {
-  text_prompts: Array<{
-    text: string;
-    weight: number;
-  }>;
-  cfg_scale: number;
-  steps: number;
-  width: number;
-  height: number;
-  samples: number;
-}
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -42,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       guidance = 7.5,
       fingerprint,
       sessionId
-    }: AnonymousGenerationRequest = req.body;
+    } = req.body;
 
     // Validate required fields
     if (!prompt || !fingerprint || !sessionId) {
@@ -53,7 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Check environment variables
     const adminStabilityKey = process.env.ADMIN_STABILITY_API_KEY;
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseUrl = process.env.VITE_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!adminStabilityKey) {
@@ -71,13 +45,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const rateLimitKey = `${clientIP}:${fingerprint}`;
 
     // Check rate limits (5 requests per hour per IP+fingerprint)
-    if (!checkRateLimit(rateLimitKey, 5, 3600000)) { // 1 hour = 3600000ms
+    if (!checkRateLimit(rateLimitKey, 5, 3600000)) {
       return res.status(429).json({ 
         error: 'Rate limit exceeded. Please try again later.' 
       });
     }
 
-    // Initialize Supabase client with service role key
+    // Import Supabase client dynamically
+    const { createClient } = await import('@supabase/supabase-js');
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Check trial usage in database
@@ -173,17 +148,9 @@ async function generateWithStabilityAI({
   steps,
   guidance,
   apiKey
-}: {
-  prompt: string;
-  negativePrompt: string;
-  width: number;
-  height: number;
-  steps: number;
-  guidance: number;
-  apiKey: string;
-}): Promise<{ success: boolean; imageUrl?: string; error?: string }> {
+}) {
   try {
-    const requestBody: StabilityAPIRequest = {
+    const requestBody = {
       text_prompts: [
         { text: prompt, weight: 1 },
         { text: negativePrompt, weight: -1 }
@@ -242,8 +209,7 @@ async function generateWithStabilityAI({
   }
 }
 
-function getClientIP(req: NextApiRequest): string {
-  // Handle various proxy headers
+function getClientIP(req) {
   const forwarded = req.headers['x-forwarded-for'];
   const real = req.headers['x-real-ip'];
   const cfConnecting = req.headers['cf-connecting-ip'];
@@ -258,24 +224,22 @@ function getClientIP(req: NextApiRequest): string {
     return cfConnecting;
   }
   
-  return req.socket.remoteAddress || 'unknown';
+  return req.socket?.remoteAddress || 'unknown';
 }
 
-function checkRateLimit(key: string, maxRequests: number, windowMs: number): boolean {
+function checkRateLimit(key, maxRequests, windowMs) {
   const now = Date.now();
   const record = rateLimitMap.get(key);
   
   if (!record || now > record.resetTime) {
-    // First request or window expired
     rateLimitMap.set(key, { count: 1, resetTime: now + windowMs });
     return true;
   }
   
   if (record.count >= maxRequests) {
-    return false; // Rate limit exceeded
+    return false;
   }
   
-  // Increment count
   record.count++;
   return true;
 }
