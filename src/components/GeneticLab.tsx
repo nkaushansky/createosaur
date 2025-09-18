@@ -20,11 +20,13 @@ import { ShareExport } from "./ShareExport";
 import { BackgroundSelector } from "./BackgroundSelector";
 import { GenerationGallery } from "./GenerationGallery";
 import { CommunityGallery } from "./CommunityGallery";
+import { HeaderAuth } from "./HeaderAuth";
 import { BehavioralSimulator } from "@/utils/BehavioralSimulator";
 import { ScientificNameGenerator } from "@/utils/ScientificNameGenerator";
 import { useUndoRedo, HistoryState } from "@/hooks/useUndoRedo";
 import { useGeneration } from "@/hooks/useGeneration";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { DemoModeBanner } from "./APIKeySetup";
 import { Settings as SettingsComponent } from "./Settings";
 import { getRandomDinosaurs } from "@/data/dinosaurDatabase";
@@ -113,6 +115,7 @@ interface GeneticLabProps {
  */
 export const GeneticLab = ({ onNewCreature, regenerationParams }: GeneticLabProps = {}) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   
   // Use generation hook for proper routing
   const { generateCreatures, isGenerating: hookIsGenerating } = useGeneration({
@@ -208,6 +211,7 @@ export const GeneticLab = ({ onNewCreature, regenerationParams }: GeneticLabProp
   const [generatedCreatures, setGeneratedCreatures] = useState<any[]>([]);
   const [currentBatch, setCurrentBatch] = useState<any[]>([]);
   const [isCommunityGalleryOpen, setIsCommunityGalleryOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Initialize undo/redo system
   const initialHistoryState: HistoryState = {
@@ -658,32 +662,12 @@ export const GeneticLab = ({ onNewCreature, regenerationParams }: GeneticLabProp
             </h1>
             <Beaker className="w-8 h-8 text-accent animate-genetic-pulse" />
             
-            {/* Action Buttons - positioned absolutely to the right */}
-            <div className="absolute right-0 flex items-center gap-2">
-              <Dialog open={isCommunityGalleryOpen} onOpenChange={setIsCommunityGalleryOpen}>
-                <DialogTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border-green-500/20 hover:from-green-500/20 hover:to-blue-500/20"
-                  >
-                    <Globe className="w-4 h-4 mr-2" />
-                    Community
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
-                  <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                      <Globe className="w-5 h-5" />
-                      Community Gallery
-                    </DialogTitle>
-                  </DialogHeader>
-                  <div className="overflow-y-auto max-h-[75vh]">
-                    <CommunityGallery onCreatureInspire={handleCreatureInspire} />
-                  </div>
-                </DialogContent>
-              </Dialog>
-              <SettingsComponent onApiKeyChange={() => window.location.reload()} />
+            {/* Authentication Header - positioned absolutely to the right */}
+            <div className="absolute right-0">
+              <HeaderAuth 
+                onCommunityClick={() => setIsCommunityGalleryOpen(true)}
+                onSettingsClick={() => setIsSettingsOpen(true)}
+              />
             </div>
           </div>
           <p className="text-muted-foreground max-w-2xl mx-auto">
@@ -1008,6 +992,36 @@ export const GeneticLab = ({ onNewCreature, regenerationParams }: GeneticLabProp
           </div>
         </div>
       </div>
+
+      {/* Community Gallery Dialog */}
+      <Dialog open={isCommunityGalleryOpen} onOpenChange={setIsCommunityGalleryOpen}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Globe className="w-5 h-5" />
+              Community Gallery
+            </DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto max-h-[75vh]">
+            <CommunityGallery onCreatureInspire={handleCreatureInspire} />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Settings Dialog - Only for authenticated users */}
+      {user && (
+        <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Settings className="w-5 h-5" />
+                Settings & API Keys
+              </DialogTitle>
+            </DialogHeader>
+            <SettingsComponent onApiKeyChange={() => window.location.reload()} />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
