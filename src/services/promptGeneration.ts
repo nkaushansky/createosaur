@@ -20,56 +20,102 @@ export interface SimplePromptConfig {
 
 /**
  * Generates a concise, effective prompt for AI image generation
- * Maximum ~150-200 characters for optimal results
+ * Includes all genetics, traits, colors, and patterns
  */
 export function generateSimplePrompt(config: SimplePromptConfig): string {
-  const { genetics, colors, pattern, size, age, environment, customPrompt } = config;
+  const { genetics, traits, colors, pattern, size, age, environment, customPrompt } = config;
 
   // If custom prompt provided, use it with minimal enhancement
   if (customPrompt?.trim()) {
     return `${customPrompt.trim()}, highly detailed, photorealistic`;
   }
 
-  // 1. Main subject - simplified hybrid description
+  // 1. Main subject - include ALL genetics, not just top 2
   const creature = buildCreatureDescription(genetics, size, age);
   
-  // 2. Key visual features - colors and pattern
+  // 2. Add selected traits (key behavioral/physical features)
+  const traitDesc = buildTraitDescription(traits);
+  
+  // 3. Key visual features - colors and pattern
   const appearance = buildAppearanceDescription(colors, pattern);
   
-  // 3. Environment - simple background
+  // 4. Environment - simple background
   const setting = simplifyEnvironment(environment);
   
-  // 4. Quality tags - minimal but effective
-  const quality = 'highly detailed, photorealistic, cinematic lighting';
+  // 5. Quality tags - minimal and non-repetitive
+  const quality = 'highly detailed, photorealistic';
 
-  // Combine into concise prompt (aim for <200 chars)
-  const parts = [creature, appearance, setting, quality].filter(Boolean);
+  // Combine into concise prompt, filtering empty parts
+  const parts = [creature, traitDesc, appearance, setting, quality].filter(Boolean);
   
   return parts.join(', ');
 }
 
 /**
- * Creates a simple creature description focusing on dominant genetics
+ * Creates a creature description including ALL selected genetics
  */
 function buildCreatureDescription(genetics: Array<{ species: string; percentage: number }>, size: string, age: string): string {
   if (genetics.length === 0) {
     return `${size} ${age} dinosaur`;
   }
 
-  // Sort by percentage and take top 2 most prominent
+  // Sort by percentage but include ALL genetics with significant percentages
   const sortedGenetics = genetics
-    .sort((a, b) => b.percentage - a.percentage)
-    .slice(0, 2);
+    .filter(g => g.percentage > 0) // Include all with any percentage
+    .sort((a, b) => b.percentage - a.percentage);
 
   if (sortedGenetics.length === 1) {
     return `${size} ${age} ${simplifySpeciesName(sortedGenetics[0].species)}`;
   }
 
-  // For hybrids, use simple format: "T-Rex-Triceratops hybrid"
-  const primary = simplifySpeciesName(sortedGenetics[0].species);
-  const secondary = simplifySpeciesName(sortedGenetics[1].species);
+  // For multiple species, list the top 3-4 most prominent ones
+  const speciesNames = sortedGenetics
+    .slice(0, 4) // Take up to 4 species
+    .map(g => simplifySpeciesName(g.species));
   
-  return `${size} ${age} ${primary}-${secondary} hybrid dinosaur`;
+  if (speciesNames.length === 2) {
+    return `${size} ${age} ${speciesNames[0]}-${speciesNames[1]} hybrid dinosaur`;
+  } else if (speciesNames.length === 3) {
+    return `${size} ${age} ${speciesNames[0]}-${speciesNames[1]}-${speciesNames[2]} hybrid dinosaur`;
+  } else {
+    return `${size} ${age} ${speciesNames.slice(0, 2).join('-')} hybrid with ${speciesNames.slice(2).join(' and ')} DNA`;
+  }
+}
+
+/**
+ * Creates a concise description of selected traits
+ */
+function buildTraitDescription(traits: string[]): string {
+  if (!traits || traits.length === 0) return '';
+  
+  // Take up to 3 most important traits to keep prompt concise
+  const keyTraits = traits.slice(0, 3);
+  
+  // Simplify trait names for better AI understanding
+  const simplifiedTraits = keyTraits.map(trait => {
+    const traitMap: Record<string, string> = {
+      'Marine predator': 'aquatic predator',
+      'Powerful swimmer': 'strong swimmer',
+      'Large teeth': 'large fangs',
+      'Early theropod': 'primitive predator',
+      'Bipedal stance': 'bipedal',
+      'Sharp claws': 'clawed',
+      'Primitive features': 'primitive',
+      'Sickle claw': 'sickle-clawed',
+      'Pack hunter': 'pack hunter',
+      'High intelligence': 'intelligent',
+      'Warm-blooded': 'warm-blooded',
+      'Frozen crest': 'crested',
+      'Cold adaptation': 'cold-adapted',
+      'Powerful predator': 'powerful predator',
+      'Unique crest': 'crested',
+      'Paddle limbs': 'paddle-limbed'
+    };
+    
+    return traitMap[trait] || trait.toLowerCase();
+  });
+  
+  return simplifiedTraits.join(' ');
 }
 
 /**
@@ -88,7 +134,11 @@ function simplifySpeciesName(species: string): string {
     'Parasaurolophus': 'Parasaurolophus',
     'Spinosaurus': 'Spinosaurus',
     'Carnotaurus': 'Carnotaurus',
-    'Dilophosaurus': 'Dilophosaurus'
+    'Dilophosaurus': 'Dilophosaurus',
+    'Mosasaurus': 'Mosasaurus',
+    'Herrerasaurus': 'Herrerasaurus', 
+    'Deinonychus': 'Deinonychus',
+    'Cryolophosaurus': 'Cryolophosaurus'
   };
 
   return nameMap[species] || species.split(' ')[0]; // Use first word if not mapped
@@ -100,12 +150,17 @@ function simplifySpeciesName(species: string): string {
 function buildAppearanceDescription(colors: string[], pattern: string): string {
   if (colors.length === 0) return '';
 
-  // Convert hex to color names for better AI understanding
-  const colorNames = colors.map(convertHexToColorName).slice(0, 2); // Max 2 colors
+  // Convert hex to color names and remove duplicates
+  const colorNames = colors
+    .map(convertHexToColorName)
+    .filter((color, index, array) => array.indexOf(color) === index) // Remove duplicates
+    .slice(0, 2); // Max 2 unique colors
   
   const colorDesc = colorNames.length === 1 
     ? colorNames[0]
-    : `${colorNames[0]} and ${colorNames[1]}`;
+    : colorNames.length === 2 
+    ? `${colorNames[0]} and ${colorNames[1]}`
+    : colorNames[0]; // Fallback to first color
 
   // Simplify pattern names
   const patternMap: Record<string, string> = {
