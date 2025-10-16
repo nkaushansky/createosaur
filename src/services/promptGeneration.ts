@@ -1,403 +1,247 @@
 /**
- * Enhanced prompt generation system with genetic percentages and variation
- * Creates more detailed and unique prompts for AI image generation
+ * Simplified and optimized prompt generation for AI image models
+ * Focuses on clarity, brevity, and effectiveness for stable diffusion models
  */
 
 import { dinosaurDatabase } from '../data/dinosaurDatabase';
 
-export interface EnhancedPromptConfig {
+export interface SimplePromptConfig {
   genetics: Array<{ species: string; percentage: number }>;
   traits: string[];
   colors: string[];
   pattern: string;
-  texture: string;
+  texture?: string;
   size: 'tiny' | 'small' | 'medium' | 'large' | 'massive';
   age: 'juvenile' | 'adult' | 'ancient';
   environment: string;
-  style: string;
+  style?: string;
+  customPrompt?: string;
 }
 
-export function generateEnhancedPrompt(config: EnhancedPromptConfig): string {
-  const {
-    genetics,
-    traits,
-    colors,
-    pattern,
-    texture,
-    size,
-    age,
-    environment,
-    style
-  } = config;
+/**
+ * Generates a concise, effective prompt for AI image generation
+ * Maximum ~150-200 characters for optimal results
+ */
+export function generateSimplePrompt(config: SimplePromptConfig): string {
+  const { genetics, colors, pattern, size, age, environment, customPrompt } = config;
 
-  // 1. Build genetic composition with percentages
-  const geneticDescription = buildGeneticDescription(genetics);
-  
-  // 2. Add behavioral/environmental context based on genetics
-  const behavioralTraits = inferBehavioralTraits(genetics);
-  
-  // 3. Create variation seeds for uniqueness
-  const variationSeed = generateVariationSeed();
-  
-  // 4. Build enhanced trait description
-  const enhancedTraits = enhanceTraitDescription(traits, genetics);
-  
-  // 5. Create dynamic color mixing description
-  const colorDescription = createColorMixingDescription(colors, pattern);
-  
-  // 6. Add anatomical specificity
-  const anatomicalDetails = generateAnatomicalDetails(genetics);
-  
-  // 7. Add specific head and facial emphasis
-  const headEmphasis = generateHeadEmphasis(genetics);
+  // If custom prompt provided, use it with minimal enhancement
+  if (customPrompt?.trim()) {
+    return `${customPrompt.trim()}, highly detailed, photorealistic`;
+  }
 
-  const promptParts = [
-    `A prehistoric ${size} ${age} hybrid dinosaur creature`,
-    geneticDescription,
-    enhancedTraits,
-    anatomicalDetails,
-    headEmphasis,
-    colorDescription,
-    `with ${texture} texture in a ${environment} environment`,
-    behavioralTraits,
-    variationSeed,
-    'IMPORTANT: Show distinct head shape and facial features unique to the genetic combination',
-    style,
-    'ultra realistic, detailed, scientific illustration style, cinematic lighting'
-  ].filter(part => part && part.trim() !== '');
+  // 1. Main subject - simplified hybrid description
+  const creature = buildCreatureDescription(genetics, size, age);
+  
+  // 2. Key visual features - colors and pattern
+  const appearance = buildAppearanceDescription(colors, pattern);
+  
+  // 3. Environment - simple background
+  const setting = simplifyEnvironment(environment);
+  
+  // 4. Quality tags - minimal but effective
+  const quality = 'highly detailed, photorealistic, cinematic lighting';
 
-  return promptParts.join('. ') + '.';
+  // Combine into concise prompt (aim for <200 chars)
+  const parts = [creature, appearance, setting, quality].filter(Boolean);
+  
+  return parts.join(', ');
 }
 
-function buildGeneticDescription(genetics: Array<{ species: string; percentage: number }>): string {
-  if (genetics.length === 0) return '';
+/**
+ * Creates a simple creature description focusing on dominant genetics
+ */
+function buildCreatureDescription(genetics: Array<{ species: string; percentage: number }>, size: string, age: string): string {
+  if (genetics.length === 0) {
+    return `${size} ${age} dinosaur`;
+  }
+
+  // Sort by percentage and take top 2 most prominent
+  const sortedGenetics = genetics
+    .sort((a, b) => b.percentage - a.percentage)
+    .slice(0, 2);
+
+  if (sortedGenetics.length === 1) {
+    return `${size} ${age} ${simplifySpeciesName(sortedGenetics[0].species)}`;
+  }
+
+  // For hybrids, use simple format: "T-Rex-Triceratops hybrid"
+  const primary = simplifySpeciesName(sortedGenetics[0].species);
+  const secondary = simplifySpeciesName(sortedGenetics[1].species);
   
-  const descriptions = genetics.map(({ species, percentage }) => {
-    const dino = dinosaurDatabase.find(d => d.name === species);
-    if (!dino) return `${percentage}% ${species}`;
-    
-    // Use the species' distinctive features based on percentage
-    const prominence = getProminenceLevel(percentage);
-    const era = dino.era || 'prehistoric';
-    const category = dino.diet?.toLowerCase() || 'dinosaur';
-    
-    return `${percentage}% ${species} (${prominence} ${era} ${category} traits)`;
-  });
-  
-  return `genetically combining ${descriptions.join(', ')}`;
+  return `${size} ${age} ${primary}-${secondary} hybrid dinosaur`;
 }
 
-function getProminenceLevel(percentage: number): string {
-  if (percentage >= 40) return 'dominant';
-  if (percentage >= 25) return 'significant';
-  if (percentage >= 15) return 'moderate';
-  return 'subtle';
-}
-
-function inferBehavioralTraits(genetics: Array<{ species: string; percentage: number }>): string {
-  const behaviors = genetics
-    .filter(({ percentage }) => percentage >= 15) // Only significant contributors
-    .map(({ species }) => {
-      const dino = dinosaurDatabase.find(d => d.name === species);
-      if (!dino) return null;
-      
-      // Infer behavior from diet and habitat
-      const behaviorTraits = [];
-      if (dino.diet === 'Carnivore') behaviorTraits.push('predatory instincts');
-      if (dino.diet === 'Herbivore') behaviorTraits.push('foraging behavior');
-      if (dino.habitat.includes('plains')) behaviorTraits.push('pack hunting tendencies');
-      if (dino.habitat.includes('forest')) behaviorTraits.push('stealth capabilities');
-      if (dino.habitat.includes('water')) behaviorTraits.push('aquatic movement patterns');
-      
-      return behaviorTraits.length > 0 ? behaviorTraits.join(' and ') : null;
-    })
-    .filter(Boolean);
-  
-  return behaviors.length > 0 ? `Displaying ${behaviors.join(', ')}` : '';
-}
-
-function generateVariationSeed(): string {
-  const variations = [
-    'with unique scarring patterns across the skull',
-    'showing battle-worn cranial features',
-    'displaying seasonal head crest coloration',
-    'with distinct sexual dimorphism in skull shape',
-    'featuring age-specific cranial development',
-    'showing regional skull adaptation features',
-    'with distinctive facial markings and head patterns',
-    'displaying mating season head ornamentation',
-    'featuring weather-adapted facial structures',
-    'with individual cranial genetic mutations',
-    'showing pack hierarchy head markings',
-    'with distinctive hunting scars on the skull',
-    'displaying alpha predator facial features',
-    'featuring unique head camouflage patterns',
-    'with evolutionary head adaptation markers',
-    'showing distinctive eye ridge development',
-    'with unique nasal cavity adaptations',
-    'featuring prominent cheekbone structures',
-    'displaying distinctive jaw line definition',
-    'with unique ear opening placement',
-    'showing battle-worn features',
-    'displaying seasonal plumage variations',
-    'with distinct sexual dimorphism traits',
-    'featuring age-specific characteristics',
-    'showing regional adaptation features',
-    'with distinctive territorial markings',
-    'displaying mating season coloration',
-    'featuring weather-adapted features',
-    'with individual genetic mutations'
-  ];
-  
-  // 80% chance to add a variation seed for more uniqueness
-  return Math.random() < 0.8 ? variations[Math.floor(Math.random() * variations.length)] : '';
-}
-
-function enhanceTraitDescription(traits: string[], genetics: Array<{ species: string; percentage: number }>): string {
-  if (traits.length === 0) return '';
-  
-  // Map traits to more specific descriptions based on genetic composition
-  const enhancedTraits = traits.map(trait => {
-    const dominantSpecies = genetics.find(g => g.percentage >= 25); // Find significant contributor
-    if (!dominantSpecies) return trait;
-    
-    const dino = dinosaurDatabase.find(d => d.name === dominantSpecies.species);
-    if (!dino) return trait;
-    
-    // Enhance trait based on species characteristics
-    return enhanceTraitForSpecies(trait, dino);
-  });
-  
-  return `The creature features ${enhancedTraits.join(', ')}`;
-}
-
-function enhanceTraitForSpecies(trait: string, species: any): string {
-  const enhancements: Record<string, Record<string, string>> = {
-    'long neck': {
-      'herbivore': 'an extremely elongated, muscular neck with distinctive vertebrae',
-      'carnivore': 'a serpentine, predatory neck with enhanced flexibility',
-      'piscivore': 'a streamlined neck adapted for aquatic hunting',
-      default: 'an extended neck with visible musculature'
-    },
-    'sharp teeth': {
-      'carnivore': 'razor-sharp, serrated teeth designed for tearing flesh',
-      'omnivore': 'varied dentition with both cutting and grinding capabilities',
-      'piscivore': 'needle-like teeth perfect for catching slippery prey',
-      default: 'prominent, pointed teeth'
-    },
-    'armor plating': {
-      'herbivore': 'thick, overlapping bony plates with intricate patterns',
-      'carnivore': 'lightweight armor that doesn\'t impede mobility',
-      default: 'protective armor plating'
-    },
-    'wings': {
-      'carnivore': 'primitive wings with developing flight capabilities',
-      default: 'wing structures with varying development'
-    },
-    'claws': {
-      'carnivore': 'massive curved talons designed for grasping and tearing',
-      default: 'prominent clawed appendages'
-    },
-    'spikes': {
-      'herbivore': 'defensive spikes integrated into armor plating',
-      'carnivore': 'offensive spikes used for territorial displays',
-      default: 'prominent spike formations'
-    },
-    'horns': {
-      'herbivore': 'elaborate cranial horn formations for defense and display',
-      'carnivore': 'predatory horns for intimidation and combat',
-      default: 'horn structures'
-    }
+/**
+ * Simplifies species names for better AI recognition
+ */
+function simplifySpeciesName(species: string): string {
+  const nameMap: Record<string, string> = {
+    'Tyrannosaurus Rex': 'T-Rex',
+    'Tyrannosaurus': 'T-Rex',
+    'Velociraptor': 'Velociraptor',
+    'Triceratops': 'Triceratops',
+    'Stegosaurus': 'Stegosaurus',
+    'Brachiosaurus': 'Brachiosaurus',
+    'Allosaurus': 'Allosaurus',
+    'Ankylosaurus': 'Ankylosaurus',
+    'Parasaurolophus': 'Parasaurolophus',
+    'Spinosaurus': 'Spinosaurus',
+    'Carnotaurus': 'Carnotaurus',
+    'Dilophosaurus': 'Dilophosaurus'
   };
-  
-  const category = species.diet?.toLowerCase() || 'default';
-  return enhancements[trait]?.[category] || enhancements[trait]?.default || trait;
+
+  return nameMap[species] || species.split(' ')[0]; // Use first word if not mapped
 }
 
-function createColorMixingDescription(colors: string[], pattern: string): string {
+/**
+ * Creates concise color and pattern description
+ */
+function buildAppearanceDescription(colors: string[], pattern: string): string {
   if (colors.length === 0) return '';
+
+  // Convert hex to color names for better AI understanding
+  const colorNames = colors.map(convertHexToColorName).slice(0, 2); // Max 2 colors
   
-  const colorNames = colors.map(hex => getColorName(hex));
-  const patternDescriptions: Record<string, string> = {
-    'solid': 'uniform coloration',
-    'stripes': 'bold striping patterns',
-    'spots': 'distinctive spot patterns',
-    'gradient': 'smooth color transitions',
-    'rosettes': 'leopard-like rosette markings',
-    'tribal': 'geometric tribal patterns',
-    'hexagonal': 'honeycomb-like patterns',
-    'marble': 'marbled stone patterns'
+  const colorDesc = colorNames.length === 1 
+    ? colorNames[0]
+    : `${colorNames[0]} and ${colorNames[1]}`;
+
+  // Simplify pattern names
+  const patternMap: Record<string, string> = {
+    'stripes': 'striped',
+    'spots': 'spotted', 
+    'camouflage': 'camouflaged',
+    'gradient': 'gradient',
+    'solid': '',
+    'tiger': 'tiger-striped',
+    'leopard': 'leopard-spotted'
   };
+
+  const patternDesc = patternMap[pattern] || pattern;
   
-  if (colors.length === 1) {
-    return `Rich ${colorNames[0]} coloration with ${patternDescriptions[pattern] || pattern} markings`;
-  } else {
-    return `Dynamic color scheme blending ${colorNames.join(' and ')} in ${patternDescriptions[pattern] || pattern} patterns`;
-  }
+  return patternDesc ? `${patternDesc} ${colorDesc}` : colorDesc;
 }
 
-function generateAnatomicalDetails(genetics: Array<{ species: string; percentage: number }>): string {
-  const anatomicalFeatures = genetics
-    .filter(({ percentage }) => percentage >= 15) // Include more contributors for variety
-    .map(({ species, percentage }) => {
-      const dino = dinosaurDatabase.find(d => d.name === species);
-      if (!dino) return null;
-      
-      const features = [];
-      
-      // Add specific HEAD AND SKULL features based on species
-      const headFeatures = generateHeadFeatures(dino, percentage);
-      if (headFeatures.length > 0) features.push(...headFeatures);
-      
-      // Infer category from traits and characteristics
-      const traits = dino.traits.map(t => t.toLowerCase());
-      const diet = dino.diet.toLowerCase();
-      
-      if (traits.some(t => t.includes('sauropod') || t.includes('long neck'))) {
-        features.push('elongated vertebrae', 'powerful limb structure');
-      }
-      if (diet === 'carnivore' || traits.some(t => t.includes('bipedal'))) {
-        features.push('sharp talons', 'muscular jaw structure');
-      }
-      if (traits.some(t => t.includes('armor') || t.includes('plat'))) {
-        features.push('defensive osteoderms', 'reinforced skeletal structure');
-      }
-      if (traits.some(t => t.includes('horn'))) {
-        features.push('cranial horn formations', 'thick skull plating');
-      }
-      if (dino.habitat.includes('water') || dino.habitat.includes('marine')) {
-        features.push('streamlined body shape', 'paddle-like appendages');
-      }
-      if (diet === 'carnivore') {
-        features.push('predatory muscle definition', 'enhanced sensory organs');
-      }
-      
-      return features.length > 0 ? features.join(', ') : null;
-    })
-    .filter(Boolean);
-  
-  return anatomicalFeatures.length > 0 
-    ? `Anatomical features include ${anatomicalFeatures.join('; ')}`
-    : '';
-}
-
-function generateHeadFeatures(dino: any, percentage: number): string[] {
-  const features = [];
-  const prominence = getProminenceLevel(percentage);
-  
-  // Head shape based on species characteristics
-  const headShapes: Record<string, string[]> = {
-    'Tyrannosaurus': [`${prominence} massive skull with powerful jaw muscles`, 'broad cranium for enhanced bite force'],
-    'Velociraptor': [`${prominence} elongated narrow skull`, 'prominent sagittal crest'],
-    'Triceratops': [`${prominence} massive frill extending from skull`, 'broad facial shield with defensive capability'],
-    'Diplodocus': [`${prominence} extremely small head relative to body size`, 'pencil-like teeth arrangement'],
-    'Stegosaurus': [`${prominence} small triangular head`, 'narrow beak-like snout'],
-    'Ankylosaurus': [`${prominence} heavily armored skull with bony nodules`, 'wide low-profile head shape'],
-    'Pteranodon': [`${prominence} elongated cranial crest`, 'toothless elongated beak structure'],
-    'Spinosaurus': [`${prominence} crocodilian-style elongated snout`, 'narrow skull adapted for piscivory'],
-    'Carnotaurus': [`${prominence} distinctive horn-like projections above eyes`, 'extremely shortened face'],
-    'Parasaurolophus': [`${prominence} hollow tubular crest extending backward`, 'duck-bill shaped snout'],
-    'Allosaurus': [`${prominence} pronounced lacrimal horns above eyes`, 'moderately long skull with sharp features'],
-    'Brachiosaurus': [`${prominence} high-positioned nostrils on skull dome`, 'relatively small head for body size'],
-    'Deinonychus': [`${prominence} large eye sockets for enhanced vision`, 'sharp predatory facial features'],
-    'Maiasaura': [`${prominence} duck-billed hadrosaur skull structure`, 'flat broad snout for plant processing'],
-    'Compsognathus': [`${prominence} very small delicate skull`, 'sharp needle-like teeth'],
-    'Iguanodon': [`${prominence} distinctive thumb spike weapon`, 'horse-like elongated skull'],
-    'Therizinosaurus': [`${prominence} small head with beak-like structure`, 'tiny skull relative to massive body'],
-    'Kentrosaurus': [`${prominence} small head with protective spikes`, 'narrow snout for selective feeding'],
-    'Amargasaurus': [`${prominence} parallel spinal sails on neck`, 'elongated skull with forward-pointing teeth'],
-    'Carcharadontosaurus': [`${prominence} shark-like serrated teeth`, 'massive predatory skull with deep jaw'],
-    'Coelophysis': [`${prominence} slender elongated skull`, 'narrow snout with sharp predatory features'],
-    'Mosasaurus': [`${prominence} massive marine predator skull`, 'elongated jaw adapted for aquatic hunting'],
-    'Microraptor': [`${prominence} small bird-like skull with large eye sockets`, 'delicate cranial structure'],
-    'Dracorex': [`${prominence} dragon-like skull with prominent spikes`, 'ornate cranial ornamentation'],
-    'Utahraptor': [`${prominence} sickle-claw predator skull`, 'enhanced sensory processing cranium'],
-    'Borealopelta': [`${prominence} heavily armored nodosaur skull`, 'club-like defensive head structure'],
-    'Archaeopteryx': [`${prominence} transitional bird-dinosaur skull`, 'toothed beak with flight adaptations']
-  };
-  
-  // Get species-specific head features
-  const speciesFeatures = headShapes[dino.name] || [];
-  if (speciesFeatures.length > 0) {
-    features.push(...speciesFeatures);
-  }
-  
-  // Add diet-based jaw features
-  if (dino.diet === 'Carnivore') {
-    features.push(`${prominence} powerful jaw muscles for crushing bite force`);
-  } else if (dino.diet === 'Herbivore') {
-    features.push(`${prominence} grinding teeth arrangement for plant matter`);
-  } else if (dino.diet === 'Piscivore') {
-    features.push(`${prominence} needle-like teeth for catching fish`);
-  }
-  
-  // Add habitat-based sensory features
-  if (dino.habitat.includes('water')) {
-    features.push(`${prominence} elongated snout adapted for aquatic hunting`);
-  } else if (dino.habitat.includes('forest')) {
-    features.push(`${prominence} enhanced olfactory chambers in skull`);
-  }
-  
-  return features;
-}
-
-function generateHeadEmphasis(genetics: Array<{ species: string; percentage: number }>): string {
-  const dominantSpecies = genetics.find(g => g.percentage >= 25);
-  if (!dominantSpecies) return '';
-  
-  const dino = dinosaurDatabase.find(d => d.name === dominantSpecies.species);
-  if (!dino) return '';
-  
-  const headDescriptions: Record<string, string> = {
-    'Tyrannosaurus': 'The head displays a massive, broad skull with pronounced muscle attachments and powerful crushing jaws',
-    'Velociraptor': 'The head features an elongated, narrow skull with a distinctive curved profile and prominent brain case',
-    'Triceratops': 'The head showcases the iconic three-horned arrangement with a massive bony frill extending backward',
-    'Diplodocus': 'The head appears remarkably small and delicate compared to the body, with a horse-like elongated profile',
-    'Stegosaurus': 'The head displays a small, triangular shape with a narrow snout and distinctive beak-like mouth',
-    'Ankylosaurus': 'The head shows heavy armor plating with bony nodules covering the skull in a distinctive pattern',
-    'Spinosaurus': 'The head features a distinctly crocodilian appearance with an elongated snout adapted for fishing',
-    'Carnotaurus': 'The head displays the characteristic devil-like horns above the eyes with an extremely shortened face',
-    'Parasaurolophus': 'The head showcases the distinctive hollow tube-like crest extending dramatically backward',
-    'Allosaurus': 'The head features prominent ridges and crests above the eyes giving it a fierce, predatory appearance',
-    'Brachiosaurus': 'The head shows elevated nostrils and a relatively small cranium compared to the massive body',
-    'Deinonychus': 'The head displays enhanced sensory features with large eye sockets and sharp predatory characteristics',
-    'Maiasaura': 'The head features the characteristic duck-bill shape with broad flat snout for efficient plant processing',
-    'Compsognathus': 'The head appears extremely small and delicate with sharp needle-like teeth for small prey',
-    'Coelophysis': 'The head shows a slender, elongated skull with narrow snout perfect for swift predatory strikes',
-    'Mosasaurus': 'The head displays massive marine predator features with elongated jaws adapted for aquatic hunting',
-    'Microraptor': 'The head features bird-like characteristics with large eye sockets and delicate cranial structure',
-    'Dracorex': 'The head showcases dragon-like skull ornamentation with prominent spikes and ornate features',
-    'Borealopelta': 'The head displays heavy armor plating and defensive club-like structure for protection',
-    'Archaeopteryx': 'The head shows transitional bird-dinosaur features with toothed beak and flight adaptations'
-  };
-  
-  return headDescriptions[dominantSpecies.species] || 
-    `The head reflects the distinctive ${dominantSpecies.species} genetic influence with species-specific cranial features`;
-}
-
-function getColorName(hex: string): string {
-  // Convert hex to readable color names
+/**
+ * Converts hex colors to simple color names AI models understand better
+ */
+function convertHexToColorName(hex: string): string {
   const colorMap: Record<string, string> = {
-    '#ff0000': 'crimson red',
-    '#00ff00': 'vibrant green',
-    '#0000ff': 'deep blue',
-    '#ffff00': 'bright yellow',
-    '#ff00ff': 'magenta',
+    '#ff0000': 'red',
+    '#00ff00': 'green', 
+    '#0000ff': 'blue',
+    '#ffff00': 'yellow',
+    '#ff8000': 'orange',
+    '#8000ff': 'purple',
+    '#ff0080': 'pink',
     '#00ffff': 'cyan',
-    '#ffa500': 'orange',
-    '#800080': 'purple',
-    '#ffd700': 'golden',
-    '#8b4513': 'saddle brown',
-    '#32cd32': 'lime green',
-    '#8b00ff': 'violet',
-    '#adff2f': 'green yellow',
-    '#dc143c': 'crimson',
-    '#00ced1': 'dark turquoise',
-    '#ff1493': 'deep pink',
-    '#228b22': 'forest green',
-    '#4b0082': 'indigo',
-    '#daa520': 'goldenrod'
+    '#ffffff': 'white',
+    '#000000': 'black',
+    '#808080': 'gray',
+    '#800000': 'dark red',
+    '#008000': 'dark green',
+    '#000080': 'dark blue',
+    '#8b4513': 'brown',
+    '#ffd700': 'gold'
   };
+
+  // If exact match found
+  if (colorMap[hex.toLowerCase()]) {
+    return colorMap[hex.toLowerCase()];
+  }
+
+  // Simple heuristic for common colors
+  const r = parseInt(hex.substring(1, 3), 16);
+  const g = parseInt(hex.substring(3, 5), 16);
+  const b = parseInt(hex.substring(5, 7), 16);
+
+  // Determine dominant color channel
+  if (r > g && r > b) return r > 200 ? 'bright red' : 'red';
+  if (g > r && g > b) return g > 200 ? 'bright green' : 'green';
+  if (b > r && b > g) return b > 200 ? 'bright blue' : 'blue';
+  if (r > 150 && g > 150 && b < 100) return 'yellow';
+  if (r > 150 && g < 100 && b > 150) return 'purple';
+  if (r < 100 && g > 150 && b > 150) return 'cyan';
+  if (r > 100 && g > 100 && b > 100) return 'gray';
   
-  return colorMap[hex.toLowerCase()] || `custom color (${hex})`;
+  return 'multicolored';
 }
+
+/**
+ * Simplifies environment descriptions
+ */
+function simplifyEnvironment(environment: string): string {
+  const environmentMap: Record<string, string> = {
+    'jungle': 'jungle background',
+    'desert': 'desert background', 
+    'forest': 'forest background',
+    'plains': 'grassland background',
+    'mountains': 'mountain background',
+    'swamp': 'swamp background',
+    'arctic': 'snowy background',
+    'volcanic': 'volcanic background',
+    'cave': 'cave background',
+    'beach': 'beach background'
+  };
+
+  return environmentMap[environment] || 'natural background';
+}
+
+/**
+ * Generates minimal prompt for maximum compatibility
+ * Use this for providers that work better with very short prompts
+ */
+export function generateMinimalPrompt(config: SimplePromptConfig): string {
+  const { genetics, colors, customPrompt } = config;
+
+  if (customPrompt?.trim()) {
+    return customPrompt.trim();
+  }
+
+  const creature = genetics.length > 0 
+    ? simplifySpeciesName(genetics[0].species) 
+    : 'dinosaur';
+  
+  const color = colors.length > 0 
+    ? convertHexToColorName(colors[0])
+    : '';
+
+  return [creature, color, 'realistic'].filter(Boolean).join(' ');
+}
+
+/**
+ * Enhanced prompt for high-end models (GPT-4, Claude, etc.)
+ * Only use with models that can handle longer, more detailed prompts
+ */
+export function generateDetailedPrompt(config: SimplePromptConfig): string {
+  const { genetics, traits, colors, pattern, size, age, environment, customPrompt } = config;
+
+  if (customPrompt?.trim()) {
+    return `${customPrompt.trim()}, professional wildlife photography style, award winning, highly detailed, photorealistic, perfect anatomy, cinematic lighting, 8k resolution`;
+  }
+
+  const creature = buildCreatureDescription(genetics, size, age);
+  const appearance = buildAppearanceDescription(colors, pattern);
+  const setting = simplifyEnvironment(environment);
+  
+  // Add selective trait information (only most important ones)
+  const keyTraits = traits
+    .filter(trait => ['armored', 'flying', 'aquatic', 'massive', 'tiny'].some(key => 
+      trait.toLowerCase().includes(key)))
+    .slice(0, 2)
+    .join(', ');
+
+  const parts = [
+    creature,
+    appearance, 
+    keyTraits,
+    setting,
+    'professional wildlife photography style, award winning, highly detailed, photorealistic, perfect anatomy, cinematic lighting'
+  ].filter(Boolean);
+
+  return parts.join(', ');
+}
+
+// Export the main function (use simple by default)
+export const generatePrompt = generateSimplePrompt;

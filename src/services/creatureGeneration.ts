@@ -1,6 +1,6 @@
 import { imageGenerationService, GenerationConfig } from "@/services/imageGeneration";
 import { appConfig } from "@/config/app";
-import { generateEnhancedPrompt, EnhancedPromptConfig } from "./promptGeneration";
+import { generatePrompt, SimplePromptConfig } from "./promptGeneration";
 
 /**
  * Generated creature data structure with full metadata
@@ -190,7 +190,7 @@ export async function generateHybridCreatures(
     const environment = selectedBackground === 'custom' ? 'ancient landscape' : selectedBackground;
 
     // Build enhanced prompt configuration
-    const promptConfig: EnhancedPromptConfig = {
+    const promptConfig: SimplePromptConfig = {
       genetics,
       traits: selectedTraits,
       colors: selectedColors,
@@ -203,7 +203,7 @@ export async function generateHybridCreatures(
     };
 
     // Generate enhanced prompt with percentages and variation
-    const enhancedPrompt = generateEnhancedPrompt(promptConfig);
+    const enhancedPrompt = generatePrompt(promptConfig);
     
     // Add custom prompt text if provided
     const finalPrompt = promptText ? `${promptText}. ${enhancedPrompt}` : enhancedPrompt;
