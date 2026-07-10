@@ -1,0 +1,15 @@
+{
+  "name": "@createosaur/genome",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@createosaur/species-data": "*",
+    "zod": "^3.25.76"
+  }
+}

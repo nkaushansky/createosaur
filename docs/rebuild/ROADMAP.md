@@ -28,7 +28,8 @@ fabricated `aggregateRating` JSON-LD, uncapped admin-key spend in
   real stack.
 
 **DoD**: prototype parity at `/lab`, all invariant tests in CI, `legacy/`
-move complete, deploy previews working.
+move complete, static export (`apps/web/out/`) builds and serves — that
+folder IS the deployable per D-016.
 **Latitude**: all styling/layout; component architecture; animation.
 
 ## M1 — The roster (the content milestone)
@@ -64,7 +65,9 @@ credit render.
 
 ## M3 — Accounts & the dex
 
-- Supabase auth (parent-framed), local→cloud merge on first sign-in.
+- Self-hosted magic-link email auth per ARCHITECTURE (parent-framed);
+  local→cloud merge on first sign-in. (Fallback if magic-link proves heavy:
+  Supabase for auth only — see D-016.)
 - My Creatures gallery + public profile pages (opt-in public).
 - Rename with filter; favorites.
 
