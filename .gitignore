@@ -30,6 +30,10 @@ playwright-report/
 test-results/
 blob-report/
 
+# Local dev scratch (visual verify harness, ad-hoc screenshots)
+scratch-*
+*.harness.test.ts
+
 # Deploy
 .vercel
 

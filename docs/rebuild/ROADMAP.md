@@ -51,6 +51,23 @@ cover these); species browser shipped.
 **Latitude**: picker UI form (panel vs tap-on-creature vs both); browser
 layout; which species make each wave (exemplars fixed).
 
+**Shipped** (roster 3 → 12): species workbench (`/workbench`, dev-only),
+`renderPart` vignettes, and five new feature genes (sail, crest, domeSkull,
+tailClub, feathers). Nine new species — Brachiosaurus (sauropod exemplar),
+Parasaurolophus (ornithopod exemplar), Ankylosaurus, Spinosaurus,
+Velociraptor, Dracorex, and Allosaurus, Diplodocus (whip-tail sauropod, the
+counterpoint to Brachiosaurus), Iguanodon. Dracorex is the pachycephalosaurid
+in the salvaged database; it fills the head-butter slot because
+Pachycephalosaurus is not in `dinosaurDatabase.ts` and facts are never
+invented — **sourcing Pachycephalosaurus facts is the prerequisite to adding
+it** (the `domeSkull` feature is already built). Species browser
+(period/diet/size) + vignette parts picker + pool add/remove/swap with undo
+toast all shipped. Every pairwise mix of the five archetype exemplars has a
+golden fixture. DoD met (≥12 species, picker vignettes, pairwise coherence,
+browser). **Planned next**: a renderer texture/linework fidelity pass (scale
+and feather detail, interior contour lines, countershade volume) within the
+2D field-guide brand — a dedicated goldens-regeneration commit.
+
 ## M2 — Share & remix (the growth loop)
 
 - Creature pages `/c/:id` (server-rendered), OG image = the creature.

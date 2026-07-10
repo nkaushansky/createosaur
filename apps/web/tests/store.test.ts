@@ -93,3 +93,65 @@ describe('lab store history', () => {
     expect(state().past.length).toBeLessThanOrEqual(50);
   });
 });
+
+describe('lab store gene pool (D-007, GAME-DESIGN §4)', () => {
+  it('adds a species as an average-share member, capped at 4', () => {
+    state().addSpecies('brachiosaurus');
+    expect(state().genome.dna.map((d) => d.species)).toContain('brachiosaurus');
+    // default pool total is 100 over 3 → newcomer joins near the average (~33)
+    expect(state().genome.dna.find((d) => d.species === 'brachiosaurus')?.share).toBe(33);
+
+    state().addSpecies('spinosaurus'); // pool now 4 (cap)
+    state().addSpecies('velociraptor'); // rejected — full
+    expect(state().genome.dna).toHaveLength(4);
+    expect(state().genome.dna.map((d) => d.species)).not.toContain('velociraptor');
+  });
+
+  it('adding an already-pooled species is a no-op (no history)', () => {
+    state().addSpecies('triceratops'); // already in the default pool
+    expect(state().past).toHaveLength(0);
+    expect(state().genome.dna).toHaveLength(3);
+  });
+
+  it('removing a species clears its pins and raises an undo toast', () => {
+    state().setPin('head', 'triceratops');
+    state().removeSpecies('triceratops');
+    expect(state().genome.dna.map((d) => d.species)).not.toContain('triceratops');
+    expect(state().genome.parts.head).toBeUndefined(); // pin cleared
+    expect(state().toast?.message).toContain('Triceratops');
+  });
+
+  it('undoToast restores the exact pre-removal genome, including pins', () => {
+    state().setPin('head', 'triceratops');
+    const before = structuredClone(state().genome);
+    state().removeSpecies('triceratops');
+    state().undoToast();
+    expect(state().genome).toEqual(before);
+    expect(state().toast).toBeNull();
+  });
+
+  it('never removes the last species in the pool', () => {
+    state().setPool([{ species: 'tyrannosaurus', share: 100 }]);
+    state().removeSpecies('tyrannosaurus');
+    expect(state().genome.dna).toHaveLength(1);
+  });
+
+  it('swaps one species for another, keeping share and clearing its pins', () => {
+    state().setShare('triceratops', 40);
+    state().setPin('head', 'triceratops');
+    state().swapSpecies('triceratops', 'spinosaurus');
+    const swapped = state().genome.dna.find((d) => d.species === 'spinosaurus');
+    expect(swapped?.share).toBe(40);
+    expect(state().genome.dna.map((d) => d.species)).not.toContain('triceratops');
+    expect(state().genome.parts.head).toBeUndefined();
+  });
+
+  it('randomize re-rolls influence over the current pool, not a fixed trio', () => {
+    state().setPool([
+      { species: 'spinosaurus', share: 50 },
+      { species: 'velociraptor', share: 50 },
+    ]);
+    state().randomize();
+    expect(state().genome.dna.map((d) => d.species)).toEqual(['spinosaurus', 'velociraptor']);
+  });
+});
