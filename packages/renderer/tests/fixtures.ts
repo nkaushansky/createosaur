@@ -1,4 +1,5 @@
 import { GENOME_VERSION, type Genome } from '@createosaur/genome';
+import type { SpeciesId } from '@createosaur/species-data';
 
 /**
  * The golden-genome fixture set (ARCHITECTURE: testing strategy). Covers pure
@@ -13,6 +14,17 @@ const base = {
   age: 'adult' as const,
   seed: 1,
 };
+
+/** A neutral 50/50 two-species mix — the pairwise-breakage fixtures. */
+function mix(a: SpeciesId, b: SpeciesId): Genome {
+  return {
+    ...base,
+    dna: [
+      { species: a, share: 50 },
+      { species: b, share: 50 },
+    ],
+  };
+}
 
 export const FIXTURES: Record<string, Genome> = {
   'pure-tyrannosaurus': {
@@ -195,4 +207,24 @@ export const FIXTURES: Record<string, Genome> = {
     dna: [{ species: 'dracorex', share: 100 }],
     cosmetics: { hide: '#8a6a7a', markings: '#c0a44a', pattern: 'solid' },
   },
+
+  // M1 Wave 5 — every pairwise 50/50 mix of the five archetype exemplars
+  // (theropod=rex, ceratopsian=trike, armored=stego, sauropod=brachio,
+  // ornithopod=para) must render without anatomical breakage. Plus the wild
+  // callouts: ankylosaur×ornithopod and extra sauropod×theropod / feathers.
+  'mix-rex-triceratops': mix('tyrannosaurus', 'triceratops'),
+  'mix-rex-stegosaurus': mix('tyrannosaurus', 'stegosaurus'),
+  'mix-rex-brachiosaurus': mix('tyrannosaurus', 'brachiosaurus'),
+  'mix-rex-parasaurolophus': mix('tyrannosaurus', 'parasaurolophus'),
+  'mix-triceratops-stegosaurus': mix('triceratops', 'stegosaurus'),
+  'mix-triceratops-brachiosaurus': mix('triceratops', 'brachiosaurus'),
+  'mix-triceratops-parasaurolophus': mix('triceratops', 'parasaurolophus'),
+  'mix-stegosaurus-brachiosaurus': mix('stegosaurus', 'brachiosaurus'),
+  'mix-stegosaurus-parasaurolophus': mix('stegosaurus', 'parasaurolophus'),
+  'mix-brachiosaurus-parasaurolophus': mix('brachiosaurus', 'parasaurolophus'),
+  // wild: ankylosaur club × ornithopod crest
+  'mix-ankylosaurus-parasaurolophus': mix('ankylosaurus', 'parasaurolophus'),
+  // wild: sail theropod × sauropod, and feathered × frilled
+  'mix-spinosaurus-brachiosaurus': mix('spinosaurus', 'brachiosaurus'),
+  'mix-velociraptor-triceratops': mix('velociraptor', 'triceratops'),
 };
