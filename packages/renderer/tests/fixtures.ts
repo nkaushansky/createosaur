@@ -154,4 +154,23 @@ export const FIXTURES: Record<string, Genome> = {
     ],
     seed: 3,
   },
+
+  // M1 Wave 2 — archetype exemplars
+  'pure-brachiosaurus': {
+    ...base,
+    dna: [{ species: 'brachiosaurus', share: 100 }],
+    cosmetics: { hide: '#7f8a63', markings: '#b7a06a', pattern: 'countershade' },
+  },
+  'pure-parasaurolophus': {
+    ...base,
+    dna: [{ species: 'parasaurolophus', share: 100 }],
+    cosmetics: { hide: '#b5793f', markings: '#57708a', pattern: 'stripes' },
+  },
+  // locks the fit-to-frame clamp: a full-height sauropod at max size stays in
+  // frame (its head would otherwise scale off the top of the viewBox)
+  'brachiosaurus-size-max': {
+    ...base,
+    dna: [{ species: 'brachiosaurus', share: 100 }],
+    size: 100,
+  },
 };

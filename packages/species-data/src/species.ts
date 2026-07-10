@@ -141,6 +141,97 @@ export const SPECIES = {
     stats: { attack: 26, defense: 84, speed: 20, brains: 14 },
     uiColor: '#1f7d6d',
   },
+
+  // --- M1 Wave 2: archetype exemplars (sauropod + ornithopod) ------------------
+  brachiosaurus: {
+    id: 'brachiosaurus',
+    name: 'Brachiosaurus',
+    archetype: 'sauropod',
+    inV1: true,
+    facts: {
+      scientificName: 'Brachiosaurus altithorax',
+      period: 'Late Jurassic',
+      era: 'Mesozoic',
+      diet: 'Herbivore',
+      habitat: 'Woodlands',
+      description: 'Towering high-browser that could reach treetops',
+      lengthMeters: 23,
+      weightKg: 28000,
+      discoveryLocation: 'Colorado, USA',
+    },
+    // Sauropod: long neck rising high off high shoulders, small head, long
+    // front legs (front > hind — the "altithorax" build), body sloping down to
+    // a long tail. Stress-tests the neck/tail/size ranges (ROADMAP M1).
+    morph: {
+      hipY: 300,
+      shoulderRise: 72,
+      bodyLen: 168,
+      archUp: 8,
+      neckLen: 208,
+      neckUp: 168,
+      snoutLen: 34,
+      headSize: 30,
+      snoutTip: 11,
+      neckThick: 36,
+      tailLen: 268,
+      tailDrop: 26,
+      tailThick: 44,
+      bodyThick: 122,
+      chestThick: 104,
+      fLegLen: 224,
+      fLegThick: 32,
+      hLegThick: 44,
+    },
+    features: [],
+    syllables: { prefix: 'Brachio', duo: 'brachion', mid: 'brachio', suffix: 'saurus' },
+    stats: { attack: 30, defense: 78, speed: 22, brains: 30 },
+    uiColor: '#6f8a6a',
+  },
+
+  parasaurolophus: {
+    id: 'parasaurolophus',
+    name: 'Parasaurolophus',
+    archetype: 'ornithopod',
+    inV1: true,
+    facts: {
+      scientificName: 'Parasaurolophus walkeri',
+      period: 'Late Cretaceous',
+      era: 'Mesozoic',
+      diet: 'Herbivore',
+      habitat: 'Coastal plains',
+      description: 'Musical hadrosaur that could produce trumpeting calls',
+      lengthMeters: 9.5,
+      weightKg: 2500,
+      discoveryLocation: 'Alberta, Canada',
+    },
+    // Ornithopod: biped-leaning hadrosaur with a broad duck-bill (wide snout
+    // tip), deep counterbalancing tail, and short raised forelimbs. Carries the
+    // tube crest feature.
+    morph: {
+      hipY: 300,
+      shoulderRise: 22,
+      bodyLen: 150,
+      archUp: 10,
+      neckLen: 72,
+      neckUp: 44,
+      snoutLen: 54,
+      headSize: 40,
+      snoutTip: 21,
+      neckThick: 34,
+      tailLen: 236,
+      tailDrop: 52,
+      tailThick: 52,
+      bodyThick: 100,
+      chestThick: 80,
+      fLegLen: 122,
+      fLegThick: 18,
+      hLegThick: 46,
+    },
+    features: [{ kind: 'crest', slot: 'head' }],
+    syllables: { prefix: 'Para', duo: 'lophus', mid: 'louro', suffix: 'lophus' },
+    stats: { attack: 24, defense: 52, speed: 60, brains: 48 },
+    uiColor: '#c08a4a',
+  },
 } as const satisfies Record<string, SpeciesDef>;
 
 export type SpeciesId = keyof typeof SPECIES;

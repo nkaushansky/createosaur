@@ -244,32 +244,30 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
     }
   }
 
-  // Parasaurolophus crest: a tube swept up and back off the skull.
+  // Parasaurolophus crest: a long tube swept up and back off the skull.
+  // Drawn as a round-capped stroke (a capsule) so it reads as a solid tube,
+  // not a flat blade — ink underlay, then fill, then a highlight run.
   if (f.crest) {
-    const s = at(Math.min(1, tHead + 0.01));
-    const L = 96 * f.crest.intensity;
-    const wte = Math.max(9, s.w * 0.24);
-    // base on the crown, sweeping back (−tangent) and up (+normal)
-    const base: Pt = [s.p[0] + s.n[0] * (s.w / 2 - 3), s.p[1] + s.n[1] * (s.w / 2 - 3)];
+    const s = at(Math.min(1, tHead - 0.02));
+    const L = 108 * f.crest.intensity;
+    const tube = Math.max(13, s.w * 0.34);
+    const base: Pt = [s.p[0] + s.n[0] * (s.w / 2 - 5), s.p[1] + s.n[1] * (s.w / 2 - 5)];
     const back: Pt = [-s.tn[0], -s.tn[1]]; // toward the neck/tail
     const up: Pt = s.n;
+    // centerline curves up off the crown then arcs back over the neck
+    const ctrl: Pt = [base[0] + up[0] * L * 0.72, base[1] + up[1] * L * 0.72];
     const tip: Pt = [
-      base[0] + back[0] * L * 0.9 + up[0] * L * 0.7,
-      base[1] + back[1] * L * 0.9 + up[1] * L * 0.7,
+      base[0] + back[0] * L * 0.95 + up[0] * L * 0.62,
+      base[1] + back[1] * L * 0.95 + up[1] * L * 0.62,
     ];
-    const ctrlTop: Pt = [base[0] + up[0] * L * 0.55, base[1] + up[1] * L * 0.55];
-    const ctrlBot: Pt = [base[0] + back[0] * L * 0.5, base[1] + back[1] * L * 0.5];
-    const tint = shade(prim, 0.12);
+    const spine = `M${fmt(base[0], base[1])}Q${fmt(ctrl[0], ctrl[1])} ${fmt(tip[0], tip[1])}`;
+    const tint = shade(prim, 0.14);
     svg +=
-      `<path d="M${fmt(base[0] + s.tn[0] * wte * 0.5, base[1] + s.tn[1] * wte * 0.5)}` +
-      `Q${fmt(ctrlTop[0], ctrlTop[1])} ${fmt(tip[0] + s.tn[0] * wte * 0.5, tip[1] + s.tn[1] * wte * 0.5)}` +
-      `L${fmt(tip[0] - s.tn[0] * wte * 0.5, tip[1] - s.tn[1] * wte * 0.5)}` +
-      `Q${fmt(ctrlBot[0], ctrlBot[1])} ${fmt(base[0] - back[0] * wte, base[1] - back[1] * wte)}Z" ` +
-      `fill="${tint}" stroke="${ink}" stroke-width="2.5" stroke-linejoin="round"/>` +
-      `<path d="M${fmt(base[0], base[1])}Q${fmt(
-        (ctrlTop[0] + ctrlBot[0]) / 2,
-        (ctrlTop[1] + ctrlBot[1]) / 2
-      )} ${fmt(tip[0], tip[1])}" stroke="${shade(prim, -0.3)}" stroke-width="2" fill="none" opacity="0.5"/>`;
+      `<path d="${spine}" fill="none" stroke="${ink}" stroke-width="${round1(tube + 5)}" stroke-linecap="round"/>` +
+      `<path d="${spine}" fill="none" stroke="${tint}" stroke-width="${round1(tube)}" stroke-linecap="round"/>` +
+      `<path d="${spine}" fill="none" stroke="${shade(prim, -0.28)}" stroke-width="${round1(
+        tube * 0.24
+      )}" stroke-linecap="round" opacity="0.5"/>`;
   }
 
   // Raptor feathers: a filament fringe along the dorsal line (neck→back→tail).
@@ -386,13 +384,51 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
 
   // --- scale around the ground anchor, wrap in <svg> --------------------------------
   const anchorX = HIPX - p.bodyLen * 0.35;
-  const s = round1(blend.displayScale * 100) / 100;
+  // Fit-to-frame clamp: the display scale may only *shrink* to keep a creature
+  // inside the viewBox — it never grows past its genome size. This is what lets
+  // a full-height sauropod's neck stay in frame at size 100 without capping the
+  // species. It only engages when geometry would overflow, so shorter creatures
+  // (every existing golden) are unaffected and render byte-identically.
+  const s = round1(Math.min(blend.displayScale, fitScale(pts, ws, f, anchorX)) * 100) / 100;
   const { name } = composeName(genome);
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${VIEW.width} ${VIEW.height}" role="img" aria-label="${escapeAttr(name)}, a hybrid dinosaur">` +
     `<g transform="translate(${round1(anchorX)} ${GROUND}) scale(${s}) translate(${round1(-anchorX)} ${-GROUND})">${svg}</g>` +
     `</svg>`
   );
+}
+
+/**
+ * Largest display scale (about the ground anchor at HIPX-relative anchorX) that
+ * keeps the creature's top edge inside the viewBox. Only the *vertical* extent
+ * is clamped: a too-tall creature (a full-height sauropod at max size) would
+ * otherwise push its head off the top of the frame. Horizontal overhang at
+ * extreme sizes is left as-is — it is the established M0 behaviour and clamping
+ * it would move existing goldens. Returns Infinity when nothing overflows.
+ */
+function fitScale(
+  pts: readonly Pt[],
+  ws: readonly number[],
+  feat: BlendResult['features'],
+  _anchorX: number
+): number {
+  const PAD = 10;
+  let ymin = Infinity;
+  for (let i = 0; i < pts.length; i++) ymin = Math.min(ymin, pts[i]![1] - (ws[i] ?? 0) / 2);
+  // headroom for dorsal/cranial features that rise above the silhouette
+  const rise = (k: FeatureKind, h: number) => (feat[k] ? h * feat[k]!.intensity : 0);
+  ymin -= Math.max(
+    rise('sail', 152),
+    rise('plates', 54),
+    rise('crest', 88),
+    rise('browHorns', 64),
+    rise('noseHorn', 24),
+    rise('frill', 70),
+    rise('domeSkull', 48),
+    rise('feathers', 30),
+    0
+  );
+  return ymin < GROUND ? (GROUND - PAD) / (GROUND - ymin) : Infinity;
 }
 
 /**
@@ -457,7 +493,7 @@ function cropBox(
   const M: Record<PartSlot, { a: number; b: number; top: number; bottom: number; left: number; right: number }> = {
     tail: { a: 0, b: 0.34, top: tailTop, bottom: 26, left: tailSide, right: tailSide },
     back: { a: 0.36, b: 0.66, top: backTop, bottom: 34, left: 28, right: 28 },
-    head: { a: 0.72, b: 1, top: headTop, bottom: 30, left: 30, right: 24 },
+    head: { a: 0.72, b: 1, top: headTop, bottom: 30, left: 30, right: has('crest') ? 96 : 24 },
     stance: { a: 0.38, b: 0.66, top: 18, bottom: 28, left: 58, right: 38 },
     skin: { a: 0.42, b: 0.6, top: 18 + feather, bottom: 20, left: 16, right: 16 },
   };
