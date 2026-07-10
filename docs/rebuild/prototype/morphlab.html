@@ -1,0 +1,605 @@
+<title>Createosaur Morph Lab</title>
+<style>
+  :root{
+    --bg:#edeee6; --card:#f8f8f2; --ink:#23281f; --muted:#6a705f;
+    --line:rgba(35,40,31,.14); --accent:#a06e1f; --accent-ink:#7c5313;
+    --paper:#f4f2e8; --paper-grid:#dcd8c6; --paper-line:#b9b4a0;
+    --sp-t:#b5482a; --sp-c:#4f5fb0; --sp-s:#1f7d6d;
+    --meter-track:rgba(35,40,31,.12); --btn-bg:#efeee6; --btn-border:rgba(35,40,31,.22);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#16140f; --card:#201d16; --ink:#eae4d4; --muted:#9a917c;
+      --line:rgba(234,228,212,.14); --accent:#d9a441; --accent-ink:#e7bc67;
+      --sp-t:#d96a48; --sp-c:#8b96dd; --sp-s:#3aa78f;
+      --meter-track:rgba(234,228,212,.14); --btn-bg:#2a2619; --btn-border:rgba(234,228,212,.22);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#edeee6; --card:#f8f8f2; --ink:#23281f; --muted:#6a705f;
+    --line:rgba(35,40,31,.14); --accent:#a06e1f; --accent-ink:#7c5313;
+    --sp-t:#b5482a; --sp-c:#4f5fb0; --sp-s:#1f7d6d;
+    --meter-track:rgba(35,40,31,.12); --btn-bg:#efeee6; --btn-border:rgba(35,40,31,.22);
+  }
+  :root[data-theme="dark"]{
+    --bg:#16140f; --card:#201d16; --ink:#eae4d4; --muted:#9a917c;
+    --line:rgba(234,228,212,.14); --accent:#d9a441; --accent-ink:#e7bc67;
+    --sp-t:#d96a48; --sp-c:#8b96dd; --sp-s:#3aa78f;
+    --meter-track:rgba(234,228,212,.14); --btn-bg:#2a2619; --btn-border:rgba(234,228,212,.22);
+  }
+  *{box-sizing:border-box}
+  body{background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    margin:0; padding:20px 16px 48px; line-height:1.45;}
+  .wrap{max-width:1100px; margin:0 auto;}
+  .disp{font-family:"Avenir Next Condensed","Franklin Gothic Medium","Arial Narrow",Impact,sans-serif;
+    text-transform:uppercase; letter-spacing:.06em;}
+  header{display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:8px; margin:4px 2px 18px;}
+  header h1{font-size:clamp(26px,4vw,38px); margin:0; font-weight:700;}
+  header h1 .disp{letter-spacing:.08em}
+  .eyebrow{font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:600;}
+  .grid{display:grid; grid-template-columns:minmax(0,1.35fr) minmax(300px,1fr); gap:16px; align-items:start;}
+  @media (max-width:880px){ .grid{grid-template-columns:1fr;} }
+  .card{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px;}
+  .viewport{padding:10px; background:var(--paper);
+    background-image:linear-gradient(var(--paper-grid) 1px, transparent 1px),
+                     linear-gradient(90deg, var(--paper-grid) 1px, transparent 1px);
+    background-size:26px 26px; border-radius:10px; border:1px solid var(--paper-line);}
+  .viewport svg{display:block; width:100%; height:auto;}
+  /* placard */
+  .placard{margin-top:14px;}
+  .placard .nm{font-size:clamp(22px,3.2vw,30px); font-weight:700; margin:0; text-wrap:balance;}
+  .placard .sci{font-style:italic; color:var(--muted); margin:2px 0 10px; font-size:14px;}
+  .chips{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;}
+  .chip{font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase;
+    padding:4px 10px; border-radius:99px; border:1px solid var(--line); color:var(--muted); background:transparent;}
+  .meters{display:grid; grid-template-columns:78px 1fr 34px; gap:8px 10px; align-items:center; max-width:420px;}
+  .meters .lbl{font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--muted);}
+  .meters .val{font-size:13px; font-variant-numeric:tabular-nums; text-align:right;}
+  .track{display:block; height:6px; border-radius:3px; background:var(--meter-track); overflow:hidden;}
+  .fill{display:block; height:100%; border-radius:3px; background:var(--accent); transition:width .25s ease;}
+  @media (prefers-reduced-motion: reduce){ .fill{transition:none} }
+  /* controls */
+  .sec{margin-bottom:18px;}
+  .sec:last-child{margin-bottom:0}
+  .sec h2{font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted);
+    margin:0 0 10px; font-weight:700; border-bottom:1px solid var(--line); padding-bottom:6px;}
+  .dnarow{display:grid; grid-template-columns:118px 1fr 44px; align-items:center; gap:10px; margin-bottom:10px;}
+  .dnarow .sname{display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600;}
+  .swatch{width:12px; height:12px; border-radius:3px; flex:none;}
+  .dnarow .pct{font-size:13px; font-variant-numeric:tabular-nums; text-align:right; color:var(--muted);}
+  input[type=range]{width:100%; margin:0; height:22px;}
+  #wt{accent-color:var(--sp-t)} #wc{accent-color:var(--sp-c)} #ws{accent-color:var(--sp-s)}
+  #size{accent-color:var(--accent)}
+  .btnrow{display:flex; flex-wrap:wrap; gap:6px;}
+  button, select{font:inherit; color:var(--ink);}
+  .btn{background:var(--btn-bg); border:1px solid var(--btn-border); border-radius:7px;
+    padding:6px 11px; font-size:13px; cursor:pointer;}
+  .btn:hover{border-color:var(--ink);}
+  .btn:focus-visible, input:focus-visible, select:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  .btn.primary{background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600;}
+  :root[data-theme="dark"] .btn.primary, .dark-primary{color:#1c1710;}
+  @media (prefers-color-scheme: dark){ .btn.primary{color:#1c1710;} }
+  :root[data-theme="light"] .btn.primary{color:#fff;}
+  .pins{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .pin{display:flex; flex-direction:column; gap:4px;}
+  .pin label{font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted);}
+  .pin select{background:var(--btn-bg); border:1px solid var(--btn-border); border-radius:7px; padding:6px 8px; font-size:13px;}
+  .approw{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;}
+  .approw label{font-size:13px; color:var(--muted);}
+  input[type=color]{width:34px; height:26px; border:1px solid var(--btn-border); border-radius:6px; background:none; padding:1px; cursor:pointer;}
+  .seg .btn[aria-pressed="true"]{background:var(--ink); color:var(--card); border-color:var(--ink);}
+  details{border:1px solid var(--line); border-radius:8px; padding:10px 12px; margin-top:14px;}
+  summary{cursor:pointer; font-size:12px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--muted);}
+  pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; overflow-x:auto; margin:10px 0 0; color:var(--muted);}
+  dialog{background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:12px;
+    padding:22px; max-width:430px; width:calc(100% - 40px);}
+  dialog::backdrop{background:rgba(10,10,8,.55);}
+  dialog h3{margin:0 0 8px; font-size:18px;}
+  dialog p{font-size:14px; color:var(--muted); margin:0 0 10px;}
+  footer{margin-top:18px; color:var(--muted); font-size:13px; max-width:68ch;}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1><span class="disp">Createosaur</span> <span style="font-weight:400;color:var(--muted);font-size:.55em">Morph Lab</span></h1>
+    <span class="eyebrow">Interaction prototype · genome → creature, live</span>
+  </header>
+
+  <div class="grid">
+    <div>
+      <div class="card viewport" aria-label="Creature viewport">
+        <svg id="stage" viewBox="0 0 820 540" role="img" aria-label="Procedurally drawn hybrid dinosaur"></svg>
+      </div>
+      <div class="card placard">
+        <p class="eyebrow" id="specimen">Specimen CS-0000</p>
+        <h2 class="nm disp" id="name">Chimerasaurus</h2>
+        <p class="sci" id="sci"></p>
+        <div class="chips">
+          <span class="chip" id="chip-period">Epoch</span>
+          <span class="chip" id="chip-diet">Diet</span>
+        </div>
+        <div class="meters" id="meters"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="sec">
+        <h2>DNA mix — the sliders</h2>
+        <div class="dnarow">
+          <span class="sname"><span class="swatch" style="background:var(--sp-t)"></span>T-Rex</span>
+          <input type="range" id="wt" min="0" max="100" value="100" aria-label="Tyrannosaurus DNA share">
+          <span class="pct" id="pt">34%</span>
+        </div>
+        <div class="dnarow">
+          <span class="sname"><span class="swatch" style="background:var(--sp-c)"></span>Triceratops</span>
+          <input type="range" id="wc" min="0" max="100" value="0" aria-label="Triceratops DNA share">
+          <span class="pct" id="pc">33%</span>
+        </div>
+        <div class="dnarow">
+          <span class="sname"><span class="swatch" style="background:var(--sp-s)"></span>Stegosaurus</span>
+          <input type="range" id="ws" min="0" max="100" value="0" aria-label="Stegosaurus DNA share">
+          <span class="pct" id="ps">33%</span>
+        </div>
+        <div class="btnrow" id="presets"></div>
+      </div>
+
+      <div class="sec">
+        <h2>Parts — the Lego layer</h2>
+        <div class="pins">
+          <div class="pin"><label for="pin-head">Head</label>
+            <select id="pin-head" data-group="head"><option value="">Blend (auto)</option><option value="t">T-Rex</option><option value="c">Triceratops</option><option value="s">Stegosaurus</option></select></div>
+          <div class="pin"><label for="pin-back">Back</label>
+            <select id="pin-back" data-group="back"><option value="">Blend (auto)</option><option value="t">T-Rex</option><option value="c">Triceratops</option><option value="s">Stegosaurus</option></select></div>
+          <div class="pin"><label for="pin-tail">Tail</label>
+            <select id="pin-tail" data-group="tail"><option value="">Blend (auto)</option><option value="t">T-Rex</option><option value="c">Triceratops</option><option value="s">Stegosaurus</option></select></div>
+          <div class="pin"><label for="pin-legs">Stance</label>
+            <select id="pin-legs" data-group="legs"><option value="">Blend (auto)</option><option value="t">T-Rex</option><option value="c">Triceratops</option><option value="s">Stegosaurus</option></select></div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h2>Appearance</h2>
+        <div class="approw">
+          <label for="col1">Hide</label><input type="color" id="col1" value="#6b8f4e">
+          <label for="col2">Markings</label><input type="color" id="col2" value="#d9a441">
+          <span class="btnrow seg" id="patseg" role="group" aria-label="Pattern">
+            <button class="btn" data-pat="solid" aria-pressed="true">Solid</button>
+            <button class="btn" data-pat="stripes" aria-pressed="false">Stripes</button>
+            <button class="btn" data-pat="spots" aria-pressed="false">Spots</button>
+          </span>
+        </div>
+        <div class="approw" style="margin-bottom:0">
+          <label for="size" style="min-width:32px">Size</label>
+          <input type="range" id="size" min="60" max="130" value="100" style="flex:1" aria-label="Creature size">
+        </div>
+      </div>
+
+      <div class="sec">
+        <h2>Finish</h2>
+        <div class="btnrow">
+          <button class="btn primary" id="aiBtn">Generate AI portrait</button>
+          <button class="btn" id="rnd">🎲 Surprise me</button>
+        </div>
+      </div>
+
+      <details>
+        <summary>The genome (this is the product)</summary>
+        <pre id="genome"></pre>
+      </details>
+    </div>
+  </div>
+
+  <footer>
+    Every pixel above is drawn deterministically from the genome — no AI, no waiting, no cost.
+    In the full product this render becomes the <em>reference image</em> for an AI portrait pass,
+    so generated art stays true to the creature you shaped. Breeding, lineage and trading operate
+    on the same genome data.
+  </footer>
+</div>
+
+<dialog id="aiDialog">
+  <h3>Where AI fits</h3>
+  <p>In the real product, this button sends the <strong>genome + this exact render</strong> (not a text
+  prompt) to an image-to-image model. The result is a painterly portrait that keeps your creature's
+  proportions, parts and markings — consistent every time, because the deterministic render anchors it.</p>
+  <p>That makes AI the slow, gorgeous <em>reward</em> at the end of the loop — and a natural paid
+  moment — instead of the loop itself.</p>
+  <div class="btnrow" style="justify-content:flex-end"><button class="btn" id="aiClose">Got it</button></div>
+</dialog>
+
+<script>
+"use strict";
+/* ---------- species parameter tables ---------- */
+const SPECIES = {
+  t: { label:"Tyrannosaurus", period:"Late Cretaceous", p:{
+    hipY:285, shoulderRise:20, bodyLen:145, archUp:15,
+    neckLen:75, neckUp:55, snoutLen:60, headSize:52, snoutTip:18, neckThick:36,
+    tailLen:265, tailDrop:50, tailThick:48,
+    bodyThick:96, chestThick:72,
+    fLegLen:60, fLegThick:11, hLegThick:42 }},
+  c: { label:"Triceratops", period:"Late Cretaceous", p:{
+    hipY:320, shoulderRise:-8, bodyLen:140, archUp:6,
+    neckLen:50, neckUp:6, snoutLen:48, headSize:44, snoutTip:8, neckThick:46,
+    tailLen:190, tailDrop:78, tailThick:40,
+    bodyThick:100, chestThick:86,
+    fLegLen:150, fLegThick:26, hLegThick:36 }},
+  s: { label:"Stegosaurus", period:"Late Jurassic", p:{
+    hipY:310, shoulderRise:-30, bodyLen:140, archUp:42,
+    neckLen:60, neckUp:-18, snoutLen:32, headSize:26, snoutTip:7, neckThick:26,
+    tailLen:235, tailDrop:105, tailThick:40,
+    bodyThick:104, chestThick:70,
+    fLegLen:132, fLegThick:21, hLegThick:34 }}
+};
+const GROUPS = {
+  head:["neckLen","neckUp","snoutLen","headSize","snoutTip","neckThick"],
+  back:["archUp","bodyThick","chestThick","bodyLen"],
+  tail:["tailLen","tailDrop","tailThick"],
+  legs:["hipY","shoulderRise","fLegLen","fLegThick","hLegThick"]
+};
+const SP = ["t","c","s"];
+
+const state = {
+  w:{t:100,c:0,s:0},
+  pins:{head:"",back:"",tail:"",legs:""},
+  primary:"#6b8f4e", secondary:"#d9a441",
+  pattern:"solid", size:1
+};
+
+/* ---------- small math / color helpers ---------- */
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const smooth=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
+const R1=x=>Math.round(x*10)/10;
+function hex2rgb(h){return [1,3,5].map(i=>parseInt(h.slice(i,i+2),16));}
+function rgb2hex(c){return "#"+c.map(v=>clamp(Math.round(v),0,255).toString(16).padStart(2,"0")).join("");}
+function shade(h,amt){ // amt -1..1 : toward black / white
+  const c=hex2rgb(h), tgt=amt<0?[16,18,12]:[252,250,240], t=Math.abs(amt);
+  return rgb2hex(c.map((v,i)=>lerp(v,tgt[i],t)));
+}
+function normW(){
+  const s=state.w.t+state.w.c+state.w.s;
+  if(s<=0) return {t:1/3,c:1/3,s:1/3};
+  return {t:state.w.t/s, c:state.w.c/s, s:state.w.s/s};
+}
+function groupW(g){
+  const pin=state.pins[g];
+  if(pin) return {t:pin==="t"?1:0, c:pin==="c"?1:0, s:pin==="s"?1:0};
+  return normW();
+}
+
+/* ---------- genome → blended parameters ---------- */
+function blendParams(){
+  const p={};
+  for(const g in GROUPS){
+    const gw=groupW(g);
+    for(const k of GROUPS[g]) p[k]=SP.reduce((a,sp)=>a+gw[sp]*SPECIES[sp].p[k],0);
+  }
+  const hw=groupW("head"), bw=groupW("back"), tw=groupW("tail");
+  p.feat={
+    horn:  smooth(.18,.55,hw.c),
+    frill: smooth(.18,.55,hw.c),
+    toothy:smooth(.25,.60,hw.t),
+    plate: smooth(.18,.55,bw.s),
+    spike: smooth(.18,.55,tw.s)
+  };
+  return p;
+}
+
+/* ---------- geometry ---------- */
+const GROUND=470, HIPX=505;
+function q(p0,c,p1,t){const u=1-t;return [u*u*p0[0]+2*u*t*c[0]+t*t*p1[0], u*u*p0[1]+2*u*t*c[1]+t*t*p1[1]];}
+function buildSpine(p){
+  const H=[HIPX,p.hipY], S=[HIPX-p.bodyLen,p.hipY-p.shoulderRise];
+  const headC=[S[0]-p.neckLen*0.95, S[1]-p.neckUp];
+  const snout=[headC[0]-p.snoutLen, headC[1]+5];
+  const Cn=[2*headC[0]-(S[0]+snout[0])/2, 2*headC[1]-(S[1]+snout[1])/2];
+  const T=[HIPX+p.tailLen, p.hipY+p.tailDrop];
+  const Ct=[HIPX+p.tailLen*0.45, p.hipY+p.tailDrop*0.22];
+  const M=[(H[0]+S[0])/2,(H[1]+S[1])/2-p.archUp];
+  const pts=[];
+  for(let i=0;i<=29;i++) pts.push(q(T,Ct,H,i/29));
+  for(let i=1;i<=19;i++) pts.push(q(H,M,S,i/19));
+  for(let i=1;i<=29;i++) pts.push(q(S,Cn,snout,i/29));
+  return {pts,H,S,headC,snout};
+}
+function widthAt(keys,t){
+  for(let i=0;i<keys.length-1;i++){
+    if(t<=keys[i+1][0]){
+      const [t0,w0]=keys[i],[t1,w1]=keys[i+1];
+      return lerp(w0,w1,(t-t0)/Math.max(1e-6,t1-t0));
+    }
+  }
+  return keys[keys.length-1][1];
+}
+function normals(pts){
+  const n=[];
+  for(let i=0;i<pts.length;i++){
+    const a=pts[Math.max(0,i-1)], b=pts[Math.min(pts.length-1,i+1)];
+    let dx=b[0]-a[0], dy=b[1]-a[1]; const L=Math.hypot(dx,dy)||1;
+    let nx=dy/L, ny=-dx/L;
+    if(i===0){ if(ny>0){nx=-nx;ny=-ny;} }             // first: prefer "up"
+    else { const p=n[i-1]; if(nx*p[0]+ny*p[1]<0){nx=-nx;ny=-ny;} } // then: stay continuous
+    n.push([nx,ny]);
+  }
+  return n;
+}
+function ribbonPath(pts,ws){
+  const nm=normals(pts), top=[], bot=[];
+  for(let i=0;i<pts.length;i++){
+    const w=ws[i]/2;
+    top.push([pts[i][0]+nm[i][0]*w, pts[i][1]+nm[i][1]*w]);
+    bot.push([pts[i][0]-nm[i][0]*w, pts[i][1]-nm[i][1]*w]);
+  }
+  let d="M"+R1(top[0][0])+" "+R1(top[0][1]);
+  for(let i=1;i<top.length;i++) d+="L"+R1(top[i][0])+" "+R1(top[i][1]);
+  for(let i=bot.length-1;i>=0;i--) d+="L"+R1(bot[i][0])+" "+R1(bot[i][1]);
+  return d+"Z";
+}
+function catmull(pts,m){
+  const out=[pts[0]];
+  for(let j=0;j<pts.length-1;j++){
+    const p0=pts[Math.max(0,j-1)],p1=pts[j],p2=pts[j+1],p3=pts[Math.min(pts.length-1,j+2)];
+    for(let i=1;i<=m;i++){
+      const t=i/m,t2=t*t,t3=t2*t;
+      out.push([
+        .5*((2*p1[0])+(-p0[0]+p2[0])*t+(2*p0[0]-5*p1[0]+4*p2[0]-p3[0])*t2+(-p0[0]+3*p1[0]-3*p2[0]+p3[0])*t3),
+        .5*((2*p1[1])+(-p0[1]+p2[1])*t+(2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*t2+(-p0[1]+3*p1[1]-3*p2[1]+p3[1])*t3)
+      ]);
+    }
+  }
+  return out;
+}
+function limb(ctrl,widths,fill,stroke){
+  const pts=catmull(ctrl,8);
+  const ws=pts.map((_,i)=>{
+    const f=i/(pts.length-1)*(widths.length-1), j=Math.floor(f);
+    return lerp(widths[j],widths[Math.min(j+1,widths.length-1)],f-j);
+  });
+  return `<path d="${ribbonPath(pts,ws)}" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`;
+}
+const P=(x,y)=>R1(x)+" "+R1(y);
+function tri(a,b,c,fill,extra=""){return `<path d="M${P(a[0],a[1])}L${P(b[0],b[1])}L${P(c[0],c[1])}Z" fill="${fill}" ${extra}/>`;}
+
+/* ---------- pseudo-random spot positions (fixed seed) ---------- */
+const SPOTS=(()=>{let s=7;const r=()=>((s=(s*1103515245+12345)&0x7fffffff)/0x7fffffff);
+  return Array.from({length:18},()=>[230+r()*500, 205+r()*215, 7+r()*9]);})();
+
+/* ---------- render ---------- */
+function render(){
+  const p=blendParams(), f=p.feat;
+  const {pts,H,S,snout}=buildSpine(p);
+  const N=pts.length;
+  const tHead=0.625+0.375*(p.neckLen*0.95/(p.neckLen*0.95+p.snoutLen));
+  const keys=[[0,5],[0.30,p.tailThick],[0.42,p.bodyThick*0.97],[0.52,p.bodyThick],
+              [0.625,p.chestThick],[0.71,p.neckThick],[tHead,p.headSize],[1,Math.max(p.snoutTip,6)]];
+  const ws=pts.map((_,i)=>widthAt(keys,i/(N-1)));
+  const nm=normals(pts);
+  const at=t=>{const i=clamp(Math.round(t*(N-1)),0,N-1);return {p:pts[i],n:nm[i],w:ws[i],
+    tn:(()=>{const a=pts[Math.max(0,i-1)],b=pts[Math.min(N-1,i+1)];const dx=b[0]-a[0],dy=b[1]-a[1],L=Math.hypot(dx,dy)||1;return [dx/L,dy/L];})()};};
+  const topOf=t=>{const s=at(t);return [s.p[0]+s.n[0]*s.w/2, s.p[1]+s.n[1]*s.w/2];};
+  const botOf=(t,inset=0)=>{const s=at(t);const w=s.w/2-inset;return [s.p[0]-s.n[0]*w, s.p[1]-s.n[1]*w];};
+
+  const prim=state.primary, sec=state.secondary;
+  const ink=shade(prim,-0.55), legC=shade(prim,-0.14), farC=shade(prim,-0.38);
+  const bone="#e6dcc0", boneInk="#8a7a52";
+  let svg="";
+
+  /* ground + shadow */
+  const extent=(pts[0][0]-snout[0]);
+  svg+=`<line x1="60" y1="${GROUND}" x2="780" y2="${GROUND}" stroke="var(--paper-line)" stroke-width="2"/>`;
+  for(const gx of [120,300,520,700]) svg+=`<path d="M${gx} ${GROUND}l5 -9 M${gx+7} ${GROUND}l4 -6" stroke="var(--paper-line)" stroke-width="1.5" fill="none"/>`;
+  svg+=`<ellipse cx="${R1((pts[0][0]+snout[0])/2)}" cy="${GROUND+8}" rx="${R1(extent*0.42)}" ry="9" fill="rgba(30,30,20,.14)"/>`;
+
+  /* far legs */
+  const dx=26, dy=-6;
+  svg+=limb([[H[0]+4+dx,H[1]+2+dy],[H[0]-14+dx,H[1]+(GROUND-H[1])*0.5+dy],[H[0]+16+dx,GROUND-42+dy],[H[0]-2+dx,GROUND-10+dy]],
+            [p.hLegThick,p.hLegThick*0.6,p.hLegThick*0.34,p.hLegThick*0.46], farC, shade(prim,-0.5));
+  svg+=`<ellipse cx="${R1(H[0]-4+dx)}" cy="${GROUND-7+dy+3}" rx="${R1(p.hLegThick*0.42+7)}" ry="6.5" fill="${farC}" stroke="${shade(prim,-0.5)}" stroke-width="2"/>`;
+  {
+    const fy=Math.min(S[1]+8+p.fLegLen, GROUND-8);
+    svg+=limb([[S[0]+6+dx,S[1]+8+dy],[S[0]+3+dx,(S[1]+8+fy)/2+4+dy],[S[0]-4+dx,fy+dy]],
+              [p.fLegThick,p.fLegThick*0.68,p.fLegThick*0.5], farC, shade(prim,-0.5));
+    if(fy>GROUND-30) svg+=`<ellipse cx="${R1(S[0]-6+dx)}" cy="${GROUND-6+dy+2}" rx="${R1(p.fLegThick*0.45+5)}" ry="5.5" fill="${farC}" stroke="${shade(prim,-0.5)}" stroke-width="2"/>`;
+  }
+
+  /* frill (behind head) */
+  if(f.frill>0.02){
+    const c=at(0.685), R=66*f.frill;
+    const cx=c.p[0]+c.n[0]*8, cy=c.p[1]+c.n[1]*8;
+    svg+=`<g transform="rotate(-24 ${R1(cx)} ${R1(cy)})">
+      <ellipse cx="${R1(cx)}" cy="${R1(cy)}" rx="${R1(R*0.74)}" ry="${R1(R)}" fill="${sec}" stroke="${shade(sec,-0.35)}" stroke-width="2.5"/>
+      <ellipse cx="${R1(cx)}" cy="${R1(cy)}" rx="${R1(R*0.44)}" ry="${R1(R*0.62)}" fill="${shade(sec,-0.15)}"/></g>`;
+  }
+  /* plates */
+  if(f.plate>0.02){
+    const n=8;
+    for(let i=0;i<n;i++){
+      const tt=0.30+i*(0.38/(n-1)); const s=at(tt);
+      const base=[s.p[0]+s.n[0]*(s.w/2-3), s.p[1]+s.n[1]*(s.w/2-3)];
+      const h=(26+24*Math.sin(Math.PI*i/(n-1)))*f.plate;
+      const a=s.tn;
+      svg+=`<path d="M${P(base[0]-a[0]*13,base[1]-a[1]*13)}L${P(base[0]-a[0]*5+s.n[0]*h,base[1]-a[1]*5+s.n[1]*h)}L${P(base[0]+a[0]*5+s.n[0]*h*0.9,base[1]+a[1]*5+s.n[1]*h*0.9)}L${P(base[0]+a[0]*13,base[1]+a[1]*13)}Z" fill="${sec}" stroke="${shade(sec,-0.35)}" stroke-width="2"/>`;
+    }
+  }
+  /* tail spikes */
+  if(f.spike>0.02){
+    for(const tt of [0.035,0.085]){
+      const s=at(tt), L=46*f.spike;
+      const dir=[s.n[0]-s.tn[0]*0.55, s.n[1]-s.tn[1]*0.55];
+      const dl=Math.hypot(dir[0],dir[1]); dir[0]/=dl; dir[1]/=dl;
+      const base=[s.p[0]+s.n[0]*(s.w/2-6), s.p[1]+s.n[1]*(s.w/2-6)];
+      svg+=tri([base[0]-s.tn[0]*7,base[1]-s.tn[1]*7],[base[0]+dir[0]*L,base[1]+dir[1]*L],[base[0]+s.tn[0]*7,base[1]+s.tn[1]*7],bone,`stroke="${boneInk}" stroke-width="1.5"`);
+    }
+  }
+  /* horns */
+  if(f.horn>0.02){
+    const drawHorn=(tt,L,lean)=>{
+      const s=at(tt);
+      const b=[s.p[0]+s.n[0]*(s.w/2-2), s.p[1]+s.n[1]*(s.w/2-2)];
+      const tip=[b[0]+s.n[0]*L+s.tn[0]*L*lean, b[1]+s.n[1]*L+s.tn[1]*L*lean];
+      svg+=`<path d="M${P(b[0]-s.tn[0]*7,b[1]-s.tn[1]*7)}Q${P(b[0]+s.n[0]*L*0.5-s.tn[0]*6,b[1]+s.n[1]*L*0.5-s.tn[1]*6)} ${P(tip[0],tip[1])}Q${P(b[0]+s.n[0]*L*0.5+s.tn[0]*4,b[1]+s.n[1]*L*0.5+s.tn[1]*4)} ${P(b[0]+s.tn[0]*7,b[1]+s.tn[1]*7)}Z" fill="${bone}" stroke="${boneInk}" stroke-width="1.5"/>`;
+    };
+    drawHorn(tHead-0.006, 62*f.horn, 0.34);
+    drawHorn(tHead-0.038, 48*f.horn, 0.28);
+    drawHorn(0.955, 22*f.horn, 0.15);
+  }
+
+  /* body */
+  const bodyD=ribbonPath(pts,ws);
+  svg+=`<defs><clipPath id="bodClip"><path d="${bodyD}"/></clipPath></defs>`;
+  svg+=`<path d="${bodyD}" fill="${prim}" stroke="${ink}" stroke-width="2.5" stroke-linejoin="round"/>`;
+
+  /* pattern */
+  if(state.pattern==="stripes"){
+    let g=`<g clip-path="url(#bodClip)" fill="${sec}" opacity="0.42">`;
+    for(let x=250;x<=730;x+=52) g+=`<rect x="${x-9}" y="130" width="18" height="360" rx="9" transform="rotate(-7 ${x} 300)"/>`;
+    svg+=g+"</g>";
+  }else if(state.pattern==="spots"){
+    let g=`<g clip-path="url(#bodClip)" fill="${sec}" opacity="0.45">`;
+    for(const [sx,sy,sr] of SPOTS) g+=`<circle cx="${R1(sx)}" cy="${R1(sy)}" r="${R1(sr)}"/>`;
+    svg+=g+"</g>";
+  }
+
+  /* mouth + teeth + eye */
+  {
+    let d="M"+P(...botOf(0.865,3));
+    for(let tt=0.885;tt<=0.995;tt+=0.02) d+="L"+P(...botOf(tt,3));
+    svg+=`<path d="${d}" fill="none" stroke="${ink}" stroke-width="2" opacity="0.7"/>`;
+    if(f.toothy>0.05){
+      const tl=clamp(p.headSize*0.16,3.5,7)*f.toothy; let tg="";
+      for(let i=0;i<5;i++){
+        const t0=0.885+i*0.021, t1=t0+0.017;
+        const a=botOf(t0,2.5), b=botOf(t1,2.5);
+        tg+=tri(a,[(a[0]+b[0])/2,(a[1]+b[1])/2+tl],b,"#f6f2e4",`stroke="${boneInk}" stroke-width="0.8"`);
+      }
+      svg+=`<g opacity="${R1(f.toothy)}">${tg}</g>`;
+    }
+    const e=at(clamp(tHead+0.018,0,1));
+    const ex=e.p[0]+e.n[0]*e.w*0.16, ey=e.p[1]+e.n[1]*e.w*0.16;
+    const er=clamp(e.w*0.11,3.5,7);
+    svg+=`<circle cx="${R1(ex)}" cy="${R1(ey)}" r="${R1(er)}" fill="#fdfaef" stroke="${ink}" stroke-width="1.5"/>
+          <circle cx="${R1(ex-er*0.25)}" cy="${R1(ey)}" r="${R1(er*0.45)}" fill="#1c1a14"/>`;
+  }
+
+  /* near legs */
+  svg+=limb([[H[0]+4,H[1]+2],[H[0]-14,H[1]+(GROUND-H[1])*0.5],[H[0]+16,GROUND-42],[H[0]-2,GROUND-10]],
+            [p.hLegThick,p.hLegThick*0.62,p.hLegThick*0.35,p.hLegThick*0.46], legC, ink);
+  svg+=`<ellipse cx="${R1(H[0]-4)}" cy="${GROUND-6}" rx="${R1(p.hLegThick*0.42+8)}" ry="7" fill="${legC}" stroke="${ink}" stroke-width="2"/>`;
+  svg+=tri([H[0]-p.hLegThick*0.42-10,GROUND-8],[H[0]-p.hLegThick*0.42-22,GROUND-2],[H[0]-p.hLegThick*0.42-6,GROUND-1],legC,`stroke="${ink}" stroke-width="1.5"`);
+  {
+    const fy=Math.min(S[1]+8+p.fLegLen, GROUND-8);
+    svg+=limb([[S[0]+6,S[1]+8],[S[0]+3,(S[1]+8+fy)/2+4],[S[0]-4,fy]],
+              [p.fLegThick,p.fLegThick*0.68,p.fLegThick*0.5], legC, ink);
+    if(fy>GROUND-30){
+      svg+=`<ellipse cx="${R1(S[0]-6)}" cy="${GROUND-5}" rx="${R1(p.fLegThick*0.45+6)}" ry="6" fill="${legC}" stroke="${ink}" stroke-width="2"/>`;
+    }else{
+      svg+=tri([S[0]-4,fy],[S[0]-13,fy+9],[S[0]+1,fy+7],legC,`stroke="${ink}" stroke-width="1.5"`);
+    }
+  }
+
+  const sc=state.size;
+  document.getElementById("stage").innerHTML=
+    `<g transform="translate(${HIPX-p.bodyLen*0.35} ${GROUND}) scale(${sc}) translate(${-(HIPX-p.bodyLen*0.35)} ${-GROUND})">${svg}</g>`;
+
+  renderPlacard();
+}
+
+/* ---------- placard: name, chips, stats, genome ---------- */
+const PRE={t:"Tyranno",c:"Tricera",s:"Stego"};
+const DUO={t:"rex",c:"ceratops",s:"stega"};
+const MID={t:"rexo",c:"cerato",s:"stego"};
+const SUF={t:"rex",c:"tops",s:"saurus"};
+const PURE={t:"Tyrannosaurus rex",c:"Triceratops",s:"Stegosaurus"};
+
+function renderPlacard(){
+  // identity blends DNA with part pins, so a pinned Trike head shows up in the name & stats
+  const w={t:0,c:0,s:0};
+  for(const g in GROUPS){const gw=groupW(g); for(const sp of SP) w[sp]+=gw[sp]/4;}
+  const order=[...SP].sort((a,b)=>w[b]-w[a]);
+  const [a,b,c]=order;
+  let name;
+  if(w[a]>0.88) name=PURE[a];
+  else if(w[c]<0.07) name=PRE[a]+DUO[b];
+  else name=PRE[a]+MID[b]+SUF[c];
+  document.getElementById("name").textContent=name;
+  document.getElementById("sci").textContent=name.split(" ")[0]+" chimaera · drawn live from "+
+    order.filter(k=>w[k]>=0.05).map(k=>Math.round(w[k]*100)+"% "+SPECIES[k].label).join(" + ");
+
+  const periods=new Set(order.filter(k=>w[k]>0.25).map(k=>SPECIES[k].period));
+  document.getElementById("chip-period").textContent=periods.size>1?"Epoch: impossible":[...periods][0]||SPECIES[a].period;
+  document.getElementById("chip-diet").textContent=w.t>0.55?"Carnivore":w.t<0.2?"Herbivore":"Omnivore (allegedly)";
+
+  const stats={
+    Attack:  92*w.t+34*w.c+26*w.s,
+    Defense: 28*w.t+88*w.c+84*w.s,
+    Speed:   74*w.t+38*w.c+20*w.s,
+    Brains:  58*w.t+42*w.c+14*w.s
+  };
+  document.getElementById("meters").innerHTML=Object.entries(stats).map(([k,v])=>{
+    const val=Math.round(v);
+    return `<span class="lbl">${k}</span><span class="track"><span class="fill" style="width:${val}%"></span></span><span class="val">${val}</span>`;
+  }).join("");
+
+  const nw=normW();
+  document.getElementById("pt").textContent=Math.round(nw.t*100)+"%";
+  document.getElementById("pc").textContent=Math.round(nw.c*100)+"%";
+  document.getElementById("ps").textContent=Math.round(nw.s*100)+"%";
+
+  const genome={dna:{tyrannosaurus:Math.round(nw.t*100),triceratops:Math.round(nw.c*100),stegosaurus:Math.round(nw.s*100)},
+    parts:Object.fromEntries(Object.entries(state.pins).map(([k,v])=>[k, v?SPECIES[v].label:"blend"])),
+    hide:state.primary, markings:state.secondary, pattern:state.pattern, size:state.size};
+  const js=JSON.stringify(genome,null,2);
+  document.getElementById("genome").textContent=js;
+  let h=0; for(let i=0;i<js.length;i++){h=((h<<5)-h+js.charCodeAt(i))|0;}
+  document.getElementById("specimen").textContent="Specimen CS-"+String(Math.abs(h)%10000).padStart(4,"0");
+}
+
+/* ---------- wiring ---------- */
+const $=id=>document.getElementById(id);
+for(const [id,key] of [["wt","t"],["wc","c"],["ws","s"]])
+  $(id).addEventListener("input",e=>{state.w[key]=+e.target.value; render();});
+document.querySelectorAll(".pin select").forEach(sel=>
+  sel.addEventListener("change",e=>{state.pins[e.target.dataset.group]=e.target.value; render();}));
+$("col1").addEventListener("input",e=>{state.primary=e.target.value; render();});
+$("col2").addEventListener("input",e=>{state.secondary=e.target.value; render();});
+$("size").addEventListener("input",e=>{state.size=+e.target.value/100; render();});
+document.querySelectorAll("#patseg .btn").forEach(btn=>btn.addEventListener("click",()=>{
+  state.pattern=btn.dataset.pat;
+  document.querySelectorAll("#patseg .btn").forEach(b=>b.setAttribute("aria-pressed",b===btn?"true":"false"));
+  render();
+}));
+
+const PRESETS=[
+  ["T-Rex",[100,0,0]],["Triceratops",[0,100,0]],["Stegosaurus",[0,0,100]],
+  ["Tyrannoceratops",[58,42,0]],["Stegorex",[45,0,55]],["Chimera",[34,33,33]]
+];
+$("presets").innerHTML=PRESETS.map((p,i)=>`<button class="btn" data-i="${i}">${p[0]}</button>`).join("");
+$("presets").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  const [,vals]=PRESETS[+b.dataset.i];
+  [state.w.t,state.w.c,state.w.s]=vals;
+  $("wt").value=vals[0]; $("wc").value=vals[1]; $("ws").value=vals[2];
+  render();
+});
+$("rnd").addEventListener("click",()=>{
+  const r=()=>Math.random()**2;
+  let v=[r(),r(),r()]; const s=v[0]+v[1]+v[2];
+  v=v.map(x=>Math.round(x/s*100));
+  [state.w.t,state.w.c,state.w.s]=v;
+  $("wt").value=v[0]; $("wc").value=v[1]; $("ws").value=v[2];
+  const hues=["#6b8f4e","#8f6a4e","#4e7a8f","#7d8f4e","#8f4e5e","#5d6f7a","#a3814a"];
+  state.primary=hues[Math.floor(Math.random()*hues.length)];
+  state.secondary=["#d9a441","#c96f3a","#7fb069","#5c88b5","#c9564a"][Math.floor(Math.random()*5)];
+  $("col1").value=state.primary; $("col2").value=state.secondary;
+  state.pattern=["solid","stripes","spots"][Math.floor(Math.random()*3)];
+  document.querySelectorAll("#patseg .btn").forEach(b=>b.setAttribute("aria-pressed",b.dataset.pat===state.pattern?"true":"false"));
+  for(const g in state.pins){state.pins[g]="";}
+  document.querySelectorAll(".pin select").forEach(s2=>s2.value="");
+  render();
+});
+$("aiBtn").addEventListener("click",()=>$("aiDialog").showModal());
+$("aiClose").addEventListener("click",()=>$("aiDialog").close());
+
+render();
+</script>
