@@ -8,15 +8,13 @@ Sequencing rationale: prove the toy (M0–M1) → wire the growth loop (M2) →
 persistence (M3) → retention (M4) → revenue (M5). Resist reordering; each
 milestone's value depends on the previous one existing.
 
-## M-1 (optional, ½ day) — Legacy triage
+## ~~M-1 — Legacy triage~~ (SKIPPED per D-002)
 
-Only if the owner wants the live site functional during the rebuild:
-fix the anonymous-generation import bug (`useGeneration.ts:93` imports
-`generateEnhancedPrompt` from the wrong module), remove the fabricated
-`aggregateRating` JSON-LD, add a global daily spend cap to
-`api/anonymous-generate.js`. Nothing else — v2 is end-of-life.
-**Alternative**: replace the live site with a "new species evolving" teaser.
-Owner's call (DECISIONS D-002).
+Owner decided 2026-07-10: the live v2 site is left untouched — no triage, no
+teaser. All effort goes to v3. (For the record, v2's known defects: broken
+anonymous generation via a wrong-module import at `useGeneration.ts:93`,
+fabricated `aggregateRating` JSON-LD, uncapped admin-key spend in
+`api/anonymous-generate.js`.) Do not spend sessions improving `legacy/`.
 
 ## M0 — Engine & scaffold (the foundation session)
 
