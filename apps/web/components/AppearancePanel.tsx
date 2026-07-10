@@ -20,13 +20,35 @@ const AGE_LABELS: Record<AgeStage, string> = {
 
 export function AppearancePanel() {
   const genome = useLab((s) => s.genome);
-  const setCosmetic = useLab((s) => s.setCosmetic);
+  const setCosmeticTransient = useLab((s) => s.setCosmeticTransient);
   const setPattern = useLab((s) => s.setPattern);
   const setAge = useLab((s) => s.setAge);
   const setSize = useLab((s) => s.setSize);
   const markHistory = useLab((s) => s.markHistory);
   const rerollSeed = useLab((s) => s.rerollSeed);
   const sizeKeyMarked = useRef(false);
+  // a native color picker fires one event per micro-step of a drag; mark
+  // history once per picker session so the whole edit is a single undo step
+  const colorMarked = useRef(false);
+  const colorProps = (key: 'hide' | 'markings') => ({
+    value: genome.cosmetics[key],
+    onFocus: () => {
+      if (!colorMarked.current) {
+        markHistory();
+        colorMarked.current = true;
+      }
+    },
+    onBlur: () => {
+      colorMarked.current = false;
+    },
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (!colorMarked.current) {
+        markHistory();
+        colorMarked.current = true;
+      }
+      setCosmeticTransient({ [key]: e.target.value });
+    },
+  });
 
   return (
     <section>
@@ -35,21 +57,11 @@ export function AppearancePanel() {
         <label className="text-[13px]" style={{ color: 'var(--muted)' }} htmlFor="hide-color">
           Hide
         </label>
-        <input
-          id="hide-color"
-          type="color"
-          value={genome.cosmetics.hide}
-          onChange={(e) => setCosmetic({ hide: e.target.value })}
-        />
+        <input id="hide-color" type="color" {...colorProps('hide')} />
         <label className="text-[13px]" style={{ color: 'var(--muted)' }} htmlFor="markings-color">
           Markings
         </label>
-        <input
-          id="markings-color"
-          type="color"
-          value={genome.cosmetics.markings}
-          onChange={(e) => setCosmetic({ markings: e.target.value })}
-        />
+        <input id="markings-color" type="color" {...colorProps('markings')} />
         <button className="btn" onClick={rerollSeed} title="Same DNA, new individual">
           🥚 Sibling
         </button>

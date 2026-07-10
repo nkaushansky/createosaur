@@ -27,7 +27,9 @@ export function Placard() {
         <span className="chip">{placard.periodChip}</span>
         <span className="chip">{placard.dietChip}</span>
         <span className="chip">
-          ~{placard.lengthMeters} m · {placard.weightKg.toLocaleString()} kg
+          {/* locale pinned: the static export prerenders en-US grouping, so an
+              unpinned toLocaleString() hydration-mismatches for other locales */}
+          ~{placard.lengthMeters} m · {placard.weightKg.toLocaleString('en-US')} kg
         </span>
       </div>
       <div className="grid max-w-md grid-cols-[78px_1fr_34px] items-center gap-x-2.5 gap-y-2">

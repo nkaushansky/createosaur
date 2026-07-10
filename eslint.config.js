@@ -23,6 +23,10 @@ export default tseslint.config(
     rules: {
       // AGENT-GUIDE: no console.log in shipped code
       'no-console': ['error', { allow: ['warn', 'error'] }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true },
+      ],
     },
   },
   {

@@ -15,10 +15,12 @@ export default function Home() {
         Slide DNA between species and watch your hybrid morph live. Pin the
         parts you love. Name what you make.
       </p>
+      {/* ink-on-card inversion: ~13:1 contrast in both themes (white on the
+          dark-mode amber accent was 2.25:1 — a WCAG failure) */}
       <Link
         href="/lab"
         className="btn text-lg font-semibold"
-        style={{ background: 'var(--accent)', borderColor: 'var(--accent)', color: '#fff', padding: '12px 28px' }}
+        style={{ background: 'var(--ink)', borderColor: 'var(--ink)', color: 'var(--card)', padding: '12px 28px' }}
       >
         Enter the lab
       </Link>

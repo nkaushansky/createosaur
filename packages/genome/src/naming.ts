@@ -24,7 +24,10 @@ export function composeName(genome: Genome): CreatureName {
   const a = order[0]!;
   const wa = w[a] ?? 0;
 
-  if (wa > PURE_THRESHOLD || order.length === 1) {
+  // ≥ with a float epsilon: an integer 88/12 mix accumulates identity weight
+  // as five (0.88)/5 additions and lands at 0.8799999…, which the docs (and
+  // the placard, which rounds to "88%") say IS pure. GAME-DESIGN §5.
+  if (wa >= PURE_THRESHOLD - 1e-9 || order.length === 1) {
     const sp = getSpecies(a);
     return { name: sp.name, binomial: sp.facts.scientificName };
   }

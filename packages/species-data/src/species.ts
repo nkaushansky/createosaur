@@ -152,5 +152,7 @@ export function getSpecies(id: SpeciesId): SpeciesDef {
 }
 
 export function isSpeciesId(id: string): id is SpeciesId {
-  return id in SPECIES;
+  // Object.hasOwn, not `in`: untrusted ids like "constructor" must not
+  // validate via the prototype chain (this is the share-URL trust boundary).
+  return Object.hasOwn(SPECIES, id);
 }

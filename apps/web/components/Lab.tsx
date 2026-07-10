@@ -18,10 +18,13 @@ export function Lab() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey)) return;
-      if (e.key === 'z' && !e.shiftKey) {
+      // lowercase: with Shift (or CapsLock) held, e.key reports 'Z', which
+      // would make the redo branch unreachable and break undo under CapsLock
+      const key = e.key.toLowerCase();
+      if (key === 'z' && !e.shiftKey) {
         e.preventDefault();
         undo();
-      } else if (e.key === 'y' || (e.key === 'z' && e.shiftKey)) {
+      } else if (key === 'y' || (key === 'z' && e.shiftKey)) {
         e.preventDefault();
         redo();
       }

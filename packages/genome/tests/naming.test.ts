@@ -42,6 +42,18 @@ describe('composeName', () => {
     expect(composeName(g).name).toBe('Tyrannoceratops');
   });
 
+  it('treats an integer 88/12 mix as pure despite float accumulation', () => {
+    // identity weight arrives as five (0.88)/5 additions = 0.8799999…;
+    // the docs promise ≥88% → real name, and the placard displays "88%"
+    const g = genome({
+      dna: [
+        { species: 'tyrannosaurus', share: 88 },
+        { species: 'triceratops', share: 12 },
+      ],
+    });
+    expect(composeName(g).name).toBe('Tyrannosaurus Rex');
+  });
+
   it('ignores trace third species below the threshold', () => {
     const g = genome({
       dna: [

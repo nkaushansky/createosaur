@@ -70,6 +70,45 @@ test('undo and redo walk genome history', async ({ page }) => {
   await expect(page.getByTestId('creature-name')).toHaveText('Tyrannoceratops');
 });
 
+test('keyboard undo/redo, including Shift-modified redo', async ({ page }) => {
+  await page.goto('/lab');
+  await page.locator('#pin-head').selectOption('triceratops');
+  await expect(page.getByTestId('creature-name')).toHaveText('Tyrannoceratops');
+
+  await page.keyboard.press('Control+z');
+  await expect(page.getByTestId('creature-name')).toHaveText('Tyrannosaurus Rex');
+
+  // e.key reports 'Z' with Shift held — this gesture was a silent no-op once
+  await page.keyboard.press('Control+Shift+z');
+  await expect(page.getByTestId('creature-name')).toHaveText('Tyrannoceratops');
+});
+
+test('a keyboard slider adjustment is one undoable step', async ({ page }) => {
+  await page.goto('/lab');
+  const slider = page.locator('#dna-triceratops');
+  await slider.focus();
+  for (let i = 0; i < 5; i++) await page.keyboard.press('ArrowRight');
+  await expect(page.getByTestId('pct-triceratops')).not.toHaveText('0%');
+
+  await page.keyboard.press('Control+z');
+  await expect(page.getByTestId('pct-triceratops')).toHaveText('0%');
+});
+
+test('randomize and sibling reroll change the creature', async ({ page }) => {
+  await page.goto('/lab');
+  const before = await stageSvg(page).innerHTML();
+
+  await page.getByRole('button', { name: /surprise me/i }).click();
+  const randomized = await stageSvg(page).innerHTML();
+  expect(randomized).not.toBe(before);
+
+  // sibling: same DNA (name stays), new individual (drawing changes)
+  const name = await page.getByTestId('creature-name').textContent();
+  await page.getByRole('button', { name: /sibling/i }).click();
+  expect(await stageSvg(page).innerHTML()).not.toBe(randomized);
+  await expect(page.getByTestId('creature-name')).toHaveText(name!);
+});
+
 test('age stages transform the creature', async ({ page }) => {
   await page.goto('/lab');
   const adult = await stageSvg(page).innerHTML();

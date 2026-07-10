@@ -96,7 +96,7 @@ interface SpeciesDef extends LegacySpeciesFacts {
   archetype: 'theropod'|'ceratopsian'|'armored'|'sauropod'|'ornithopod'|'marine'|'flyer';
   morph: MorphVector;            // ~40 shared anatomical parameters
   features: FeatureGenes;        // headgear/backgear/tailgear/integument variants
-  syllables: { prefix: string; mid: string; suffix: string };
+  syllables: { prefix: string; duo: string; mid: string; suffix: string };
   stats: { attack: number; defense: number; speed: number; brains: number };
   inV1: boolean;                 // terrestrial roster flag
 }

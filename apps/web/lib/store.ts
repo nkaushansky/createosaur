@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import {
   defaultGenome,
   GENOME_VERSION,
+  stableStringify,
   type AgeStage,
   type Genome,
   type Pattern,
@@ -13,26 +14,37 @@ import type { PartSlot, SpeciesId } from '@createosaur/species-data';
 /**
  * The lab store: ONE genome object plus undo/redo history over it.
  * v2's 25-useState hub is the anti-pattern this replaces — every control
- * writes through `apply`, and history snapshots the whole genome.
+ * writes through the store, and history snapshots the whole genome.
+ *
+ * History semantics (hardened by the M0 adversarial review):
+ * - markHistory dedupes: touching a slider without moving it must not stack
+ *   duplicate entries, and it must NOT wipe the redo stack (only actual
+ *   changes do that).
+ * - undo/redo skip entries equal to the current genome, so a no-op mark can
+ *   never make the first Undo "do nothing".
+ * - transient setters (slider ticks, color-picker micro-steps) never touch
+ *   history; interactions mark once at gesture start.
  */
 const HISTORY_LIMIT = 50;
+
+const same = (a: Genome, b: Genome) => stableStringify(a) === stableStringify(b);
 
 interface LabState {
   genome: Genome;
   past: Genome[];
   future: Genome[];
-  /** push the current genome onto history (call BEFORE a discrete change,
-   * or once at the start of a slider drag) */
+  /** dedupe-push the current genome onto history; call at gesture start */
   markHistory: () => void;
-  /** replace the genome; history is managed by the caller via markHistory */
-  apply: (genome: Genome) => void;
   undo: () => void;
   redo: () => void;
   reset: () => void;
+  /** transient: no history (mark at gesture start), clears redo */
   setShare: (species: SpeciesId, share: number) => void;
-  setPin: (slot: PartSlot, species: SpeciesId | null) => void;
-  setCosmetic: (patch: Partial<Genome['cosmetics']>) => void;
+  /** transient: no history (mark at gesture start), clears redo */
   setSize: (size: number) => void;
+  /** transient: color pickers fire per micro-step; mark once per interaction */
+  setCosmeticTransient: (patch: Partial<Genome['cosmetics']>) => void;
+  setPin: (slot: PartSlot, species: SpeciesId | null) => void;
   setAge: (age: AgeStage) => void;
   setPattern: (pattern: Pattern) => void;
   loadShares: (shares: Partial<Record<SpeciesId, number>>) => void;
@@ -41,9 +53,17 @@ interface LabState {
 }
 
 export const useLab = create<LabState>((set, get) => {
+  /** discrete action: no-ops are ignored entirely; real changes get history */
   const applyWithHistory = (mutate: (g: Genome) => Genome) => {
+    const next = mutate(structuredClone(get().genome));
+    if (same(next, get().genome)) return;
     get().markHistory();
-    set({ genome: mutate(structuredClone(get().genome)) });
+    set({ genome: next, future: [] });
+  };
+
+  /** transient tick during a gesture: change genome, clear redo, no history */
+  const applyTransient = (mutate: (g: Genome) => Genome) => {
+    set((s) => ({ genome: mutate(structuredClone(s.genome)), future: [] }));
   };
 
   return {
@@ -52,44 +72,55 @@ export const useLab = create<LabState>((set, get) => {
     future: [],
 
     markHistory: () =>
-      set((s) => ({
-        past: [...s.past.slice(-(HISTORY_LIMIT - 1)), structuredClone(s.genome)],
-        future: [],
-      })),
-
-    apply: (genome) => set({ genome }),
+      set((s) => {
+        const top = s.past[s.past.length - 1];
+        if (top && same(top, s.genome)) return s;
+        return { past: [...s.past.slice(-(HISTORY_LIMIT - 1)), structuredClone(s.genome)] };
+      }),
 
     undo: () =>
       set((s) => {
-        const prev = s.past[s.past.length - 1];
-        if (!prev) return s;
+        // skip stale entries equal to the current genome (no-op gesture marks)
+        const past = [...s.past];
+        let target: Genome | undefined;
+        while ((target = past.pop())) {
+          if (!same(target, s.genome)) break;
+        }
+        if (!target) return { past };
         return {
-          genome: prev,
-          past: s.past.slice(0, -1),
+          genome: target,
+          past,
           future: [structuredClone(s.genome), ...s.future],
         };
       }),
 
     redo: () =>
       set((s) => {
-        const next = s.future[0];
-        if (!next) return s;
+        const future = [...s.future];
+        let target: Genome | undefined;
+        while ((target = future.shift())) {
+          if (!same(target, s.genome)) break;
+        }
+        if (!target) return { future };
         return {
-          genome: next,
-          past: [...s.past, structuredClone(s.genome)],
-          future: s.future.slice(1),
+          genome: target,
+          future,
+          past: [...s.past.slice(-(HISTORY_LIMIT - 1)), structuredClone(s.genome)],
         };
       }),
 
     reset: () => applyWithHistory(() => defaultGenome()),
 
     setShare: (species, share) =>
-      set((s) => ({
-        genome: {
-          ...s.genome,
-          dna: s.genome.dna.map((d) => (d.species === species ? { ...d, share } : d)),
-        },
+      applyTransient((g) => ({
+        ...g,
+        dna: g.dna.map((d) => (d.species === species ? { ...d, share } : d)),
       })),
+
+    setSize: (size) => applyTransient((g) => ({ ...g, size })),
+
+    setCosmeticTransient: (patch) =>
+      applyTransient((g) => ({ ...g, cosmetics: { ...g.cosmetics, ...patch } })),
 
     setPin: (slot, species) =>
       applyWithHistory((g) => {
@@ -97,11 +128,6 @@ export const useLab = create<LabState>((set, get) => {
         else delete g.parts[slot];
         return g;
       }),
-
-    setCosmetic: (patch) =>
-      applyWithHistory((g) => ({ ...g, cosmetics: { ...g.cosmetics, ...patch } })),
-
-    setSize: (size) => set((s) => ({ genome: { ...s.genome, size } })),
 
     setAge: (age) => applyWithHistory((g) => ({ ...g, age })),
 
@@ -125,10 +151,8 @@ export const useLab = create<LabState>((set, get) => {
       const hides = ['#6b8f4e', '#8f6a4e', '#4e7a8f', '#7d8f4e', '#8f4e5e', '#5d6f7a', '#a3814a'];
       const marks = ['#d9a441', '#c96f3a', '#7fb069', '#5c88b5', '#c9564a'];
       const patterns: Pattern[] = ['solid', 'stripes', 'spots', 'rings', 'countershade'];
-      get().markHistory();
-      set({
-        genome: {
-          v: GENOME_VERSION,
+      applyWithHistory(() => ({
+        v: GENOME_VERSION,
         dna: [
           { species: 'tyrannosaurus', share: shares[0]! },
           { species: 'triceratops', share: shares[1]! },
@@ -140,11 +164,10 @@ export const useLab = create<LabState>((set, get) => {
           markings: marks[Math.floor(Math.random() * marks.length)]!,
           pattern: patterns[Math.floor(Math.random() * patterns.length)]!,
         },
-          size: 30 + Math.floor(Math.random() * 55),
-          age: 'adult',
-          seed: Math.floor(Math.random() * 2 ** 31),
-        },
-      });
+        size: 30 + Math.floor(Math.random() * 55),
+        age: 'adult',
+        seed: Math.floor(Math.random() * 2 ** 31),
+      }));
     },
   };
 });

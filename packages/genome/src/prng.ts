@@ -32,9 +32,17 @@ export function hashString(s: string): number {
  */
 export function stableStringify(value: unknown): string {
   if (value === null || typeof value !== 'object') return JSON.stringify(value);
-  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+  if (Array.isArray(value)) {
+    // match JSON semantics: undefined array elements serialize as null
+    return `[${value.map((v) => (v === undefined ? 'null' : stableStringify(v))).join(',')}]`;
+  }
   const obj = value as Record<string, unknown>;
-  const keys = Object.keys(obj).sort();
+  // match JSON semantics: keys with undefined values are omitted, so
+  // {parts:{head:undefined}} and {parts:{}} hash identically (they render
+  // identically and JSON round-trip identically — the hash must agree)
+  const keys = Object.keys(obj)
+    .filter((k) => obj[k] !== undefined)
+    .sort();
   return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify(obj[k])}`).join(',')}}`;
 }
 

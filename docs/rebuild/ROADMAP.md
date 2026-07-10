@@ -28,7 +28,8 @@ fabricated `aggregateRating` JSON-LD, uncapped admin-key spend in
   real stack.
 
 **DoD**: prototype parity at `/lab`, all invariant tests in CI, `legacy/`
-move complete, deploy previews working.
+move complete, static export (`apps/web/out/`) builds and serves — that
+folder IS the deployable per D-016.
 **Latitude**: all styling/layout; component architecture; animation.
 
 ## M1 — The roster (the content milestone)

@@ -4,13 +4,13 @@
 
 This repo currently contains **two generations** of Createosaur:
 
-1. **Legacy v2** (everything under `src/`, `api/`) — the live Vite SPA at
-   createosaur.com. It is in maintenance mode: critical fixes only, no new
-   features. Known issues are catalogued in `docs/rebuild/DECISIONS.md` (D-001).
-2. **v3 rebuild** (planned, docs-first) — a ground-up rebuild around a
-   deterministic "genome → creature" engine. **All design authority lives in
-   `docs/rebuild/`.** Do not improvise product direction; it has been decided
-   deliberately with the owner.
+1. **Legacy v2** (frozen under `legacy/`) — the Vite SPA still live at
+   createosaur.com. Do not develop here at all (D-002); known issues are
+   catalogued in `docs/rebuild/DECISIONS.md` (D-001).
+2. **v3 rebuild** (in progress — M0 shipped) — `apps/web` + `packages/*`,
+   built around a deterministic "genome → creature" engine. **All design
+   authority lives in `docs/rebuild/`.** Do not improvise product direction;
+   it has been decided deliberately with the owner.
 
 ## Before writing any v3 code
 

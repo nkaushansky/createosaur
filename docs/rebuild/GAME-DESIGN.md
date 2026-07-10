@@ -153,9 +153,11 @@ answer to "how does the parts picker change based on input dinosaurs":
 
 ## 5. Names, stats, placard (C-seasoning)
 
-- **Naming**: each species defines syllables `{prefix, mid, suffix}`
-  ("Tyranno/rexo/rex", "Tricera/cerato/tops"). Compose by identity order:
-  2-species → prefix+suffix ("Stegorex"); 3-way → prefix+mid+suffix
+- **Naming**: each species defines syllables `{prefix, duo, mid, suffix}` —
+  `duo` is the fragment used when the species is the *secondary* parent in a
+  two-species name ("Tyranno"+"ceratops" → Tyrannoceratops; "Stego"+"rex" →
+  Stegorex), because a plain suffix reads badly there. Compose by identity
+  order: 2-species → prefix+duo; 3-way → prefix+mid+suffix
   ("Tyrannoceratosaurus"); ≥88% pure → real species name. **Identity weights
   include pins** (a pinned Trike head makes it a Tyrannoceratosaurus even at
   100% T-Rex DNA — validated in prototype, feels right).
