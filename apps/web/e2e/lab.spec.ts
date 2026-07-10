@@ -50,7 +50,7 @@ test('pinning a head is ownership: full Trike head at 0% Trike DNA', async ({ pa
   const before = await stageSvg(page).innerHTML();
   expect(before).not.toContain('rotate(-24'); // no frill on a pure rex
 
-  await page.locator('#pin-head').selectOption('triceratops');
+  await page.getByTestId('part-head-triceratops').click();
 
   const after = await stageSvg(page).innerHTML();
   expect(after).toContain('rotate(-24'); // frill marker
@@ -60,7 +60,7 @@ test('pinning a head is ownership: full Trike head at 0% Trike DNA', async ({ pa
 
 test('undo and redo walk genome history', async ({ page }) => {
   await page.goto('/lab');
-  await page.locator('#pin-head').selectOption('triceratops');
+  await page.getByTestId('part-head-triceratops').click();
   await expect(page.getByTestId('creature-name')).toHaveText('Tyrannoceratops');
 
   await page.getByRole('button', { name: /undo/i }).click();
@@ -72,7 +72,7 @@ test('undo and redo walk genome history', async ({ page }) => {
 
 test('keyboard undo/redo, including Shift-modified redo', async ({ page }) => {
   await page.goto('/lab');
-  await page.locator('#pin-head').selectOption('triceratops');
+  await page.getByTestId('part-head-triceratops').click();
   await expect(page.getByTestId('creature-name')).toHaveText('Tyrannoceratops');
 
   await page.keyboard.press('Control+z');
@@ -117,6 +117,46 @@ test('age stages transform the creature', async ({ page }) => {
   expect(hatchling).not.toBe(adult);
 });
 
+test('species browser adds a species to the pool and into the parts bin', async ({ page }) => {
+  await page.goto('/lab');
+  await expect(page.getByTestId('part-back-spinosaurus')).toHaveCount(0); // not in bin yet
+
+  await page.getByTestId('open-browser').click();
+  await page.getByRole('button', { name: 'Piscivore' }).click(); // narrows to Spinosaurus
+  await page.getByRole('button', { name: /add to pool/i }).first().click();
+  await page.getByRole('button', { name: /close browser/i }).click();
+
+  // Spinosaurus now has a DNA slider and a back-part vignette in the bin
+  await expect(page.locator('#dna-spinosaurus')).toBeVisible();
+  await expect(page.getByTestId('part-back-spinosaurus')).toBeVisible();
+});
+
+test('a pinned part survives DNA slider changes (ownership > influence)', async ({ page }) => {
+  await page.goto('/lab');
+  await page.getByTestId('part-head-triceratops').click();
+  await expect(page.getByTestId('creature-name')).toHaveText('Tyrannoceratops');
+
+  // sliding DNA must not drop the pin — it is ownership, not influence
+  await setRange(page, '#dna-stegosaurus', 70);
+  await expect(page.getByTestId('part-head-triceratops')).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('removing a pooled species clears its pins and offers an undo toast', async ({ page }) => {
+  await page.goto('/lab');
+  await page.getByTestId('part-tail-stegosaurus').click(); // pin a stego tail
+  const withPin = await stageSvg(page).innerHTML();
+
+  await page.getByRole('button', { name: /remove stegosaurus from the pool/i }).click();
+  // toast appears; the pin is gone and the tail vignette option with it
+  await expect(page.getByRole('status')).toContainText('Removed Stegosaurus');
+  await expect(page.getByTestId('part-tail-stegosaurus')).toHaveCount(0);
+  expect(await stageSvg(page).innerHTML()).not.toBe(withPin);
+
+  // Undo restores the species and its pin (scope to the toast, not the header)
+  await page.getByRole('status').getByRole('button', { name: 'Undo' }).click();
+  await expect(page.getByTestId('part-tail-stegosaurus')).toHaveAttribute('aria-pressed', 'true');
+});
+
 test('screenshot artifacts for the visual verify loop', async ({ page }, testInfo) => {
   await page.goto('/lab');
   await page.screenshot({ path: testInfo.outputPath('lab-default.png'), fullPage: true });
@@ -124,7 +164,7 @@ test('screenshot artifacts for the visual verify loop', async ({ page }, testInf
   // three-way blend with pins and pattern — the busiest state
   await setRange(page, '#dna-triceratops', 60);
   await setRange(page, '#dna-stegosaurus', 45);
-  await page.locator('#pin-tail').selectOption('stegosaurus');
+  await page.getByTestId('part-tail-stegosaurus').click();
   await page.getByRole('button', { name: 'Stripes' }).click();
   await page.screenshot({ path: testInfo.outputPath('lab-busy.png'), fullPage: true });
 

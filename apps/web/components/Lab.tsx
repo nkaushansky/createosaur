@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLab } from '@/lib/store';
 import { CreatureStage } from './CreatureStage';
 import { Placard } from './Placard';
@@ -8,12 +8,15 @@ import { DnaPanel } from './DnaPanel';
 import { PartsPanel } from './PartsPanel';
 import { AppearancePanel } from './AppearancePanel';
 import { GenomeViewer } from './GenomeViewer';
+import { SpeciesBrowser } from './SpeciesBrowser';
+import { Toast } from './Toast';
 
 export function Lab() {
   const undo = useLab((s) => s.undo);
   const redo = useLab((s) => s.redo);
   const canUndo = useLab((s) => s.past.length > 0);
   const canRedo = useLab((s) => s.future.length > 0);
+  const [browserOpen, setBrowserOpen] = useState(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -58,7 +61,7 @@ export function Lab() {
           <Placard />
         </div>
         <div className="card-panel flex flex-col gap-5 p-4">
-          <DnaPanel />
+          <DnaPanel onOpenBrowser={() => setBrowserOpen(true)} />
           <PartsPanel />
           <AppearancePanel />
           <GenomeViewer />
@@ -70,6 +73,9 @@ export function Lab() {
         waiting, no cost. The genome is the creature: keep it, share it, and
         (soon) breed it.
       </footer>
+
+      {browserOpen && <SpeciesBrowser onClose={() => setBrowserOpen(false)} />}
+      <Toast />
     </main>
   );
 }
