@@ -4,12 +4,17 @@
 
 | Layer | Choice | Why |
 |---|---|---|
-| Framework | **Next.js (App Router) + TypeScript `strict`** | Server rendering for creature share pages + OG images — the growth loop requires it; Vite SPA (v2) structurally couldn't do this |
+| Framework | **Next.js (App Router) + TypeScript `strict`**, built with **`output: 'export'`** through M1 | Static export = plain files, hostable on owner's DreamHost with zero third-party runtime (D-016); the same codebase flips to a Node server at M2 when share pages need one |
 | Styling | Tailwind + a small token layer | Team familiarity; tokens make theme + Opus-latitude styling safe |
 | State | Zustand (lab store) | The genome is ONE object; v2's 25 useStates was the anti-pattern |
-| Backend | **Supabase** (auth, Postgres, storage) — kept from v2 | Working knowledge + existing project; schema is new |
-| Hosting | **Vercel** — kept from v2 | Existing domain wiring |
+| Backend | **None until M2.** Then: one small self-hosted Node service + **SQLite (or DreamHost MySQL)** | The renderer is pure TS, so share pages/OG images are a ~200-line owned service — no Supabase, no Vercel functions |
+| Auth (M3) | Self-hosted **magic-link email** (DreamHost SMTP), no passwords stored | Small attack surface, fully owned. Supabase-for-auth-only is the documented fallback if this proves heavy — decide at M3 |
+| Hosting | **DreamHost** (owner's account): static files (shared plan) through M1; DreamHost VPS for the M2+ Node service | D-016: own everything ownable. Third-party floor = AI model APIs + Stripe (M5), unavoidable |
 | Tests | Vitest (unit) + Playwright (smoke + screenshots) | The verify loop in AGENT-GUIDE depends on these |
+
+Deployment M0–M1: `npm run build` emits `apps/web/out/` — rsync/SFTP it to
+DreamHost. No build step on the server, no runtime, no lock-in. Deploys are
+literally file copies; rollback is copying the previous folder back.
 
 ## Repo layout (monorepo-lite, single package.json workspace)
 
@@ -27,34 +32,38 @@ Dependency rule (enforced by lint): `renderer` depends only on `genome` +
 `apps/web`.
 
 **Why the renderer must stay pure:** it runs in three places — the browser
-(live morphing), an edge route (OG images), and tests (golden snapshots).
+(live morphing), the self-hosted share service (OG images, M2), and tests
+(golden snapshots).
 One function: `renderCreature(genome, opts) => string /* svg */`, plus
 `renderPart(species, slot, opts)` for picker vignettes.
 
-## Data model (Supabase)
+## Data model (M2+, self-hosted SQLite/MySQL)
 
 ```sql
 creatures (
-  id            uuid pk default gen_random_uuid(),
-  owner_id      uuid null references auth.users,   -- null = anonymous, claimable
-  claim_token   uuid null,                          -- lets an anon claim later
+  id            text primary key,        -- short random slug for /c/:id URLs
+  owner_id      text null,               -- null = anonymous, claimable
+  claim_token   text null,               -- lets an anon claim later (M3)
   name          text not null,
-  genome        jsonb not null,                     -- versioned Genome object
-  genome_v      int  not null,
-  parent_a      uuid null references creatures(id), -- breeding lineage
-  parent_b      uuid null references creatures(id),
-  remixed_from  uuid null references creatures(id),
-  is_public     bool not null default false,
-  remix_count   int  not null default 0,
-  created_at    timestamptz default now()
+  genome        text not null,           -- versioned Genome JSON (~1 KB)
+  genome_v      integer not null,
+  parent_a      text null references creatures(id), -- breeding lineage
+  parent_b      text null references creatures(id),
+  remixed_from  text null references creatures(id),
+  is_public     integer not null default 0,
+  remix_count   integer not null default 0,
+  created_at    text not null            -- ISO 8601
 )
--- RLS: owners full CRUD on own rows; public rows readable by all;
+-- Access rules enforced in the service layer (single owned codepath):
+-- owners full CRUD on own rows; public rows readable by all;
 -- anon rows writable only via claim_token.
 ```
 
 Notes:
 - **No images in the database.** The render is derived from `genome` on
-  demand. AI portraits (M5) go to Supabase Storage; the row stores a URL.
+  demand. AI portraits (M5) are files on the same host (or DreamObjects,
+  DreamHost's S3-compatible storage, if disk becomes a concern); the row
+  stores a path.
 - Local-first: unauthenticated players keep creatures in localStorage
   (genomes are ~1 KB — thousands fit; v2 stored megabyte base64 images and
   hit quota at 3). Sign-in merges local dex into cloud, once, explicitly.
@@ -64,9 +73,12 @@ Notes:
 1. **Live lab**: lab store (genome) → `renderCreature` → inline SVG. Target
    <8 ms per frame on a school Chromebook; memoize per-slot geometry if
    needed (prototype rendered full rebuilds well under budget).
-2. **Share page OG**: `GET /c/:id/opengraph-image` → load genome →
-   `renderCreature` → SVG → PNG via `@resvg/resvg-wasm` on the edge runtime.
-   The creature IS the share card; add the placard strip (name, %s) around it.
+2. **Share page OG (M2)**: the self-hosted share service — `GET /c/:id`
+   (HTML with per-creature meta tags) and `GET /og/:id.png` (load genome →
+   `renderCreature` → SVG → PNG via `@resvg/resvg-js`). One small Node
+   process on the DreamHost VPS behind the domain; it imports the same
+   renderer package the browser uses. The creature IS the share card; add
+   the placard strip (name, %s) around it.
 3. **Picker vignettes**: `renderPart` with crop viewBox; rendered client-side,
    cached by (species, slot) — the inputs are static per session.
 4. **AI portraits (M5)**: server route → provider adapter (img2img with the
@@ -101,7 +113,7 @@ after the first archetype exemplar of each body plan exists.
 |---|---|
 | `src/data/dinosaurDatabase.ts` | seed for `packages/species-data` (facts layer) |
 | `ScientificNameGenerator`, `BehavioralSimulator` | idea quarry for syllables/stats data — port concepts, not code |
-| Supabase project + auth flow patterns | new schema, same service |
+| Supabase project | not carried forward (D-016) — decommission after v2 sunsets |
 | Domain, GA property, OG/favicon assets | reuse |
 | Everything else | leave in `legacy/`, delete at parity |
 

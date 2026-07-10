@@ -193,8 +193,8 @@ Operates purely on genomes — no new rendering tech required.
 
 ## 7. Sharing & remixing (M2 — the growth loop)
 
-- Every saved creature: `createosaur.com/c/:id` — server-rendered page whose
-  OG image *is* the creature render (SVG→PNG at the edge).
+- Every saved creature: `createosaur.com/c/:id` — served by the self-hosted
+  share service, whose OG image *is* the creature render (SVG→PNG server-side).
 - **Remix** loads the genome into your lab, incrementing the original's
   remix counter and crediting it on your creature's page ("remixed from …").
 - Anonymous users can share (creature stored server-side with no account;

@@ -17,7 +17,8 @@ recommendation, awaiting owner) · **OPEN** (genuinely undecided) ·
 | D-009 | Sharing/remix ships at M2; breeding at M4 | **ACCEPTED** | Owner call, 2026-07-10. Growth loop before retention loop |
 | D-010 | Monetization design deferred to M5; no payment UI (real or fake) before then | **ACCEPTED** | v2's phantom "50 for $5" is the cautionary tale |
 | D-011 | No battle mode; stats are a conversation piece | **PROPOSED** | Revisit only if organic demand appears; battle balance is a different game |
-| D-012 | Stack: Next.js/strict TS/Tailwind/Zustand/Supabase/Vercel, pure-TS renderer package | **ACCEPTED** | See ARCHITECTURE for rationale |
+| D-012 | Stack: Next.js (static export through M1)/strict TS/Tailwind/Zustand, pure-TS renderer package | **ACCEPTED** | Amended 2026-07-10 by D-016: Supabase and Vercel dropped from the stack |
+| D-016 | Own-it-ourselves hosting posture: DreamHost static files (M0–M1), self-hosted Node share service + SQLite/MySQL on DreamHost VPS (M2+), self-hosted magic-link auth (M3, Supabase-auth-only as fallback). Third-party floor: AI model APIs + Stripe (M5) | **ACCEPTED** | Owner call, 2026-07-10: minimize third-party runtime dependence. Cost note: M2+ wants a DreamHost VPS (~$10–15/mo); shared hosting can't run Node reliably |
 | D-013 | Domains: createosaur.com primary; buildasaur.us 301-redirects to it; never mirrored | **ACCEPTED** | Owner call, 2026-07-10 session |
 | D-014 | Names/stats derive from identity weights (DNA + pins), not DNA alone | **ACCEPTED** | Prototype-validated: pinned Trike head on 100% T-Rex = "Tyrannoceratosaurus" |
 | D-015 | Anonymous play is local-first; server storage only for shared creatures (claimable) | **ACCEPTED** | Kid-safety posture + v2 localStorage-quota lesson (store genomes, never images) |

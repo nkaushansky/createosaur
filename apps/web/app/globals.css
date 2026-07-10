@@ -1,0 +1,196 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Field-guide visual system (from the Morph Lab prototype).
+ * Token-level theming: light in :root, dark via media query, and the
+ * data-theme attribute wins in both directions.
+ */
+:root {
+  --bg: #edeee6;
+  --card: #f8f8f2;
+  --ink: #23281f;
+  --muted: #6a705f;
+  --line: rgba(35, 40, 31, 0.14);
+  --accent: #a06e1f;
+  --paper: #f4f2e8;
+  --paper-grid: #dcd8c6;
+  --paper-line: #b9b4a0;
+  --meter-track: rgba(35, 40, 31, 0.12);
+  --btn-bg: #efeee6;
+  --btn-border: rgba(35, 40, 31, 0.22);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16140f;
+    --card: #201d16;
+    --ink: #eae4d4;
+    --muted: #9a917c;
+    --line: rgba(234, 228, 212, 0.14);
+    --accent: #d9a441;
+    --meter-track: rgba(234, 228, 212, 0.14);
+    --btn-bg: #2a2619;
+    --btn-border: rgba(234, 228, 212, 0.22);
+  }
+}
+
+:root[data-theme='light'] {
+  --bg: #edeee6;
+  --card: #f8f8f2;
+  --ink: #23281f;
+  --muted: #6a705f;
+  --line: rgba(35, 40, 31, 0.14);
+  --accent: #a06e1f;
+  --meter-track: rgba(35, 40, 31, 0.12);
+  --btn-bg: #efeee6;
+  --btn-border: rgba(35, 40, 31, 0.22);
+}
+
+:root[data-theme='dark'] {
+  --bg: #16140f;
+  --card: #201d16;
+  --ink: #eae4d4;
+  --muted: #9a917c;
+  --line: rgba(234, 228, 212, 0.14);
+  --accent: #d9a441;
+  --meter-track: rgba(234, 228, 212, 0.14);
+  --btn-bg: #2a2619;
+  --btn-border: rgba(234, 228, 212, 0.22);
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* The specimen paper stays paper in both themes — a field notebook is a
+   field notebook at night. Deliberate choice, not an omission. */
+.viewport-paper {
+  background-color: var(--paper);
+  background-image: linear-gradient(var(--paper-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--paper-grid) 1px, transparent 1px);
+  background-size: 26px 26px;
+}
+
+.card-panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.btn {
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
+  border-radius: 7px;
+  padding: 6px 11px;
+  font-size: 13px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.btn:hover {
+  border-color: var(--ink);
+}
+.btn:focus-visible,
+input:focus-visible,
+select:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.btn[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--card);
+  border-color: var(--ink);
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.btn:disabled:hover {
+  border-color: var(--btn-border);
+}
+
+.section-title {
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 700;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+}
+
+.eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.select-input {
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
+  border-radius: 7px;
+  padding: 6px 8px;
+  font-size: 13px;
+  color: var(--ink);
+  width: 100%;
+}
+
+.meter-track {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--meter-track);
+  overflow: hidden;
+}
+.meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+  transition: width 0.25s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .meter-fill {
+    transition: none;
+  }
+}
+
+.chip {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 99px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+
+input[type='range'] {
+  width: 100%;
+  height: 22px;
+  margin: 0;
+}
+
+input[type='color'] {
+  width: 34px;
+  height: 26px;
+  border: 1px solid var(--btn-border);
+  border-radius: 6px;
+  background: none;
+  padding: 1px;
+  cursor: pointer;
+}
+
+.genome-pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  overflow-x: auto;
+  color: var(--muted);
+}

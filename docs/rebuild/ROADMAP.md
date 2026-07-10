@@ -64,7 +64,9 @@ credit render.
 
 ## M3 — Accounts & the dex
 
-- Supabase auth (parent-framed), local→cloud merge on first sign-in.
+- Self-hosted magic-link email auth per ARCHITECTURE (parent-framed);
+  local→cloud merge on first sign-in. (Fallback if magic-link proves heavy:
+  Supabase for auth only — see D-016.)
 - My Creatures gallery + public profile pages (opt-in public).
 - Rename with filter; favorites.
 

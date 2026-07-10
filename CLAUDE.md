@@ -36,7 +36,7 @@ mechanics operate on genome data.
 - Same genome (including seed) → pixel-identical render. Golden-genome
   snapshot tests enforce this; never regenerate snapshots casually.
 - The renderer stays pure TypeScript with zero DOM dependencies (it must run
-  in edge functions for OG images).
+  server-side in the self-hosted share service for OG images).
 - TypeScript `strict: true`. No `any` in `packages/`. No `console.log` in
   shipped code.
 - Never invent species facts — the species database is the single source of
