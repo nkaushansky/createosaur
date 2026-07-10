@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { renderPart } from '@createosaur/renderer';
 import { POOL_CAP } from '@createosaur/genome';
 import { getSpecies, type Diet, type SpeciesId } from '@createosaur/species-data';
@@ -16,7 +16,7 @@ import {
 
 /**
  * The species browser (GAME-DESIGN §4): search + filter the roster by period,
- * diet, and size, and add/remove/swap species in the gene pool (cap 4, D-007).
+ * diet, and size, and add/remove species in the gene pool (cap 4, D-007).
  * Adding a species is how parts enter the picker bin.
  */
 export function SpeciesBrowser({ onClose }: { onClose: () => void }) {
@@ -37,6 +37,38 @@ export function SpeciesBrowser({ onClose }: { onClose: () => void }) {
     [query, diets, periods, sizes]
   );
 
+  // Modal focus contract (M1 review): focus moves in on open, Tab cycles
+  // inside, Escape closes, and focus returns to the opener on close —
+  // aria-modal="true" must match keyboard reality.
+  const panelRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
+    searchRef.current?.focus();
+    return () => opener?.focus();
+  }, []);
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      onClose();
+      return;
+    }
+    if (e.key !== 'Tab') return;
+    const focusables = panelRef.current?.querySelectorAll<HTMLElement>(
+      'button:not(:disabled), input, [tabindex]:not([tabindex="-1"])'
+    );
+    if (!focusables?.length) return;
+    const first = focusables[0]!;
+    const last = focusables[focusables.length - 1]!;
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:p-8"
@@ -44,8 +76,10 @@ export function SpeciesBrowser({ onClose }: { onClose: () => void }) {
       aria-modal="true"
       aria-label="Species browser"
       onClick={onClose}
+      onKeyDown={onKeyDown}
     >
       <div
+        ref={panelRef}
         className="card-panel w-full max-w-3xl p-4 sm:p-5"
         onClick={(e) => e.stopPropagation()}
       >
@@ -60,6 +94,7 @@ export function SpeciesBrowser({ onClose }: { onClose: () => void }) {
         </div>
 
         <input
+          ref={searchRef}
           type="search"
           className="select-input mb-2"
           placeholder="Search species…"
@@ -149,7 +184,9 @@ function SpeciesCard({
   onRemove: () => void;
 }) {
   const sp = getSpecies(id);
-  const svg = useMemo(() => renderPart(id, 'head'), [id]);
+  // idSuffix namespaced: the picker renders the same parts with the default
+  // suffix, and duplicate clipPath ids across the page would cross-reference
+  const svg = useMemo(() => renderPart(id, 'head', { idSuffix: `browser-${id}` }), [id]);
   return (
     <div
       className="flex flex-col gap-1.5 rounded-lg border p-2"
@@ -175,10 +212,9 @@ function SpeciesCard({
       </div>
       {inPool ? (
         <button
-          className="btn w-full text-[12px]"
+          className="btn w-full text-[12px] font-semibold"
           onClick={onRemove}
           disabled={!canRemove}
-          aria-pressed="true"
           style={{ borderColor: sp.uiColor }}
         >
           {canRemove ? '✓ In pool — remove' : '✓ In pool'}

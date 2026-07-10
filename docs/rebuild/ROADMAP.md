@@ -61,8 +61,10 @@ in the salvaged database; it fills the head-butter slot because
 Pachycephalosaurus is not in `dinosaurDatabase.ts` and facts are never
 invented — **sourcing Pachycephalosaurus facts is the prerequisite to adding
 it** (the `domeSkull` feature is already built). Species browser
-(period/diet/size) + vignette parts picker + pool add/remove/swap with undo
-toast all shipped. Every pairwise mix of the five archetype exemplars has a
+(period/diet/size) + vignette parts picker + pool add/remove with undo toast
+shipped (swap exists at the store level with tests but has no UI yet — wire
+it or drop it in a later pass; if wired, it must gain the pin-clear undo
+toast per GAME-DESIGN §4). Every pairwise mix of the five archetype exemplars has a
 golden fixture. DoD met (≥12 species, picker vignettes, pairwise coherence,
 browser). **Planned next — the fidelity pass** (required before the DNS
 cutover / public launch, D-018). Owner art direction, 2026-07-10:

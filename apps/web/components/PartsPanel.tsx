@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useDeferredValue, useMemo } from 'react';
 import { renderCreature, renderPart } from '@createosaur/renderer';
 import type { Genome } from '@createosaur/genome';
 import { getSpecies, type PartSlot, type SpeciesId } from '@createosaur/species-data';
@@ -17,10 +17,16 @@ const SLOTS: Array<{ slot: PartSlot; label: string }> = [
   { slot: 'back', label: 'Back' },
   { slot: 'tail', label: 'Tail' },
   { slot: 'stance', label: 'Stance' },
+  // skin owns integument (feathers shipped as a skin-slot gene in M1) —
+  // GAME-DESIGN §2; without this row the gene is engine-reachable but
+  // un-Lego-able (M1 review)
+  { slot: 'skin', label: 'Skin' },
 ];
 
 export function PartsPanel() {
-  const genome = useLab((s) => s.genome);
+  // blend vignettes re-render per slider tick; deferring keeps the main
+  // stage at full frame rate on slow hardware (ARCHITECTURE <8ms budget)
+  const genome = useDeferredValue(useLab((s) => s.genome));
   const setPin = useLab((s) => s.setPin);
 
   return (

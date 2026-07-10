@@ -130,6 +130,37 @@ describe('lab store gene pool (D-007, GAME-DESIGN §4)', () => {
     expect(state().toast).toBeNull();
   });
 
+  it('undo clears a pending removal toast, and a raced undoToast is a no-op', () => {
+    // M1 review: remove → Ctrl+Z → tap the stale toast's Undo used to wipe
+    // the redo stack and push a dead history entry
+    state().removeSpecies('triceratops');
+    expect(state().toast).not.toBeNull();
+
+    state().undo(); // species restored via history
+    expect(state().toast).toBeNull(); // stale toast is gone
+    const redoDepth = state().future.length;
+
+    state().undoToast(); // stale reference — must change nothing
+    expect(state().future).toHaveLength(redoDepth);
+    expect(state().genome.dna.map((d) => d.species)).toContain('triceratops');
+  });
+
+  it('editing the genome invalidates a pending removal toast', () => {
+    state().removeSpecies('triceratops');
+    state().setAge('juvenile');
+    expect(state().toast).toBeNull(); // its restore snapshot went stale
+  });
+
+  it('addSpecies never joins at share 0 when the pool total is tiny', () => {
+    state().setPool([
+      { species: 'tyrannosaurus', share: 1 },
+      { species: 'triceratops', share: 0 },
+    ]);
+    state().addSpecies('stegosaurus');
+    const added = state().genome.dna.find((d) => d.species === 'stegosaurus');
+    expect(added?.share).toBeGreaterThanOrEqual(1);
+  });
+
   it('never removes the last species in the pool', () => {
     state().setPool([{ species: 'tyrannosaurus', share: 100 }]);
     state().removeSpecies('tyrannosaurus');

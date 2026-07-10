@@ -98,7 +98,7 @@ export function DnaPanel({ onOpenBrowser }: { onOpenBrowser: () => void }) {
                 {Math.round((shares[d.species] ?? 0) * 100)}%
               </span>
               <button
-                className="justify-self-center text-[15px] leading-none disabled:opacity-25"
+                className="-m-1 justify-self-center p-1 text-[15px] leading-none disabled:opacity-25"
                 onClick={() => removeSpecies(d.species)}
                 disabled={!canRemove}
                 aria-label={`Remove ${sp.name} from the pool`}
