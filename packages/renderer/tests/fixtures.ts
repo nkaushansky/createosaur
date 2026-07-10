@@ -173,4 +173,26 @@ export const FIXTURES: Record<string, Genome> = {
     dna: [{ species: 'brachiosaurus', share: 100 }],
     size: 100,
   },
+
+  // M1 Wave 3 — armored / sail / feathered / dome-skulled roster
+  'pure-ankylosaurus': {
+    ...base,
+    dna: [{ species: 'ankylosaurus', share: 100 }],
+    cosmetics: { hide: '#7c7666', markings: '#55503f', pattern: 'countershade' },
+  },
+  'pure-spinosaurus': {
+    ...base,
+    dna: [{ species: 'spinosaurus', share: 100 }],
+    cosmetics: { hide: '#4a7f8f', markings: '#c25a4a', pattern: 'countershade' },
+  },
+  'pure-velociraptor': {
+    ...base,
+    dna: [{ species: 'velociraptor', share: 100 }],
+    cosmetics: { hide: '#a5763f', markings: '#4f3b28', pattern: 'solid' },
+  },
+  'pure-dracorex': {
+    ...base,
+    dna: [{ species: 'dracorex', share: 100 }],
+    cosmetics: { hide: '#8a6a7a', markings: '#c0a44a', pattern: 'solid' },
+  },
 };

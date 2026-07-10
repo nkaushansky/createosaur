@@ -342,21 +342,27 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
   // Pachycephalosaur dome: a thickened, node-studded cranium over the skull,
   // drawn on top so the bony cap reads in front of the head silhouette.
   if (f.domeSkull) {
-    const s = at(Math.min(1, tHead - 0.01));
-    const R = (16 + 20 * f.domeSkull.intensity);
-    const cx = s.p[0] + s.n[0] * (s.w / 2 - R * 0.35);
-    const cy = s.p[1] + s.n[1] * (s.w / 2 - R * 0.35);
-    const dome = shade(prim, 0.28);
+    const s = at(Math.min(1, tHead - 0.02));
+    const R = 18 + 22 * f.domeSkull.intensity;
+    // seat the dome so its flat base sits just under the head's top surface
+    const bx = s.p[0] + s.n[0] * (s.w / 2 - 4);
+    const by = s.p[1] + s.n[1] * (s.w / 2 - 4);
+    const dome = shade(prim, 0.34);
+    // a bold half-ellipse cap across the crown, wider along the skull than tall
+    const rx = R * 1.15;
+    const p0: Pt = [bx - s.tn[0] * rx, by - s.tn[1] * rx];
+    const p1: Pt = [bx + s.tn[0] * rx, by + s.tn[1] * rx];
     svg +=
-      `<path d="M${fmt(cx - s.tn[0] * R, cy - s.tn[1] * R)}` +
-      `A${round1(R)} ${round1(R * 1.05)} 0 0 1 ${fmt(cx + s.tn[0] * R, cy + s.tn[1] * R)}Z" ` +
-      `fill="${dome}" stroke="${ink}" stroke-width="2" stroke-linejoin="round"/>`;
-    // small bony nodes around the crown (Dracorex's ornamented skull)
-    for (const off of [-0.72, -0.3, 0.3, 0.72]) {
-      const nx = cx + s.tn[0] * R * off + s.n[0] * R * 0.7;
-      const ny = cy + s.tn[1] * R * off + s.n[1] * R * 0.7;
-      const nr = 3.4 * f.domeSkull.intensity;
-      svg += `<circle cx="${round1(nx)}" cy="${round1(ny)}" r="${round1(nr)}" fill="${BONE}" stroke="${BONE_INK}" stroke-width="1"/>`;
+      `<path d="M${fmt(p0[0], p0[1])}A${round1(rx)} ${round1(R)} 0 0 1 ${fmt(p1[0], p1[1])}Z" ` +
+      `fill="${dome}" stroke="${ink}" stroke-width="2.5" stroke-linejoin="round"/>`;
+    // a couple of small bony knobs at the back of the dome (Dracorex ornament)
+    for (const off of [0.5, 0.82]) {
+      const h = Math.sqrt(Math.max(0, 1 - off * off)) * R * 0.82;
+      const kx = bx + s.tn[0] * rx * off + s.n[0] * (h + 4);
+      const ky = by + s.tn[1] * rx * off + s.n[1] * (h + 4);
+      svg += `<circle cx="${round1(kx)}" cy="${round1(ky)}" r="${round1(
+        3 * f.domeSkull.intensity
+      )}" fill="${BONE}" stroke="${BONE_INK}" stroke-width="1"/>`;
     }
   }
 
