@@ -69,6 +69,29 @@ ribbons, invisible meters, mislabeled weights). Budget for 2–3 rounds.
   decision log?")
 - Surface tradeoffs at decision time, not after building the wrong thing.
 
+## The milestone review ritual
+
+Every milestone gets an independent review pass before its PR merges (a
+different session than the one that built it, any capable model). The
+recipe, validated on M0 and M1:
+
+1. **Gates**: `npm ci && npm run typecheck && npm run lint && npx vitest run
+   && npm run build && npm run e2e` — all green or stop here.
+2. **Invariant audit**: `git diff --name-status <base>..HEAD` — were any
+   pre-existing goldens modified (needs a dedicated justified commit)? Was
+   `packages/genome/src/types.ts` touched (needs owner approval)? Any
+   committed scratch files?
+3. **Facts audit**: diff every new/changed species field against
+   `legacy/src/data/dinosaurDatabase.ts`. Invented paleontology is a
+   hard-invariant violation.
+4. **Visual pass**: render the new/changed goldens into a contact sheet
+   (Playwright + the preinstalled Chromium) and *look* at them; screenshot
+   the app states the milestone touched, both themes, mobile width.
+5. **Adversarial workflow**: multi-agent finders per dimension
+   (determinism, geometry, state logic, data quality, docs conformance,
+   UI/a11y), every finding verified by independent skeptics before it's
+   acted on. Fix confirmed findings; record notable ones in the PR.
+
 ## Definition of done, universally
 
 Typecheck ✓ lint ✓ unit ✓ smoke ✓ — plus the verify-loop screenshots for

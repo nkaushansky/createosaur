@@ -64,9 +64,16 @@ it** (the `domeSkull` feature is already built). Species browser
 (period/diet/size) + vignette parts picker + pool add/remove/swap with undo
 toast all shipped. Every pairwise mix of the five archetype exemplars has a
 golden fixture. DoD met (≥12 species, picker vignettes, pairwise coherence,
-browser). **Planned next**: a renderer texture/linework fidelity pass (scale
-and feather detail, interior contour lines, countershade volume) within the
-2D field-guide brand — a dedicated goldens-regeneration commit.
+browser). **Planned next — the fidelity pass** (required before the DNS
+cutover / public launch, D-018). Owner art direction, 2026-07-10:
+**"Camp Cretaceous cartoony-realistic-esque, or at least a more detailed
+field-guide drawing — not Jurassic Park photoreal."** Concretely: interior
+contour/muscle linework, two-tone or gradient shading for volume, organic
+sail curve with spine rays (not a hard polygon), feathers as a layered coat
+(not quill spikes), tail club as a textured knob, more deliberate eye/brow
+treatment, varied outline weight. Stay inside the 2D field-guide brand.
+Cross-cutting → regenerates all goldens, so it lands as a dedicated
+goldens-regeneration commit with before/after screenshots per AGENT-GUIDE.
 
 ## M2 — Share & remix (the growth loop)
 
