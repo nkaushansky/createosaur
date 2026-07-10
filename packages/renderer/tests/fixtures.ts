@@ -227,4 +227,24 @@ export const FIXTURES: Record<string, Genome> = {
   // wild: sail theropod × sauropod, and feathered × frilled
   'mix-spinosaurus-brachiosaurus': mix('spinosaurus', 'brachiosaurus'),
   'mix-velociraptor-triceratops': mix('velociraptor', 'triceratops'),
+
+  // M1 roster wave 2 — to twelve species
+  'pure-allosaurus': {
+    ...base,
+    dna: [{ species: 'allosaurus', share: 100 }],
+    cosmetics: { hide: '#9a6a4a', markings: '#553a28', pattern: 'countershade' },
+  },
+  'pure-diplodocus': {
+    ...base,
+    dna: [{ species: 'diplodocus', share: 100 }],
+    cosmetics: { hide: '#6f8577', markings: '#485a4f', pattern: 'countershade' },
+  },
+  'pure-iguanodon': {
+    ...base,
+    dna: [{ species: 'iguanodon', share: 100 }],
+    cosmetics: { hide: '#94804a', markings: '#544a2e', pattern: 'stripes' },
+  },
+  // a Jurassic sauropod × theropod, and a robust ornithopod × frilled ceratopsian
+  'mix-diplodocus-allosaurus': mix('diplodocus', 'allosaurus'),
+  'mix-iguanodon-triceratops': mix('iguanodon', 'triceratops'),
 };
