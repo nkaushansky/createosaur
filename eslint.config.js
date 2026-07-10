@@ -15,6 +15,9 @@ export default tseslint.config(
       'test-results/**',
       'docs/**',
       'next-env.d.ts',
+      // local dev scratch (visual verify harness, ad-hoc screenshot scripts)
+      'scratch-*',
+      '**/*.harness.test.ts',
     ],
   },
   js.configs.recommended,

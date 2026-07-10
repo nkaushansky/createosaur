@@ -1,11 +1,14 @@
 import {
   blendGenome,
   composeName,
+  GENOME_VERSION,
   genomeHash,
   mulberry32,
+  type BlendResult,
   type Genome,
+  type SpeciesResolver,
 } from '@createosaur/genome';
-import type { MorphVector } from '@createosaur/species-data';
+import type { FeatureKind, MorphVector, PartSlot, SpeciesId } from '@createosaur/species-data';
 import { shade } from './color';
 import {
   fmt,
@@ -33,6 +36,21 @@ export interface RenderOptions {
   idSuffix?: string;
   /** draw the ground line and contact shadow (default true) */
   ground?: boolean;
+  /**
+   * Vignette mode (GAME-DESIGN §4.2): crop the viewBox tight to one slot's
+   * region for a picker thumbnail. The creature geometry is byte-identical to
+   * a full render — only the framing changes — so purity/determinism hold and
+   * "that species' version of that part" is literally the same renderer.
+   * A crop implies no ground and no display-size scaling (the part fills the
+   * frame regardless of the size slider).
+   */
+  crop?: PartSlot;
+  /**
+   * Override how species ids resolve to definitions (dev species workbench
+   * only). Lets an unsaved morph vector render through the real pipeline.
+   * Defaults to the frozen database.
+   */
+  resolveSpecies?: SpeciesResolver;
 }
 
 export const VIEW = { width: 820, height: 540 } as const;
@@ -48,7 +66,7 @@ const EYE_WHITE = '#fdfaef';
 const EYE_PUPIL = '#1c1a14';
 
 export function renderCreature(genome: Genome, opts: RenderOptions = {}): string {
-  const blend = blendGenome(genome);
+  const blend = blendGenome(genome, opts.resolveSpecies);
   const p = blend.morph;
   const f = blend.features;
   const clipId = `bod-${opts.idSuffix ?? genomeHash(genome)}`;
@@ -113,7 +131,7 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
   let svg = '';
 
   // --- ground + shadow -------------------------------------------------------
-  if (opts.ground !== false) {
+  if (opts.ground !== false && !opts.crop) {
     svg += `<line x1="60" y1="${GROUND}" x2="780" y2="${GROUND}" stroke="${PAPER_LINE}" stroke-width="2"/>`;
     for (const gx of [120, 300, 520, 700]) {
       svg += `<path d="M${gx} ${GROUND}l5 -9 M${gx + 7} ${GROUND}l4 -6" stroke="${PAPER_LINE}" stroke-width="1.5" fill="none"/>`;
@@ -197,6 +215,87 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
     svg += drawHorn(0.955, 22 * f.noseHorn.intensity, 0.15);
   }
 
+  // Spinosaurus sail: a dorsal membrane over the back, tallest mid-torso.
+  // Drawn before the silhouette so its base tucks under the body outline.
+  if (f.sail) {
+    const span = [0.32, 0.4, 0.48, 0.56, 0.63];
+    const peak = 150 * f.sail.intensity;
+    const heightAt = (u: number) => Math.sin(Math.PI * u) ** 0.85; // 0 at ends, 1 mid
+    const bases = span.map((tt) => {
+      const s = at(tt);
+      return [s.p[0] + s.n[0] * (s.w / 2 - 4), s.p[1] + s.n[1] * (s.w / 2 - 4)] as Pt;
+    });
+    const tips = span.map((tt, i) => {
+      const s = at(tt);
+      const h = peak * heightAt(i / (span.length - 1));
+      return [bases[i]![0] + s.n[0] * h, bases[i]![1] + s.n[1] * h] as Pt;
+    });
+    let d = `M${fmt(bases[0]![0], bases[0]![1])}`;
+    for (let i = 0; i < tips.length; i++) d += `L${fmt(tips[i]![0], tips[i]![1])}`;
+    for (let i = bases.length - 1; i >= 0; i--) d += `L${fmt(bases[i]![0], bases[i]![1])}`;
+    const web = shade(sec, -0.12);
+    svg += `<path d="${d}Z" fill="${web}" stroke="${shade(sec, -0.4)}" stroke-width="2.5" stroke-linejoin="round"/>`;
+    // support struts — the elongated neural spines the sail stretched over
+    for (let i = 0; i < span.length; i++) {
+      svg += `<path d="M${fmt(bases[i]![0], bases[i]![1])}L${fmt(
+        tips[i]![0],
+        tips[i]![1]
+      )}" stroke="${shade(sec, -0.32)}" stroke-width="2" opacity="0.55"/>`;
+    }
+  }
+
+  // Parasaurolophus crest: a tube swept up and back off the skull.
+  if (f.crest) {
+    const s = at(Math.min(1, tHead + 0.01));
+    const L = 96 * f.crest.intensity;
+    const wte = Math.max(9, s.w * 0.24);
+    // base on the crown, sweeping back (−tangent) and up (+normal)
+    const base: Pt = [s.p[0] + s.n[0] * (s.w / 2 - 3), s.p[1] + s.n[1] * (s.w / 2 - 3)];
+    const back: Pt = [-s.tn[0], -s.tn[1]]; // toward the neck/tail
+    const up: Pt = s.n;
+    const tip: Pt = [
+      base[0] + back[0] * L * 0.9 + up[0] * L * 0.7,
+      base[1] + back[1] * L * 0.9 + up[1] * L * 0.7,
+    ];
+    const ctrlTop: Pt = [base[0] + up[0] * L * 0.55, base[1] + up[1] * L * 0.55];
+    const ctrlBot: Pt = [base[0] + back[0] * L * 0.5, base[1] + back[1] * L * 0.5];
+    const tint = shade(prim, 0.12);
+    svg +=
+      `<path d="M${fmt(base[0] + s.tn[0] * wte * 0.5, base[1] + s.tn[1] * wte * 0.5)}` +
+      `Q${fmt(ctrlTop[0], ctrlTop[1])} ${fmt(tip[0] + s.tn[0] * wte * 0.5, tip[1] + s.tn[1] * wte * 0.5)}` +
+      `L${fmt(tip[0] - s.tn[0] * wte * 0.5, tip[1] - s.tn[1] * wte * 0.5)}` +
+      `Q${fmt(ctrlBot[0], ctrlBot[1])} ${fmt(base[0] - back[0] * wte, base[1] - back[1] * wte)}Z" ` +
+      `fill="${tint}" stroke="${ink}" stroke-width="2.5" stroke-linejoin="round"/>` +
+      `<path d="M${fmt(base[0], base[1])}Q${fmt(
+        (ctrlTop[0] + ctrlBot[0]) / 2,
+        (ctrlTop[1] + ctrlBot[1]) / 2
+      )} ${fmt(tip[0], tip[1])}" stroke="${shade(prim, -0.3)}" stroke-width="2" fill="none" opacity="0.5"/>`;
+  }
+
+  // Raptor feathers: a filament fringe along the dorsal line (neck→back→tail).
+  if (f.feathers) {
+    const fr = mulberry32((genome.seed ^ 0x00fea) >>> 0);
+    const len = 26 * f.feathers.intensity;
+    let quills = '';
+    for (let tt = 0.12; tt <= 0.86; tt += 0.045) {
+      const s = at(tt);
+      const jit = 0.75 + fr() * 0.5;
+      const base: Pt = [s.p[0] + s.n[0] * (s.w / 2 - 2), s.p[1] + s.n[1] * (s.w / 2 - 2)];
+      // sweep tailward so the plumage lies back like real pennaceous feathers
+      const tip: Pt = [
+        base[0] + s.n[0] * len * jit + s.tn[0] * len * 0.45,
+        base[1] + s.n[1] * len * jit + s.tn[1] * len * 0.45,
+      ];
+      const side: Pt = [s.tn[0] * 3.5, s.tn[1] * 3.5];
+      quills += `<path d="${trianglePath(
+        [base[0] - side[0], base[1] - side[1]],
+        tip,
+        [base[0] + side[0], base[1] + side[1]]
+      )}"/>`;
+    }
+    svg += `<g fill="${shade(sec, -0.05)}" stroke="${shade(sec, -0.35)}" stroke-width="0.8" opacity="0.9">${quills}</g>`;
+  }
+
   // --- body silhouette ---------------------------------------------------------
   const bodyD = ribbonPath(pts, ws);
   svg += `<defs><clipPath id="${clipId}"><path d="${bodyD}"/></clipPath></defs>`;
@@ -242,6 +341,49 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
   )}" fill="${legC}" stroke="${ink}" stroke-width="1.5"/>`;
   svg += frontLeg(shoulder, p, 0, 0, legC, ink);
 
+  // Pachycephalosaur dome: a thickened, node-studded cranium over the skull,
+  // drawn on top so the bony cap reads in front of the head silhouette.
+  if (f.domeSkull) {
+    const s = at(Math.min(1, tHead - 0.01));
+    const R = (16 + 20 * f.domeSkull.intensity);
+    const cx = s.p[0] + s.n[0] * (s.w / 2 - R * 0.35);
+    const cy = s.p[1] + s.n[1] * (s.w / 2 - R * 0.35);
+    const dome = shade(prim, 0.28);
+    svg +=
+      `<path d="M${fmt(cx - s.tn[0] * R, cy - s.tn[1] * R)}` +
+      `A${round1(R)} ${round1(R * 1.05)} 0 0 1 ${fmt(cx + s.tn[0] * R, cy + s.tn[1] * R)}Z" ` +
+      `fill="${dome}" stroke="${ink}" stroke-width="2" stroke-linejoin="round"/>`;
+    // small bony nodes around the crown (Dracorex's ornamented skull)
+    for (const off of [-0.72, -0.3, 0.3, 0.72]) {
+      const nx = cx + s.tn[0] * R * off + s.n[0] * R * 0.7;
+      const ny = cy + s.tn[1] * R * off + s.n[1] * R * 0.7;
+      const nr = 3.4 * f.domeSkull.intensity;
+      svg += `<circle cx="${round1(nx)}" cy="${round1(ny)}" r="${round1(nr)}" fill="${BONE}" stroke="${BONE_INK}" stroke-width="1"/>`;
+    }
+  }
+
+  // Ankylosaurus tail club: a heavy bony knob at the very tip of the tail.
+  if (f.tailClub) {
+    const s = at(0.015);
+    const R = 15 + 16 * f.tailClub.intensity;
+    const cx = s.p[0] + s.tn[0] * R * 0.4; // nudged toward the tip
+    const cy = s.p[1] + s.tn[1] * R * 0.4;
+    svg +=
+      `<ellipse cx="${round1(cx)}" cy="${round1(cy)}" rx="${round1(R)}" ry="${round1(R * 0.86)}" fill="${BONE}" stroke="${BONE_INK}" stroke-width="2.5"/>` +
+      `<ellipse cx="${round1(cx - s.tn[0] * R * 0.35)}" cy="${round1(cy - s.tn[1] * R * 0.35)}" rx="${round1(R * 0.4)}" ry="${round1(R * 0.34)}" fill="${shade(BONE, 0.18)}"/>`;
+  }
+
+  // --- vignette crop: tight viewBox around one slot, raw geometry, no scaling ----
+  if (opts.crop) {
+    const box = cropBox(opts.crop, pts, ws, hip, shoulder, f);
+    const label = `${escapeAttr(composeName(genome).name)} ${opts.crop}`;
+    return (
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${box}" role="img" aria-label="${label}">` +
+      svg +
+      `</svg>`
+    );
+  }
+
   // --- scale around the ground anchor, wrap in <svg> --------------------------------
   const anchorX = HIPX - p.bodyLen * 0.35;
   const s = round1(blend.displayScale * 100) / 100;
@@ -251,6 +393,101 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
     `<g transform="translate(${round1(anchorX)} ${GROUND}) scale(${s}) translate(${round1(-anchorX)} ${-GROUND})">${svg}</g>` +
     `</svg>`
   );
+}
+
+/**
+ * A 100%-one-species genome with canonical cosmetics — the basis for vignette
+ * rendering so a picker thumbnail shows that species' authored part cleanly.
+ */
+function pureSpeciesGenome(species: SpeciesId, seed = 1): Genome {
+  return {
+    v: GENOME_VERSION,
+    dna: [{ species, share: 100 }],
+    parts: {},
+    cosmetics: { hide: '#6b8f4e', markings: '#d9a441', pattern: 'solid' },
+    size: 55,
+    age: 'adult',
+    seed,
+  };
+}
+
+/**
+ * Deterministic part vignette (ARCHITECTURE §rendering pipelines, GAME-DESIGN
+ * §4.2): a small SVG of one species' version of one slot, for picker
+ * thumbnails. Same renderer, same purity/determinism — only the framing
+ * differs from a full creature render.
+ */
+export function renderPart(
+  species: SpeciesId,
+  slot: PartSlot,
+  opts: { idSuffix?: string; seed?: number } = {}
+): string {
+  return renderCreature(pureSpeciesGenome(species, opts.seed ?? 1), {
+    crop: slot,
+    idSuffix: opts.idSuffix ?? `part-${species}-${slot}`,
+  });
+}
+
+/**
+ * Bounding viewBox for a slot's region, in raw geometry coordinates. Built
+ * from the spine points the slot owns (± their stroke width) plus a
+ * slot-specific margin. The top margin is *adaptive*: headroom is reserved
+ * only for the tall features this species actually carries (crests and horns
+ * above the head, sails and plates above the back, clubs and spikes at the
+ * tail) so a featureless part crops tight instead of floating in empty sky.
+ * Point ranges follow the spine construction: 0–29 tail, 30–48 body,
+ * 49–77 neck→snout.
+ */
+function cropBox(
+  slot: PartSlot,
+  pts: readonly Pt[],
+  ws: readonly number[],
+  hip: Pt,
+  shoulder: Pt,
+  feat: BlendResult['features']
+): string {
+  const N = pts.length;
+  const has = (k: FeatureKind) => feat[k] !== undefined;
+  const feather = has('feathers') ? 20 : 0;
+  const headTop =
+    22 + feather + Math.max(has('crest') ? 96 : 0, has('domeSkull') ? 46 : 0, has('browHorns') || has('noseHorn') ? 60 : 0, has('frill') ? 40 : 0);
+  const backTop = 20 + feather + Math.max(has('sail') ? 150 : 0, has('plates') ? 58 : 0);
+  const tailTop = 20 + feather + Math.max(has('tailClub') ? 34 : 0, has('tailSpikes') ? 44 : 0);
+  const tailSide = has('tailClub') ? 30 : 18;
+  const M: Record<PartSlot, { a: number; b: number; top: number; bottom: number; left: number; right: number }> = {
+    tail: { a: 0, b: 0.34, top: tailTop, bottom: 26, left: tailSide, right: tailSide },
+    back: { a: 0.36, b: 0.66, top: backTop, bottom: 34, left: 28, right: 28 },
+    head: { a: 0.72, b: 1, top: headTop, bottom: 30, left: 30, right: 24 },
+    stance: { a: 0.38, b: 0.66, top: 18, bottom: 28, left: 58, right: 38 },
+    skin: { a: 0.42, b: 0.6, top: 18 + feather, bottom: 20, left: 16, right: 16 },
+  };
+  const m = M[slot];
+  const i0 = Math.floor(m.a * (N - 1));
+  const i1 = Math.ceil(m.b * (N - 1));
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (let i = i0; i <= i1; i++) {
+    const w = (ws[i] ?? 0) / 2 + 6;
+    const [x, y] = pts[i]!;
+    minX = Math.min(minX, x - w);
+    maxX = Math.max(maxX, x + w);
+    minY = Math.min(minY, y - w);
+    maxY = Math.max(maxY, y + w);
+  }
+  // the stance vignette must reach the feet on the ground line
+  if (slot === 'stance') {
+    minX = Math.min(minX, shoulder[0], hip[0]);
+    maxX = Math.max(maxX, hip[0]);
+    maxY = Math.max(maxY, GROUND + 12);
+    minY = Math.min(minY, hip[1], shoulder[1]);
+  }
+  const x = round1(minX - m.left);
+  const y = round1(minY - m.top);
+  const w = round1(maxX - minX + m.left + m.right);
+  const h = round1(maxY - minY + m.top + m.bottom);
+  return `${x} ${y} ${w} ${h}`;
 }
 
 // --- limbs -------------------------------------------------------------------------

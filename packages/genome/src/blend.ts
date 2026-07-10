@@ -4,11 +4,20 @@ import {
   SLOT_PARAMS,
   type FeatureKind,
   type MorphVector,
+  type SpeciesDef,
   type SpeciesId,
 } from '@createosaur/species-data';
 import { mulberry32 } from './prng';
 import type { AgeStage, Genome } from './types';
 import { slotWeights, speciesByWeight, type Weights } from './weights';
+
+/**
+ * How a species id resolves to its definition. Defaults to the frozen
+ * database; the dev species workbench passes an override so an unsaved,
+ * in-progress vector renders through the exact production pipeline
+ * (ARCHITECTURE §species data pipeline). Never used to fabricate shipped data.
+ */
+export type SpeciesResolver = (id: SpeciesId) => SpeciesDef;
 
 /** Feature expression ramp (GAME-DESIGN §3.2): pops in past ~20%, full by ~55%. */
 export const FEATURE_RAMP = { start: 0.18, end: 0.55 } as const;
@@ -75,7 +84,7 @@ export function sizeScale(size: number): number {
  * in the shared morphospace, feature threshold ramps, age transform, and
  * seeded ±3% jitter. Pure and deterministic: same genome → same result.
  */
-export function blendGenome(genome: Genome): BlendResult {
+export function blendGenome(genome: Genome, resolve: SpeciesResolver = getSpecies): BlendResult {
   // 1. Weighted average per parameter, using the owning slot's weights.
   const morph = {} as MorphVector;
   const weightsBySlot: Partial<Record<string, Weights>> = {};
@@ -87,7 +96,7 @@ export function blendGenome(genome: Genome): BlendResult {
     for (const key of SLOT_PARAMS[slot]) {
       let v = 0;
       for (const d of genome.dna) {
-        v += (w[d.species] ?? 0) * getSpecies(d.species).morph[key];
+        v += (w[d.species] ?? 0) * resolve(d.species).morph[key];
       }
       morph[key] = v;
     }
@@ -98,13 +107,13 @@ export function blendGenome(genome: Genome): BlendResult {
   const features: Partial<Record<FeatureKind, FeatureExpression>> = {};
   const kinds = new Set<FeatureKind>();
   for (const d of genome.dna) {
-    for (const f of getSpecies(d.species).features) kinds.add(f.kind);
+    for (const f of resolve(d.species).features) kinds.add(f.kind);
   }
   for (const kind of kinds) {
     let carrierWeight = 0;
     const carrierWeights: Weights = {};
     for (const d of genome.dna) {
-      const gene = getSpecies(d.species).features.find((f) => f.kind === kind);
+      const gene = resolve(d.species).features.find((f) => f.kind === kind);
       if (!gene) continue;
       const w = slotWeights(genome, gene.slot)[d.species] ?? 0;
       carrierWeight += w;
