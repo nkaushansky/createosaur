@@ -82,12 +82,14 @@ export const useLab = create<LabState>((set, get) => {
     const next = mutate(structuredClone(get().genome));
     if (same(next, get().genome)) return;
     get().markHistory();
-    set({ genome: next, future: [] });
+    // any genome change invalidates a pending removal toast — its `restore`
+    // snapshot would silently revert this edit (M1 review)
+    set({ genome: next, future: [], toast: null });
   };
 
   /** transient tick during a gesture: change genome, clear redo, no history */
   const applyTransient = (mutate: (g: Genome) => Genome) => {
-    set((s) => ({ genome: mutate(structuredClone(s.genome)), future: [] }));
+    set((s) => ({ genome: mutate(structuredClone(s.genome)), future: [], toast: null }));
   };
 
   return {
@@ -116,6 +118,7 @@ export const useLab = create<LabState>((set, get) => {
           genome: target,
           past,
           future: [structuredClone(s.genome), ...s.future],
+          toast: null, // a removal toast's restore snapshot is stale after undo
         };
       }),
 
@@ -131,6 +134,7 @@ export const useLab = create<LabState>((set, get) => {
           genome: target,
           future,
           past: [...s.past.slice(-(HISTORY_LIMIT - 1)), structuredClone(s.genome)],
+          toast: null,
         };
       }),
 
@@ -178,9 +182,10 @@ export const useLab = create<LabState>((set, get) => {
     addSpecies: (species) =>
       applyWithHistory((g) => {
         if (g.dna.some((d) => d.species === species) || g.dna.length >= POOL_CAP) return g;
-        // join as an average-share member so the newcomer is visible at once
+        // join as an average-share member so the newcomer is visible at once;
+        // floor at 1 so tiny pool totals can't round the newcomer to zero
         const total = g.dna.reduce((sum, d) => sum + d.share, 0);
-        const share = total > 0 ? Math.round(total / g.dna.length) : 50;
+        const share = total > 0 ? Math.max(1, Math.round(total / g.dna.length)) : 50;
         return { ...g, dna: [...g.dna, { species, share }] };
       }),
 
@@ -220,6 +225,12 @@ export const useLab = create<LabState>((set, get) => {
     undoToast: () => {
       const t = get().toast;
       if (!t) return;
+      // no-op if the genome already matches (e.g. Ctrl+Z raced the toast):
+      // restoring would only wipe the redo stack and add a dead undo step
+      if (same(t.restore, get().genome)) {
+        set({ toast: null });
+        return;
+      }
       get().markHistory();
       set({ genome: t.restore, future: [], toast: null });
     },

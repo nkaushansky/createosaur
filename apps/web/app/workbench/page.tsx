@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 /**
  * Dev-only authoring route (ROADMAP M1). It is never linked from the product
  * nav, and in a production build the tool is replaced by a stub — so the
- * static export (D-016) still succeeds and ships nothing authoring-related,
+ * static export (D-016) still succeeds; the prod route renders only this stub (the authoring chunk is emitted but never referenced or loaded),
  * while `next dev` serves the full workbench for tuning morph vectors.
  */
 export default function WorkbenchPage() {

@@ -21,6 +21,20 @@ export function Lab() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey)) return;
+      // text fields keep their native undo — hijacking Ctrl+Z while typing
+      // in the species search mutated the genome behind the dialog (M1 review)
+      const t = e.target as HTMLElement | null;
+      if (
+        t &&
+        (t.tagName === 'TEXTAREA' ||
+          t.isContentEditable ||
+          (t.tagName === 'INPUT' &&
+            !['range', 'color', 'checkbox', 'radio', 'button'].includes(
+              (t as HTMLInputElement).type
+            )))
+      ) {
+        return;
+      }
       // lowercase: with Shift (or CapsLock) held, e.key reports 'Z', which
       // would make the redo branch unreachable and break undo under CapsLock
       const key = e.key.toLowerCase();

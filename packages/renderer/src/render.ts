@@ -419,21 +419,31 @@ function fitScale(
   _anchorX: number
 ): number {
   const PAD = 10;
-  let ymin = Infinity;
-  for (let i = 0; i < pts.length; i++) ymin = Math.min(ymin, pts[i]![1] - (ws[i] ?? 0) / 2);
-  // headroom for dorsal/cranial features that rise above the silhouette
-  const rise = (k: FeatureKind, h: number) => (feat[k] ? h * feat[k]!.intensity : 0);
-  ymin -= Math.max(
-    rise('sail', 152),
-    rise('plates', 54),
-    rise('crest', 88),
-    rise('browHorns', 64),
-    rise('noseHorn', 24),
-    rise('frill', 70),
-    rise('domeSkull', 48),
-    rise('feathers', 30),
-    0
-  );
+  const N = pts.length;
+  /** silhouette top edge over a spine-t range */
+  const topOver = (a: number, b: number): number => {
+    let y = Infinity;
+    const i0 = Math.max(0, Math.floor(a * (N - 1)));
+    const i1 = Math.min(N - 1, Math.ceil(b * (N - 1)));
+    for (let i = i0; i <= i1; i++) y = Math.min(y, pts[i]![1] - (ws[i] ?? 0) / 2);
+    return y;
+  };
+  // Features rise above their OWN anchor region, not the global apex — a
+  // sail on the back must not borrow headroom from a sauropod's head, or
+  // tall hybrids over-shrink and the size slider goes dead (M1 review).
+  let ymin = topOver(0, 1);
+  const rise = (k: FeatureKind, h: number, a: number, b: number) => {
+    if (!feat[k]) return;
+    ymin = Math.min(ymin, topOver(a, b) - h * feat[k]!.intensity);
+  };
+  rise('sail', 152, 0.28, 0.7);
+  rise('plates', 54, 0.28, 0.7);
+  rise('crest', 88, 0.7, 1);
+  rise('browHorns', 64, 0.7, 1);
+  rise('noseHorn', 24, 0.9, 1);
+  rise('frill', 70, 0.6, 0.8);
+  rise('domeSkull', 48, 0.7, 1);
+  rise('feathers', 35, 0.28, 0.95);
   return ymin < GROUND ? (GROUND - PAD) / (GROUND - ymin) : Infinity;
 }
 
@@ -490,7 +500,8 @@ function cropBox(
 ): string {
   const N = pts.length;
   const has = (k: FeatureKind) => feat[k] !== undefined;
-  const feather = has('feathers') ? 20 : 0;
+  // quill tips reach ~26·1.25 ≈ 33px above the silhouette plus sweep (M1 review)
+  const feather = has('feathers') ? 35 : 0;
   const headTop =
     22 + feather + Math.max(has('crest') ? 96 : 0, has('domeSkull') ? 46 : 0, has('browHorns') || has('noseHorn') ? 60 : 0, has('frill') ? 40 : 0);
   const backTop = 20 + feather + Math.max(has('sail') ? 150 : 0, has('plates') ? 58 : 0);
@@ -500,7 +511,7 @@ function cropBox(
     tail: { a: 0, b: 0.34, top: tailTop, bottom: 26, left: tailSide, right: tailSide },
     back: { a: 0.36, b: 0.66, top: backTop, bottom: 34, left: 28, right: 28 },
     head: { a: 0.72, b: 1, top: headTop, bottom: 30, left: 30, right: has('crest') ? 96 : 24 },
-    stance: { a: 0.38, b: 0.66, top: 18, bottom: 28, left: 58, right: 38 },
+    stance: { a: 0.38, b: 0.66, top: 18 + feather, bottom: 28, left: 58, right: 38 },
     skin: { a: 0.42, b: 0.6, top: 18 + feather, bottom: 20, left: 16, right: 16 },
   };
   const m = M[slot];
