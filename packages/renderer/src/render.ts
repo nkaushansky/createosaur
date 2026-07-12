@@ -19,6 +19,7 @@ import {
 } from '@createosaur/species-data';
 import { shade } from './color';
 import {
+  alongPolyline,
   arcPath,
   fmt,
   limbPath,
@@ -26,7 +27,6 @@ import {
   normals,
   petalPath,
   quad,
-  ribbonPath,
   round1,
   trianglePath,
   widthAt,
@@ -91,6 +91,7 @@ const PAPER_LINE = '#b9b4a0';
 const TOOTH = '#f6f2e4';
 const EYE_WHITE = '#fdfaef';
 const EYE_PUPIL = '#1c1a14';
+const MOUTH = '#5a3138';
 
 // Varied outline weights (fidelity pass): the silhouette is the boldest line
 // on the page, features sit a step lighter, far limbs lighter still, and
@@ -159,13 +160,6 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
     const L = Math.hypot(dx, dy) || 1;
     return { p: pts[i]!, n: nm[i]!, w: ws[i]!, tn: [dx / L, dy / L] as Pt };
   };
-  /** point on the silhouette edge at t: edge +1 = dorsal, −1 = ventral */
-  const edgeOf = (t: number, edge: 1 | -1, inset = 0): Pt => {
-    const s = at(t);
-    const w = s.w / 2 - inset;
-    return [s.p[0] + s.n[0] * w * edge, s.p[1] + s.n[1] * w * edge];
-  };
-  const botOf = (t: number, inset = 0): Pt => edgeOf(t, -1, inset);
   /** polyline hugging the spine at a signed fraction of the half-width */
   const contour = (a: number, b: number, frac: number, K: number): Pt[] => {
     const out: Pt[] = [];
@@ -175,6 +169,61 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
     }
     return out;
   };
+
+  // --- authored skull stitched into the tube (anatomy pass) --------------------
+  // The tube ends at tNeck; from there the silhouette is buildHead's skull.
+  // Same params, same blend continuity — only the drawing got a jaw.
+  // tNeck is arc-length aware: a fixed t-offset spans ~40px of a sauropod's
+  // neck and stretches the skull into a sock.
+  let spineLen = 0;
+  for (let i = 1; i < N; i++) {
+    spineLen += Math.hypot(pts[i]![0] - pts[i - 1]![0], pts[i]![1] - pts[i - 1]![1]);
+  }
+  const headArc = Math.hypot(pts[N - 1]![0] - at(tHead).p[0], pts[N - 1]![1] - at(tHead).p[1]);
+  const tNeck = tHead - Math.min(0.06, Math.max(0.02, (0.4 * headArc) / spineLen));
+  const iNeck = Math.min(N - 2, Math.max(1, Math.floor(tNeck * (N - 1))));
+  const neckTop: Pt = [
+    pts[iNeck]![0] + nm[iNeck]![0] * (ws[iNeck]! / 2),
+    pts[iNeck]![1] + nm[iNeck]![1] * (ws[iNeck]! / 2),
+  ];
+  const neckBot: Pt = [
+    pts[iNeck]![0] - nm[iNeck]![0] * (ws[iNeck]! / 2),
+    pts[iNeck]![1] - nm[iNeck]![1] * (ws[iNeck]! / 2),
+  ];
+  const headOrigin = at(tHead);
+  let hu: Pt = [pts[N - 1]![0] - headOrigin.p[0], pts[N - 1]![1] - headOrigin.p[1]];
+  const headLen = Math.hypot(hu[0], hu[1]) || 1;
+  hu = [hu[0] / headLen, hu[1] / headLen];
+  const hv: Pt = [-hu[1], hu[0]]; // up, tilting with the head's pitch
+  const beak = Math.min(1, Math.max(0, (11 - Math.max(p.snoutTip, 6)) / 6));
+  const head = buildHead(
+    headOrigin.p,
+    hu,
+    hv,
+    headLen,
+    p.headSize,
+    neckTop,
+    neckBot,
+    f.teeth?.intensity ?? 0,
+    beak
+  );
+  const bodyD = (() => {
+    let d = '';
+    for (let i = 0; i <= iNeck; i++) {
+      const q: Pt = [pts[i]![0] + nm[i]![0] * (ws[i]! / 2), pts[i]![1] + nm[i]![1] * (ws[i]! / 2)];
+      d += `${i === 0 ? 'M' : 'L'}${fmt(q[0], q[1])}`;
+    }
+    for (let i = 1; i < head.topPts.length; i++) d += `L${fmt(head.topPts[i]![0], head.topPts[i]![1])}`;
+    if (head.gape > 0.04) {
+      for (let i = 1; i < head.lipPts.length; i++) d += `L${fmt(head.lipPts[i]![0], head.lipPts[i]![1])}`;
+    }
+    for (let i = 1; i < head.jawPts.length; i++) d += `L${fmt(head.jawPts[i]![0], head.jawPts[i]![1])}`;
+    for (let i = iNeck; i >= 0; i--) {
+      const q: Pt = [pts[i]![0] - nm[i]![0] * (ws[i]! / 2), pts[i]![1] - nm[i]![1] * (ws[i]! / 2)];
+      d += `L${fmt(q[0], q[1])}`;
+    }
+    return d + 'Z';
+  })();
 
   // --- palette ---------------------------------------------------------------
   const prim = genome.cosmetics.hide;
@@ -195,7 +244,6 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
     `<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">` +
     `<stop offset="0" stop-color="${top}"/><stop offset="0.55" stop-color="${mid}"/>` +
     `<stop offset="1" stop-color="${bot}"/></linearGradient>`;
-  const bodyD = ribbonPath(pts, ws);
   let defs = `<clipPath id="${clipId}"><path d="${bodyD}"/></clipPath>`;
   defs += vGrad(gid('gb'), shade(prim, 0.16), prim, shade(prim, -0.26));
   defs += vGrad(gid('gl'), shade(prim, -0.02), shade(prim, -0.14), shade(prim, -0.28));
@@ -235,8 +283,8 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
   // --- far legs (behind the body) ---------------------------------------------
   const FAR_DX = 26;
   const FAR_DY = -6;
-  svg += hindLeg(hip, p, FAR_DX, FAR_DY, url('gf'), farInk, W_FAR, ink, lux);
-  svg += frontLeg(shoulder, p, FAR_DX, FAR_DY, url('gf'), farInk, W_FAR, ink, lux);
+  svg += hindLeg(hip, p, FAR_DX, FAR_DY, url('gf'), farInk, W_FAR, farInk, null);
+  svg += frontLeg(shoulder, p, FAR_DX, FAR_DY, url('gf'), farInk, W_FAR, farInk, lux, null);
 
   // --- features drawn behind the silhouette so bases hide under it -------------
   if (f.frill) {
@@ -316,19 +364,20 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
       )} ${fmt(base[0] + s.tn[0] * 7, base[1] + s.tn[1] * 7)}Z" fill="${url('bn')}" stroke="${BONE_INK}" stroke-width="1.6" stroke-linejoin="round"/>`;
     }
   }
-  const drawHorn = (tt: number, L: number, lean: number, rings: number): string => {
-    const s = at(tt);
-    const b: Pt = [s.p[0] + s.n[0] * (s.w / 2 - 2), s.p[1] + s.n[1] * (s.w / 2 - 2)];
-    const tip: Pt = [b[0] + s.n[0] * L + s.tn[0] * L * lean, b[1] + s.n[1] * L + s.tn[1] * L * lean];
-    let out = `<path d="M${fmt(b[0] - s.tn[0] * 7, b[1] - s.tn[1] * 7)}Q${fmt(
-      b[0] + s.n[0] * L * 0.5 - s.tn[0] * 6,
-      b[1] + s.n[1] * L * 0.5 - s.tn[1] * 6
+  // horns seat on the authored skull top: base sunk slightly under the crown
+  // line so keratin grows out of bone, not off a surface sticker
+  const drawHorn = (a: number, L: number, lean: number, rings: number): string => {
+    const seat = head.headTop(a);
+    const b: Pt = [seat[0] - hv[0] * 3, seat[1] - hv[1] * 3];
+    const tip: Pt = [b[0] + hv[0] * L + hu[0] * L * lean, b[1] + hv[1] * L + hu[1] * L * lean];
+    let out = `<path d="M${fmt(b[0] - hu[0] * 7, b[1] - hu[1] * 7)}Q${fmt(
+      b[0] + hv[0] * L * 0.5 - hu[0] * 6,
+      b[1] + hv[1] * L * 0.5 - hu[1] * 6
     )} ${fmt(tip[0], tip[1])}Q${fmt(
-      b[0] + s.n[0] * L * 0.5 + s.tn[0] * 4,
-      b[1] + s.n[1] * L * 0.5 + s.tn[1] * 4
-    )} ${fmt(b[0] + s.tn[0] * 7, b[1] + s.tn[1] * 7)}Z" fill="${url('bn')}" stroke="${BONE_INK}" stroke-width="1.5" stroke-linejoin="round"/>`;
+      b[0] + hv[0] * L * 0.5 + hu[0] * 4,
+      b[1] + hv[1] * L * 0.5 + hu[1] * 4
+    )} ${fmt(b[0] + hu[0] * 7, b[1] + hu[1] * 7)}Z" fill="${url('bn')}" stroke="${BONE_INK}" stroke-width="1.5" stroke-linejoin="round"/>`;
     if (lux) {
-      // keratin growth rings near the base
       const ax = tip[0] - b[0];
       const ay = tip[1] - b[1];
       const al = Math.hypot(ax, ay) || 1;
@@ -348,11 +397,11 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
     return out;
   };
   if (f.browHorns) {
-    svg += drawHorn(tHead - 0.006, 62 * f.browHorns.intensity, 0.34, 2);
-    svg += drawHorn(tHead - 0.038, 48 * f.browHorns.intensity, 0.28, 2);
+    svg += drawHorn(0.34, 62 * f.browHorns.intensity, 0.34, 2);
+    svg += drawHorn(0.2, 48 * f.browHorns.intensity, 0.28, 2);
   }
   if (f.noseHorn) {
-    svg += drawHorn(0.955, 22 * f.noseHorn.intensity, 0.15, 1);
+    svg += drawHorn(0.74, 22 * f.noseHorn.intensity, 0.15, 1);
   }
 
   // Spinosaurus sail: a stretched membrane over elongated neural spines.
@@ -422,12 +471,12 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
   // Drawn as a round-capped stroke (a capsule) so it reads as a solid tube,
   // not a flat blade — ink underlay, then fill, then a highlight run.
   if (f.crest) {
-    const s = at(Math.min(1, tHead - 0.02));
     const L = 108 * f.crest.intensity;
-    const tube = Math.max(13, s.w * 0.34);
-    const base: Pt = [s.p[0] + s.n[0] * (s.w / 2 - 5), s.p[1] + s.n[1] * (s.w / 2 - 5)];
-    const back: Pt = [-s.tn[0], -s.tn[1]]; // toward the neck/tail
-    const up: Pt = s.n;
+    const tube = Math.max(13, p.headSize * 0.34);
+    const seat = head.headTop(0.24);
+    const base: Pt = [seat[0] - hv[0] * 5, seat[1] - hv[1] * 5];
+    const back: Pt = [-hu[0], -hu[1]]; // toward the neck/tail
+    const up: Pt = hv;
     const ctrl: Pt = [base[0] + up[0] * L * 0.72, base[1] + up[1] * L * 0.72];
     const tip: Pt = [
       base[0] + back[0] * L * 0.95 + up[0] * L * 0.62,
@@ -565,7 +614,9 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
     svg +=
       `<g clip-path="url(#${clipId})">` +
       `<path d="${band(0.04, 0.72, -1, 0.36)}" fill="${shade(prim, -0.4)}" opacity="0.2"/>` +
-      `<path d="${band(0.3, 0.97, 1, 0.24)}" fill="${shade(prim, 0.5)}" opacity="0.26"/>` +
+      // the dorsal light stops at the neck join — beyond it the tube edge is
+      // fiction; the authored skull carries its own top light
+      `<path d="${band(0.3, tNeck, 1, 0.24)}" fill="${shade(prim, 0.5)}" opacity="0.26"/>` +
       `</g>`;
   }
 
@@ -652,70 +703,85 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
     svg += `<g clip-path="url(#${clipId})">${detail}</g>`;
   }
 
-  // --- mouth, nostril, teeth, eye + brow -----------------------------------------
+  // --- face: gape/lip, teeth on both jaws, nostril, socketed eye + brow -----------
   {
-    let d = `M${fmt(...botOf(0.865, 3))}`;
-    for (let tt = 0.885; tt <= 0.995; tt += 0.02) d += `L${fmt(...botOf(tt, 3))}`;
-    svg += `<path d="${d}" fill="none" stroke="${ink}" stroke-width="2" opacity="0.7"/>`;
-    // mouth-corner crease lifts the cheek — the "smiling field sketch" cue
-    {
-      const c = at(0.862);
-      const m = botOf(0.862, 3);
-      svg += `<path d="M${fmt(m[0], m[1])}Q${fmt(m[0] + c.n[0] * 5 - c.tn[0] * 1, m[1] + c.n[1] * 5 - c.tn[1] * 1)} ${fmt(
-        m[0] + c.n[0] * 9 - c.tn[0] * 5,
-        m[1] + c.n[1] * 9 - c.tn[1] * 5
-      )}" fill="none" stroke="${ink}" stroke-width="1.6" opacity="0.45"/>`;
+    if (head.gapeD) {
+      svg += `<path d="${head.gapeD}" fill="${MOUTH}"/>`;
+    } else {
+      // closed mouth: the lip line is an interior crease off the silhouette
+      svg += `<path d="${linePath(head.lipPts.slice(2))}" fill="none" stroke="${ink}" stroke-width="2" opacity="0.65"/>`;
     }
-    // nostril: a small crescent high on the snout
+    // mouth-corner cheek crease — the "alive" cue at any gape
     {
-      const s = at(0.972);
-      const c: Pt = [s.p[0] + s.n[0] * (s.w / 2) * 0.34, s.p[1] + s.n[1] * (s.w / 2) * 0.34];
-      svg += `<path d="M${fmt(c[0] - s.tn[0] * 2.6, c[1] - s.tn[1] * 2.6)}Q${fmt(
-        c[0] + s.n[0] * 2.6,
-        c[1] + s.n[1] * 2.6
-      )} ${fmt(c[0] + s.tn[0] * 2.6, c[1] + s.tn[1] * 2.6)}" fill="none" stroke="${ink}" stroke-width="1.6" opacity="0.75"/>`;
+      const mc = head.mouthCorner;
+      svg += `<path d="M${fmt(mc[0] + hu[0], mc[1] + hu[1])}Q${fmt(
+        mc[0] - hu[0] * 1.5 + hv[0] * 4.5,
+        mc[1] - hu[1] * 1.5 + hv[1] * 4.5
+      )} ${fmt(mc[0] - hu[0] * 5 + hv[0] * 8.5, mc[1] - hu[1] * 5 + hv[1] * 8.5)}" fill="none" stroke="${ink}" stroke-width="1.6" opacity="0.45"/>`;
+    }
+    // nostril high on the snout
+    {
+      const c: Pt = [
+        head.C[0] + hu[0] * 0.86 * head.L + hv[0] * 0.1 * head.H,
+        head.C[1] + hu[1] * 0.86 * head.L + hv[1] * 0.1 * head.H,
+      ];
+      svg += `<path d="M${fmt(c[0] - hu[0] * 2.6, c[1] - hu[1] * 2.6)}Q${fmt(
+        c[0] + hv[0] * 2.6,
+        c[1] + hv[1] * 2.6
+      )} ${fmt(c[0] + hu[0] * 2.6, c[1] + hu[1] * 2.6)}" fill="none" stroke="${ink}" stroke-width="1.6" opacity="0.75"/>`;
     }
 
-    if (f.teeth && f.teeth.intensity > 0.05) {
+    if (head.gapeD && f.teeth && f.teeth.intensity > 0.05) {
       const tl = Math.min(7, Math.max(3.5, p.headSize * 0.16)) * f.teeth.intensity;
       let teeth = '';
+      // upper row hangs from the lip line; lower row rises off the jaw edge
       for (let i = 0; i < 5; i++) {
-        const t0 = 0.885 + i * 0.021;
-        const a = botOf(t0, 2.5);
-        const b = botOf(t0 + 0.017, 2.5);
+        const b = head.lip(0.16 + i * 0.14);
         const len = tl * (i % 2 === 0 ? 1 : 0.72);
-        teeth += `<path d="${trianglePath(a, [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2 + len], b)}" fill="${TOOTH}" stroke="${BONE_INK}" stroke-width="0.8"/>`;
+        teeth += `<path d="${trianglePath(
+          [b[0] - hu[0] * 2.4, b[1] - hu[1] * 2.4],
+          [b[0] - hv[0] * len, b[1] - hv[1] * len],
+          [b[0] + hu[0] * 2.4, b[1] + hu[1] * 2.4]
+        )}" fill="${TOOTH}" stroke="${BONE_INK}" stroke-width="0.8"/>`;
+      }
+      const lowerEdge = head.jawPts.slice(0, 7);
+      for (let i = 0; i < 3; i++) {
+        const b = alongPolyline(lowerEdge, 0.3 + i * 0.2);
+        const len = tl * 0.7 * (i % 2 === 0 ? 1 : 0.8);
+        teeth += `<path d="${trianglePath(
+          [b[0] - hu[0] * 2, b[1] - hu[1] * 2],
+          [b[0] + hv[0] * len, b[1] + hv[1] * len],
+          [b[0] + hu[0] * 2, b[1] + hu[1] * 2]
+        )}" fill="${TOOTH}" stroke="${BONE_INK}" stroke-width="0.8"/>`;
       }
       svg += `<g opacity="${round1(f.teeth.intensity)}">${teeth}</g>`;
     }
 
-    const e = at(Math.min(1, tHead + 0.018));
-    const ex = e.p[0] + e.n[0] * e.w * 0.16;
-    const ey = e.p[1] + e.n[1] * e.w * 0.16;
+    const E = head.eye;
     const eyeScale = blend.age === 'hatchling' ? 1.6 : blend.age === 'juvenile' ? 1.25 : 1;
-    const er = Math.min(7, Math.max(3.5, e.w * 0.11)) * eyeScale;
+    const er = Math.min(7, Math.max(3.5, p.headSize * 0.11)) * eyeScale;
+    // socket shadow seats the eye IN the skull instead of stuck onto it
+    // (capped by head height so a sauropod's pea-sized head isn't all socket)
+    svg += `<ellipse cx="${round1(E[0] - hu[0] * er * 0.15)}" cy="${round1(E[1] - hu[1] * er * 0.15)}" rx="${round1(
+      Math.min(er * 2, p.headSize * 0.32)
+    )}" ry="${round1(Math.min(er * 1.5, p.headSize * 0.24))}" fill="${ink}" opacity="0.1"/>`;
     // sclera → iris (markings-tinted) → pupil → catchlight: the deliberate
     // cartoon-life treatment; the catchlight is what makes it look awake
     svg +=
-      `<circle cx="${round1(ex)}" cy="${round1(ey)}" r="${round1(er)}" fill="${EYE_WHITE}" stroke="${ink}" stroke-width="1.5"/>` +
-      `<circle cx="${round1(ex - er * 0.12)}" cy="${round1(ey)}" r="${round1(er * 0.62)}" fill="${shade(sec, -0.08)}"/>` +
-      `<circle cx="${round1(ex - er * 0.18)}" cy="${round1(ey)}" r="${round1(er * 0.34)}" fill="${EYE_PUPIL}"/>` +
-      `<circle cx="${round1(ex - er * 0.34)}" cy="${round1(ey - er * 0.3)}" r="${round1(Math.max(0.8, er * 0.16))}" fill="${EYE_WHITE}" opacity="0.9"/>`;
-    // brow: higher at the back, dipping toward the snout — focused, not fierce
-    const b0: Pt = [ex - e.tn[0] * er * 1.5 + e.n[0] * er * 1.95, ey - e.tn[1] * er * 1.5 + e.n[1] * er * 1.95];
-    const b1: Pt = [ex + e.tn[0] * er * 1.8 + e.n[0] * er * 1.25, ey + e.tn[1] * er * 1.8 + e.n[1] * er * 1.25];
-    const bc: Pt = [ex + e.tn[0] * er * 0.1 + e.n[0] * er * 2.1, ey + e.tn[1] * er * 0.1 + e.n[1] * er * 2.1];
+      `<circle cx="${round1(E[0])}" cy="${round1(E[1])}" r="${round1(er)}" fill="${EYE_WHITE}" stroke="${ink}" stroke-width="1.5"/>` +
+      `<circle cx="${round1(E[0] - er * 0.12)}" cy="${round1(E[1])}" r="${round1(er * 0.62)}" fill="${shade(sec, -0.08)}"/>` +
+      `<circle cx="${round1(E[0] - er * 0.18)}" cy="${round1(E[1])}" r="${round1(er * 0.34)}" fill="${EYE_PUPIL}"/>` +
+      `<circle cx="${round1(E[0] - er * 0.34)}" cy="${round1(E[1] - er * 0.3)}" r="${round1(Math.max(0.8, er * 0.16))}" fill="${EYE_WHITE}" opacity="0.9"/>`;
+    // brow under the boss: higher at the back, dipping toward the snout
+    const b0: Pt = [E[0] - hu[0] * er * 1.5 + hv[0] * er * 2, E[1] - hu[1] * er * 1.5 + hv[1] * er * 2];
+    const b1: Pt = [E[0] + hu[0] * er * 1.9 + hv[0] * er * 1.25, E[1] + hu[1] * er * 1.9 + hv[1] * er * 1.25];
+    const bc: Pt = [E[0] + hu[0] * er * 0.1 + hv[0] * er * 2.35, E[1] + hu[1] * er * 0.1 + hv[1] * er * 2.35];
     svg += `<path d="M${fmt(b0[0], b0[1])}Q${fmt(bc[0], bc[1])} ${fmt(b1[0], b1[1])}" fill="none" stroke="${ink}" stroke-width="2.2" stroke-linecap="round"/>`;
   }
 
-  // --- near legs (in front of the body) ------------------------------------------
-  svg += hindLeg(hip, p, 0, 0, url('gl'), ink, W_NEAR, ink, lux);
-  svg += `<path d="${trianglePath(
-    [hip[0] - p.hLegThick * 0.42 - 10, GROUND - 8],
-    [hip[0] - p.hLegThick * 0.42 - 22, GROUND - 2],
-    [hip[0] - p.hLegThick * 0.42 - 6, GROUND - 1]
-  )}" fill="${url('gl')}" stroke="${ink}" stroke-width="1.5"/>`;
-  svg += frontLeg(shoulder, p, 0, 0, url('gl'), ink, W_NEAR, ink, lux);
+  // --- near legs (in front of the body, thighs merging into it) -------------------
+  svg += hindLeg(hip, p, 0, 0, url('gl'), ink, W_NEAR, ink, `url(#${clipId})`);
+  svg += frontLeg(shoulder, p, 0, 0, url('gl'), ink, W_NEAR, ink, lux, `url(#${clipId})`);
   if (f.feathers) {
     // pennaceous arm fringe trailing off the near forelimb
     const fr = mulberry32((genome.seed ^ 0x0a51) >>> 0);
@@ -739,16 +805,16 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
   // Pachycephalosaur dome: a thickened, node-studded cranium over the skull,
   // drawn on top so the bony cap reads in front of the head silhouette.
   if (f.domeSkull) {
-    const s = at(Math.min(1, tHead - 0.02));
     const R = 18 + 22 * f.domeSkull.intensity;
-    // seat the chord well under the crown: the cap must grow out of the
-    // skull, not hover over it — the head silhouette curves away under the
-    // chord ends, so a shallow seat leaves visible sky beneath the rim
-    const bx = s.p[0] + s.n[0] * (s.w / 2 - 11);
-    const by = s.p[1] + s.n[1] * (s.w / 2 - 11);
-    const rx = R * 1.02;
-    const p0: Pt = [bx - s.tn[0] * rx, by - s.tn[1] * rx];
-    const p1: Pt = [bx + s.tn[0] * rx, by + s.tn[1] * rx];
+    // seat the chord deep under the crown's high point: the skull top curves
+    // away behind the boss, and a shallow chord bridges the drop with a
+    // visible sliver of sky under its rim
+    const seat = head.headTop(0.34);
+    const bx = seat[0] - hv[0] * 13;
+    const by = seat[1] - hv[1] * 13;
+    const rx = R * 0.95;
+    const p0: Pt = [bx - hu[0] * rx, by - hu[1] * rx];
+    const p1: Pt = [bx + hu[0] * rx, by + hu[1] * rx];
     // sweep 0 arcs the cap UP over the crown (sweep 1 bowls it over the face
     // — p0 sits tail-ward of p1, so the clockwise arc dips below the chord)
     svg +=
@@ -761,15 +827,15 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
         [0.05, 0.62],
         [0.42, 0.4],
       ] as const) {
-        const kx = bx + s.tn[0] * rx * ox + s.n[0] * R * oy;
-        const ky = by + s.tn[1] * rx * ox + s.n[1] * R * oy;
+        const kx = bx + hu[0] * rx * ox + hv[0] * R * oy;
+        const ky = by + hu[1] * rx * ox + hv[1] * R * oy;
         svg += `<circle cx="${round1(kx)}" cy="${round1(ky)}" r="1.3" fill="${ink}" opacity="0.3"/>`;
       }
     }
     for (const off of [0.5, 0.82]) {
       const h = Math.sqrt(Math.max(0, 1 - off * off)) * R * 0.82;
-      const kx = bx + s.tn[0] * rx * off + s.n[0] * (h + 4);
-      const ky = by + s.tn[1] * rx * off + s.n[1] * (h + 4);
+      const kx = bx + hu[0] * rx * off + hv[0] * (h + 4);
+      const ky = by + hu[1] * rx * off + hv[1] * (h + 4);
       svg += `<circle cx="${round1(kx)}" cy="${round1(ky)}" r="${round1(
         3 * f.domeSkull.intensity
       )}" fill="${url('bn')}" stroke="${BONE_INK}" stroke-width="1"/>`;
@@ -809,7 +875,11 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
 
   // --- vignette crop: tight viewBox around one slot, raw geometry, no scaling ----
   if (opts.crop) {
-    const box = cropBox(opts.crop, pts, ws, hip, shoulder, f);
+    const box = cropBox(opts.crop, pts, ws, hip, shoulder, f, [
+      ...head.topPts,
+      ...head.lipPts,
+      ...head.jawPts,
+    ]);
     const label = `${escapeAttr(composeName(genome).name)} ${opts.crop}`;
     return (
       `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${box}" role="img" aria-label="${label}">` +
@@ -824,7 +894,7 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
   // inside the viewBox — it never grows past its genome size. This is what lets
   // a full-height sauropod's neck stay in frame at size 100 without capping the
   // species. It only engages when geometry would overflow.
-  const s = round1(Math.min(blend.displayScale, fitScale(pts, ws, f, anchorX)) * 100) / 100;
+  const s = round1(Math.min(blend.displayScale, fitScale(pts, ws, f, head.crownY)) * 100) / 100;
   const { name } = composeName(genome);
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${VIEW.width} ${VIEW.height}" role="img" aria-label="${escapeAttr(name)}, a hybrid dinosaur">` +
@@ -866,7 +936,7 @@ function fitScale(
   pts: readonly Pt[],
   ws: readonly number[],
   feat: BlendResult['features'],
-  _anchorX: number
+  crownY: number
 ): number {
   const PAD = 10;
   const N = pts.length;
@@ -881,7 +951,8 @@ function fitScale(
   // Features rise above their OWN anchor region, not the global apex — a
   // sail on the back must not borrow headroom from a sauropod's head, or
   // tall hybrids over-shrink and the size slider goes dead (M1 review).
-  let ymin = topOver(0, 1);
+  // The authored skull crown can top the tube edge, so it clamps too.
+  let ymin = Math.min(topOver(0, 1), crownY);
   const rise = (k: FeatureKind, h: number, a: number, b: number) => {
     if (!feat[k]) return;
     ymin = Math.min(ymin, topOver(a, b) - h * feat[k]!.intensity);
@@ -947,7 +1018,8 @@ function cropBox(
   ws: readonly number[],
   hip: Pt,
   shoulder: Pt,
-  feat: BlendResult['features']
+  feat: BlendResult['features'],
+  headPts: readonly Pt[]
 ): string {
   const N = pts.length;
   const has = (k: FeatureKind) => feat[k] !== undefined;
@@ -981,6 +1053,15 @@ function cropBox(
     minY = Math.min(minY, y - w);
     maxY = Math.max(maxY, y + w);
   }
+  // the head slot frames the authored skull, which outgrows the old tube
+  if (slot === 'head') {
+    for (const [x, y] of headPts) {
+      minX = Math.min(minX, x - 4);
+      maxX = Math.max(maxX, x + 4);
+      minY = Math.min(minY, y - 4);
+      maxY = Math.max(maxY, y + 4);
+    }
+  }
   // the stance vignette must reach the feet on the ground line
   if (slot === 'stance') {
     minX = Math.min(minX, shoulder[0], hip[0]);
@@ -995,8 +1076,167 @@ function cropBox(
   return `${x} ${y} ${w} ${h}`;
 }
 
+// --- head construction ----------------------------------------------------------
+
+interface HeadInfo {
+  /** head frame: origin (spine at tHead), nose-ward unit u, up unit v, snout length, head height */
+  C: Pt;
+  u: Pt;
+  v: Pt;
+  L: number;
+  H: number;
+  /** authored skull top: neck join → occiput → brow boss → snout bridge → nose point */
+  topPts: Pt[];
+  /** upper-jaw lip line, nose → mouth corner (interior crease when the mouth is closed) */
+  lipPts: Pt[];
+  /** silhouette underside: (open) corner → lower jaw → chin → throat → neck join, or (closed) nose → chin → throat → neck join */
+  jawPts: Pt[];
+  /** open-mouth interior wedge path, '' when closed */
+  gapeD: string;
+  gape: number;
+  /** arc-fraction samplers over the authored polylines */
+  headTop: (a: number) => Pt;
+  lip: (a: number) => Pt;
+  eye: Pt;
+  mouthCorner: Pt;
+  /** highest authored point (viewBox fitting) */
+  crownY: number;
+}
+
+/**
+ * Parametric skull, replacing the tapered tube-end that made every face read
+ * as a sock puppet. Cranium + brow boss + snout bridge on top; upper-jaw lip
+ * line and a real lower jaw below; carnivores (teeth gene expressed) hold the
+ * mouth open by `gape`, herbivores close it and sharpen toward a beak as
+ * snoutTip narrows. Everything is a linear map of blended morph params in the
+ * head frame, so hybrid heads morph as smoothly as the tube they replace.
+ */
+function buildHead(
+  C: Pt,
+  u: Pt,
+  v: Pt,
+  L: number,
+  H: number,
+  neckTop: Pt,
+  neckBot: Pt,
+  gape: number,
+  beak: number
+): HeadInfo {
+  const lp = (a: number, b: number): Pt => [
+    C[0] + u[0] * a * L + v[0] * b * H,
+    C[1] + u[1] * a * L + v[1] * b * H,
+  ];
+  const chain = (start: Pt, segs: Array<readonly [Pt, Pt]>, m = 6): Pt[] => {
+    const out: Pt[] = [start];
+    let cur = start;
+    for (const [ctrl, end] of segs) {
+      for (let i = 1; i <= m; i++) out.push(quad(cur, ctrl, end, i / m));
+      cur = end;
+    }
+    return out;
+  };
+
+  // skull top — the brow boss then a bridge dip is what carries the "real
+  // animal" read; the beak factor drops the bridge and sharpens the nose.
+  // The crown clears the neck-join height, else thick-necked species get a
+  // notch where the tube hands over to the skull.
+  const bJoin = ((neckTop[0] - C[0]) * v[0] + (neckTop[1] - C[1]) * v[1]) / H;
+  const crownB = Math.max(0.63, bJoin + 0.05);
+  const nose = lp(1.06, -0.02 - 0.02 * beak);
+  const topPts = chain(neckTop, [
+    [lp(-0.02, crownB - 0.01), lp(0.14, crownB)],
+    [lp(0.3, Math.max(0.68, crownB + 0.04)), lp(0.4, Math.max(0.55, crownB - 0.08))],
+    [lp(0.5, 0.38), lp(0.64, 0.28 - 0.06 * beak)],
+    [lp(0.82, 0.2 - 0.06 * beak), lp(0.94, 0.12 - 0.05 * beak)],
+    [lp(1.06, 0.06 - 0.04 * beak), nose],
+  ]);
+  const mouthCorner = lp(0.32, -0.3);
+  // lip line nose → corner (drawn as a crease when closed, silhouette when open)
+  const lipPts = chain(nose, [
+    [lp(1.02, -0.15), lp(0.9, -0.16)],
+    [lp(0.58, -0.21), mouthCorner],
+  ]);
+
+  const gd = gape * (0.1 + 0.26 * gape); // gape drop, fraction of H
+  let jawPts: Pt[];
+  let gapeD = '';
+  if (gape > 0.04) {
+    const lowerTip = lp(0.92, -0.28 - gd);
+    jawPts = chain(mouthCorner, [
+      [lp(0.62, -0.3 - gd * 0.7), lowerTip],
+      [lp(1.0, -0.34 - gd), lp(0.9, -0.44 - gd * 0.85)],
+      [lp(0.44, -0.56 - gd * 0.3), lp(0.1, -0.55)],
+      [lp(-0.04, -0.54), neckBot],
+    ]);
+    // mouth interior behind the teeth
+    const gi = chain(mouthCorner, [[lp(0.66, -0.3 - gd * 0.65), lp(0.88, -0.29 - gd * 0.92)]]);
+    let d = `M${fmt(mouthCorner[0], mouthCorner[1])}`;
+    for (const q of lipPts.slice(0, -1).reverse()) d += `L${fmt(q[0], q[1])}`; // corner → nose
+    for (const q of gi.reverse()) d += `L${fmt(q[0], q[1])}`;
+    gapeD = d + 'Z';
+  } else {
+    jawPts = chain(nose, [
+      [lp(1.03, -0.16 - 0.04 * beak), lp(0.93, -0.24)],
+      [lp(0.7, -0.4), lp(0.42, -0.48)],
+      [lp(0.06, -0.56), lp(-0.02, -0.54)],
+      [lp(-0.06, -0.53), neckBot],
+    ]);
+  }
+
+  let crownY = Infinity;
+  for (const q of topPts) crownY = Math.min(crownY, q[1]);
+  return {
+    C,
+    u,
+    v,
+    L,
+    H,
+    topPts,
+    lipPts,
+    jawPts,
+    gapeD,
+    gape,
+    headTop: (a) => alongPolyline(topPts, a),
+    lip: (a) => alongPolyline(lipPts, a),
+    eye: lp(0.37, 0.15),
+    mouthCorner,
+    crownY,
+  };
+}
+
 // --- limbs -------------------------------------------------------------------------
 
+/**
+ * Tapered toe with a rounded tip and a dark claw. The rounded cap is a Q
+ * pushed past the tip along the toe axis.
+ */
+function toe(b: Pt, t: Pt, w0: number, w1: number, fill: string, stroke: string, ink: string): string {
+  const dx = t[0] - b[0];
+  const dy = t[1] - b[1];
+  const L = Math.hypot(dx, dy) || 1;
+  const px = dy / L;
+  const py = -dx / L;
+  const ux = dx / L;
+  const uy = dy / L;
+  return (
+    `<path d="M${fmt(b[0] - px * w0, b[1] - py * w0)}L${fmt(t[0] - px * w1, t[1] - py * w1)}` +
+    `Q${fmt(t[0] + ux * w1 * 1.4, t[1] + uy * w1 * 1.4)} ${fmt(t[0] + px * w1, t[1] + py * w1)}` +
+    `L${fmt(b[0] + px * w0, b[1] + py * w0)}Z" fill="${fill}" stroke="${stroke}" stroke-width="1.5" stroke-linejoin="round"/>` +
+    `<path d="${trianglePath(
+      [t[0] - px * 1.6, t[1] - py * 1.6],
+      [t[0] + ux * 4.5, t[1] + uy * 4.5],
+      [t[0] + px * 1.6, t[1] + py * 1.6]
+    )}" fill="${ink}"/>`
+  );
+}
+
+/**
+ * Hind leg: jointed chain (thigh root high inside the body → knee forward →
+ * ankle back → metatarsus) with joint-aware widths, and a three-toed foot.
+ * `bodyClip` (near legs) overpaints the stroke inside the body silhouette so
+ * the thigh grows out of the hip instead of ending in a visible root cap —
+ * the "paper cutout pinned on" tell.
+ */
 function hindLeg(
   hip: Pt,
   p: MorphVector,
@@ -1005,29 +1245,34 @@ function hindLeg(
   fill: string,
   stroke: string,
   strokeW: number,
-  lineInk: string,
-  lux: boolean
+  ink: string,
+  bodyClip: string | null
 ): string {
   const path = limbPath(
     [
-      [hip[0] + 4 + dx, hip[1] + 2 + dy],
-      [hip[0] - 14 + dx, hip[1] + (GROUND - hip[1]) * 0.5 + dy],
-      [hip[0] + 16 + dx, GROUND - 42 + dy],
-      [hip[0] - 2 + dx, GROUND - 10 + dy],
+      [hip[0] + 8 + dx, hip[1] - p.hLegThick * 0.1 + dy],
+      [hip[0] - 16 + dx, hip[1] + (GROUND - hip[1]) * 0.42 + dy],
+      [hip[0] + 14 + dx, GROUND - 44 + dy],
+      [hip[0] - 2 + dx, GROUND - 12 + dy],
     ],
-    [p.hLegThick, p.hLegThick * 0.61, p.hLegThick * 0.345, p.hLegThick * 0.46]
+    [p.hLegThick * 1.3, p.hLegThick * 0.66, p.hLegThick * 0.4, p.hLegThick * 0.46]
   );
-  const fx = hip[0] - 4 + dx;
-  const fy = GROUND - 6 + dy * 0.5;
-  const frx = p.hLegThick * 0.42 + (dx === 0 ? 8 : 7);
-  const fry = dx === 0 ? 7 : 6.5;
-  let out =
-    `<path d="${path}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}"/>` +
-    `<ellipse cx="${round1(fx)}" cy="${round1(fy)}" rx="${round1(frx)}" ry="${fry}" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`;
-  if (lux) out += toeLines(fx, fy, frx, fry, lineInk);
+  let out = `<path d="${path}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}"/>`;
+  if (bodyClip) out += `<g clip-path="${bodyClip}"><path d="${path}" fill="${fill}"/></g>`;
+  // three-toed foot planted on the ground line
+  const F: Pt = [hip[0] - 2 + dx, GROUND - 7 + dy * 0.5];
+  const spread = p.hLegThick * 0.1;
+  out += toe([F[0] + 5, F[1] + 1], [F[0] - 9 - spread * 0.6, GROUND - 1 + dy * 0.5], 3.4, 2.4, fill, stroke, ink);
+  out += toe([F[0] + 2, F[1] - 1], [F[0] - 14 - spread, GROUND - 2 + dy * 0.5], 3.8, 2.6, fill, stroke, ink);
+  out += toe([F[0] + 7, F[1] + 2], [F[0] + 12 + spread * 0.4, GROUND - 1.5 + dy * 0.5], 3, 2.2, fill, stroke, ink);
   return out;
 }
 
+/**
+ * Front leg: jointed (root in the chest → elbow → wrist). Grounded quadruped
+ * forefeet keep the simple hoof + creases; theropod hanging arms end in a
+ * two-clawed hand instead of the old broken-twig triangle.
+ */
 function frontLeg(
   shoulder: Pt,
   p: MorphVector,
@@ -1037,20 +1282,24 @@ function frontLeg(
   stroke: string,
   strokeW: number,
   lineInk: string,
-  lux: boolean
+  lux: boolean,
+  bodyClip: string | null
 ): string {
   const ax = shoulder[0] + 6 + dx;
-  const ay = shoulder[1] + 8 + dy;
-  const footY = Math.min(ay + p.fLegLen, GROUND - 8 + dy);
+  const ay = shoulder[1] + 2 + dy;
+  const footY = Math.min(ay + 6 + p.fLegLen, GROUND - 8 + dy);
+  // three control points only: clustering an elbow and wrist mid-leg makes
+  // the catmull ribbon fold into bow-ties on long quadruped legs
   const path = limbPath(
     [
       [ax, ay],
-      [ax - 3, (ay + footY) / 2 + 4],
-      [ax - 10, footY],
+      [ax + 2, (ay + footY) / 2 + 3],
+      [ax - 9, footY],
     ],
-    [p.fLegThick, p.fLegThick * 0.68, p.fLegThick * 0.5]
+    [p.fLegThick * 1.2, p.fLegThick * 0.66, p.fLegThick * 0.48]
   );
   let out = `<path d="${path}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}"/>`;
+  if (bodyClip) out += `<g clip-path="${bodyClip}"><path d="${path}" fill="${fill}"/></g>`;
   if (footY > GROUND - 30 + dy) {
     const fx = ax - 12;
     const fy = GROUND - 5 + dy * 0.5;
@@ -1059,16 +1308,15 @@ function frontLeg(
     out += `<ellipse cx="${round1(fx)}" cy="${round1(fy)}" rx="${round1(frx)}" ry="${fry}" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`;
     if (lux) out += toeLines(fx, fy, frx, fry, lineInk);
   } else {
-    out += `<path d="${trianglePath(
-      [ax - 10, footY],
-      [ax - 19, footY + 9],
-      [ax - 5, footY + 7]
-    )}" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`;
+    // hanging theropod hand: short palm, two curved claws
+    const W: Pt = [ax - 10, footY];
+    out += toe([W[0] + 2, W[1] - 2], [W[0] - 5, W[1] + 7], p.fLegThick * 0.34, 2.2, fill, stroke, lineInk);
+    out += toe([W[0] + 4, W[1]], [W[0] + 1, W[1] + 8], p.fLegThick * 0.26, 1.8, fill, stroke, lineInk);
   }
   return out;
 }
 
-/** Two short toe creases on a foot ellipse — feet stop reading as pads. */
+/** Two short toe creases on a hoof ellipse — quadruped forefeet. */
 function toeLines(fx: number, fy: number, rx: number, ry: number, ink: string): string {
   let d = '';
   for (const off of [-0.3, 0.12]) {

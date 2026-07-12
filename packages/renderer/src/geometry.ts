@@ -150,6 +150,28 @@ export function arcPath(c: Pt, r: number, a0: number, a1: number): string {
   return `M${fmt(p0[0], p0[1])}A${round1(r)} ${round1(r)} 0 ${large} ${a1 > a0 ? 1 : 0} ${fmt(p1[0], p1[1])}`;
 }
 
+/** Point at arc-length fraction a ∈ [0,1] along a polyline. */
+export function alongPolyline(pts: readonly Pt[], a: number): Pt {
+  let total = 0;
+  const seg: number[] = [];
+  for (let i = 1; i < pts.length; i++) {
+    const d = Math.hypot(pts[i]![0] - pts[i - 1]![0], pts[i]![1] - pts[i - 1]![1]);
+    seg.push(d);
+    total += d;
+  }
+  let want = Math.min(1, Math.max(0, a)) * total;
+  for (let i = 0; i < seg.length; i++) {
+    if (want <= seg[i]! || i === seg.length - 1) {
+      const f = seg[i]! > 0 ? want / seg[i]! : 0;
+      const p0 = pts[i]!;
+      const p1 = pts[i + 1]!;
+      return [p0[0] + (p1[0] - p0[0]) * f, p0[1] + (p1[1] - p0[1]) * f];
+    }
+    want -= seg[i]!;
+  }
+  return pts[pts.length - 1]!;
+}
+
 /**
  * Rounded petal/feather: two quadratic edges from base to tip, bulging ±w
  * around the midline. Reads as a soft feather rather than a quill spike.
