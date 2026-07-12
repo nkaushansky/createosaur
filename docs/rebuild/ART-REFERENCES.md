@@ -61,44 +61,46 @@ Dracorex, Allosaurus): the credits above satisfy CC-BY for the reference board
 as published in this repo. If any of these is ever traced into shipped art,
 the credit must travel with the derivative.
 
-## Drift analysis (confirmed against the references above)
+## Drift analysis + tuning applied (2026-07-12)
 
-Read from the reference board, most actionable first. These are proportion
-notes for a **future data-tuning pass** (morph vectors live in
-`packages/species-data`, authored via `/workbench`); nothing here is applied
-yet — a vector change re-goldens all 105 snapshots and touches roster data the
-owner owns, so it waits for a go-ahead.
+Read from the reference board, most actionable first. All flagged species were
+tuned in `packages/species-data` (owner go-ahead 2026-07-12); the board at
+`docs/rebuild/fidelity/reference-board.png` shows the **post-tuning** renders.
+Morph vectors are data, not schema — no genome change — and all values stay
+inside the `/workbench` `MORPH_RANGES` bounds.
 
-- **Ankylosaurus** — clearest miss. The reference is long, low, and flat (a
-  tank); ours is short-bodied and tall-backed (reads as a hump). Lengthen
-  `bodyLen`/`tailLen`, drop `hipY` less relative to body, thin the dorsal
-  hump. Highest visual payoff.
-- **Triceratops** — head + frill too small relative to a body that reads too
-  long/gracile. The reference head-with-frill is ~⅓ of body length. Grow
-  `headSize`, shorten trunk, or push the frill feature intensity.
-- **Spinosaurus** — sits too upright and short. Reference is long-bodied and
-  low-slung with a horizontal spine; lengthen body/tail, lower the neck
-  carriage. (Note: modern aquatic reconstruction — we keep the sail.)
-- **Brachiosaurus** — signature is high shoulders sloping down to low hips
-  (forelimbs longer than hind). Ours has the neck but a flatter back;
-  increase `shoulderRise`, or lengthen `fLegLen`.
-- **Stegosaurus** — plates could be larger and the head smaller/lower; the
-  reference back arches higher over tiny head. Mostly a feature-scale nudge.
-- **Diplodocus** — tail should dominate more (whip); nudge `tailLen` up
-  relative to `bodyLen`.
-- **Tyrannosaurus / Allosaurus** — slightly gracile; a touch more `bodyThick`
-  and `headSize` would add the theropod heft. Minor.
-- **Iguanodon** — bulkier, deeper body and stouter forelimbs (semi-quadruped).
-  Minor.
-- **Parasaurolophus, Velociraptor, Dracorex** — proportions read true to
-  reference; no change needed.
+- **Ankylosaurus** ✅ — was short-bodied and tall-backed (a hump); now a long
+  low tank. `bodyLen` 150→180, `tailLen` 200→235, `bodyThick` 128→116,
+  `hipY` 350→356, `fLegLen` 100→90. Biggest visible gain.
+- **Triceratops** ✅ — head/frill too small on a too-long trunk. `headSize`
+  44→52, `snoutLen` 48→54, `bodyLen` 140→132, `neckLen` 50→46, `tailLen`
+  190→170, `bodyThick` 100→108.
+- **Spinosaurus** ✅ — was too upright/short. `bodyLen` 152→164, `tailLen`
+  280→296, `neckUp` 38→26, `shoulderRise` 12→8, `hipY` 292→302 (lower, more
+  horizontal). Sail kept.
+- **Brachiosaurus** ✅ — flat back → high shoulders sloping to low hips.
+  `shoulderRise` 72→88, `fLegLen` 224→230, `archUp` 8→4, `chestThick`
+  104→110.
+- **Stegosaurus** ✅ — smaller/lower head, higher arch. `headSize` 26→24,
+  `archUp` 42→46, `neckUp` −18→−22.
+- **Diplodocus** ✅ — bigger whip. `tailLen` 300→330, `bodyLen` 172→164.
+- **Tyrannosaurus / Allosaurus** ✅ — added theropod heft. Rex `headSize`
+  52→56, `bodyThick` 96→102, `chestThick` 72→76; Allo `bodyThick` 88→94,
+  `chestThick` 66→70.
+- **Iguanodon** ✅ — bulkier, stouter forelimbs. `bodyThick` 108→116,
+  `chestThick` 86→92, `fLegThick` 22→26 (kept the long semi-quadruped
+  forelimbs).
+- **Parasaurolophus, Velociraptor, Dracorex** — read true to reference; left
+  unchanged.
+
+Verification: every pairwise archetype mix and the size/age extremes still
+render without breakage (goldens cover these); brachiosaurus-size-max stays in
+frame, the diplodocus whip tail stays in frame. Gates green.
 
 ## Workflow
 
 1. ✅ Retrieve references via API with license metadata; record rows above.
 2. ✅ Build the comparison board (`docs/rebuild/fidelity/reference-board.png`).
-3. ⏳ On owner go-ahead: tune morph vectors (`packages/species-data`, via
-   `/workbench`) and any skull constants where drift is clear; regenerate
-   goldens in a dedicated `data:`/`goldens:` commit pair per AGENT-GUIDE.
-   Exemplars (rex, trike, stego, brachio, para) change carefully — later
-   species tune from them.
+3. ✅ Tune morph vectors where drift was clear; goldens regenerated in a
+   dedicated `goldens:` commit. Exemplars changed conservatively so later
+   species still tune from them.
