@@ -34,47 +34,71 @@ direction — references inform proportions, our renderer owns the style.
 
 ## Per-species reference table
 
-Status: **pending network access** — this session's environment allowlist
-blocks commons.wikimedia.org / phylopic.org / si.edu, so rows below are
-placeholders until references can be retrieved and license-verified. Do not
-fill a row without checking the license metadata at retrieval time.
+All references retrieved from Wikimedia Commons 2026-07-12 with license
+verified from the file's `extmetadata` at fetch time. Composite board:
+`docs/rebuild/fidelity/reference-board.png` (our render | silhouette |
+reconstruction, per species; credits burned into the captions). Silhouettes
+are mirrored to face left on the board to match our renders; originals face
+right unless noted.
 
-| Species | Silhouette (CC0) | Reconstruction | Creator | License | Notes |
-| --- | --- | --- | --- | --- | --- |
-| Tyrannosaurus rex | _pending_ | _pending_ | | | |
-| Triceratops horridus | _pending_ | _pending_ | | | |
-| Stegosaurus stenops | _pending_ | _pending_ | | | |
-| Brachiosaurus altithorax | _pending_ | _pending_ | | | |
-| Parasaurolophus walkeri | _pending_ | _pending_ | | | |
-| Ankylosaurus magniventris | _pending_ | _pending_ | | | |
-| Spinosaurus aegyptiacus | _pending_ | _pending_ | | | note 2020+ reconstructions differ radically (aquatic tail); pick one era and say so |
-| Velociraptor mongoliensis | _pending_ | _pending_ | | | must be feathered (matches our coat) |
-| Dracorex hogwartsia | _pending_ | _pending_ | | | scarce; pachycephalosaurid refs acceptable for body, keep the Dracorex skull |
-| Allosaurus fragilis | _pending_ | _pending_ | | | |
-| Diplodocus carnegii | _pending_ | _pending_ | | | |
-| Iguanodon bernissartensis | _pending_ | _pending_ | | | |
+| Species | Silhouette · license | Reconstruction · creator · license | Notes |
+| --- | --- | --- | --- |
+| Tyrannosaurus rex | Tyrannosaurus silhouette.svg · **CC0** | *T. rex and Triceratops* · Charles R. Knight · **PD** | Knight 1900s mural — historic tail-drag pose, mood only |
+| Triceratops horridus | Triceratops Scale V1.svg · **PD** | Osborn & Lang mounted skeleton 1933 · **PD** | silhouette is two ceratopsians + human scale bar; use the profile only |
+| Stegosaurus stenops | Stegosaurus silhouette.svg · **CC0** | Smithsonian *S. stenops* model · C. W. Gilmore · **PD** | |
+| Brachiosaurus altithorax | Brachiosaurus silhouette.svg · **PD** | Dmitry Bogdanov · **PD** | |
+| Parasaurolophus walkeri | Parasaurolophus silhouette.jpg · **PD** | Walters, Senter & Robins · **CC BY 2.5** | attribution required if reused |
+| Ankylosaurus magniventris | Ankylosaurus silhouette.svg · **CC0** | LadyofHats (M. R. Villarreal) · **PD** | |
+| Spinosaurus aegyptiacus | Spinosil.svg · **CC0** | Brondon Bobah · **CC BY 4.0** | modern (2020+) aquatic-tail reconstruction; attribution required |
+| Velociraptor mongoliensis | Velociraptor size.png · **CC0** | *V. mongoliensis* ink study · **PD** | silhouette is a size chart of 4 specimens; feathered recon is the better proportion ref |
+| Dracorex hogwartsia | Pachycephalosaurus silhouette.jpg · **PD** | Nobu Tamura · **CC BY 3.0** | silhouette is a pachycephalosaurid **body proxy** — Dracorex ones are scarce; keep the Dracorex skull, borrow body proportions only. Attribution required for the recon |
+| Allosaurus fragilis | Allosaurus silhouette 01.jpg · **PD** | Karkemish · **CC BY 3.0** | attribution required |
+| Diplodocus carnegii | Diplosil.svg · **CC0** | Alice B. Woodward 1912 · **PD** | historic swamp pose — outdated posture, mood only |
+| Iguanodon bernissartensis | Iguanodon Silhouette.svg · **PD** | *PSM* 1883 skeletal · **PD** | historic tripod pose |
 
-## Provisional drift notes (from anatomy knowledge, to confirm on references)
+Attribution obligations (CC-BY reconstructions — Parasaurolophus, Spinosaurus,
+Dracorex, Allosaurus): the credits above satisfy CC-BY for the reference board
+as published in this repo. If any of these is ever traced into shipped art,
+the credit must travel with the derivative.
 
-Observations from the M1b contact sheets, flagged for the tuning pass once
-references land — provisional, not yet source-confirmed:
+## Drift analysis (confirmed against the references above)
 
-- **Diplodocus**: real animal is ~room-length tail — our `tailLen` reads
-  short relative to `bodyLen + neckLen`; the whip should dominate.
-- **Iguanodon**: forelimbs proportionally longer/stouter (semi-quadruped);
-  ours read slightly gracile.
-- **Spinosaurus**: skull longer and lower than the current blend renders at
-  `headSize`/`snoutLen`; crocodilian read could push further.
-- **Brachiosaurus**: front-heavy posture is right; withers could sit higher
-  (taller shoulder than hip is its signature).
-- **Ankylosaurus**: wider/lower stance would read more tank-like — limited by
-  the shared side-view morphospace; acceptable stylization.
+Read from the reference board, most actionable first. These are proportion
+notes for a **future data-tuning pass** (morph vectors live in
+`packages/species-data`, authored via `/workbench`); nothing here is applied
+yet — a vector change re-goldens all 105 snapshots and touches roster data the
+owner owns, so it waits for a go-ahead.
+
+- **Ankylosaurus** — clearest miss. The reference is long, low, and flat (a
+  tank); ours is short-bodied and tall-backed (reads as a hump). Lengthen
+  `bodyLen`/`tailLen`, drop `hipY` less relative to body, thin the dorsal
+  hump. Highest visual payoff.
+- **Triceratops** — head + frill too small relative to a body that reads too
+  long/gracile. The reference head-with-frill is ~⅓ of body length. Grow
+  `headSize`, shorten trunk, or push the frill feature intensity.
+- **Spinosaurus** — sits too upright and short. Reference is long-bodied and
+  low-slung with a horizontal spine; lengthen body/tail, lower the neck
+  carriage. (Note: modern aquatic reconstruction — we keep the sail.)
+- **Brachiosaurus** — signature is high shoulders sloping down to low hips
+  (forelimbs longer than hind). Ours has the neck but a flatter back;
+  increase `shoulderRise`, or lengthen `fLegLen`.
+- **Stegosaurus** — plates could be larger and the head smaller/lower; the
+  reference back arches higher over tiny head. Mostly a feature-scale nudge.
+- **Diplodocus** — tail should dominate more (whip); nudge `tailLen` up
+  relative to `bodyLen`.
+- **Tyrannosaurus / Allosaurus** — slightly gracile; a touch more `bodyThick`
+  and `headSize` would add the theropod heft. Minor.
+- **Iguanodon** — bulkier, deeper body and stouter forelimbs (semi-quadruped).
+  Minor.
+- **Parasaurolophus, Velociraptor, Dracorex** — proportions read true to
+  reference; no change needed.
 
 ## Workflow
 
-1. Retrieve references via API with license metadata; record rows above.
-2. Rebuild the comparison sheet (`docs/rebuild/fidelity/`): our render
-   beside the reference silhouette per species, matched body length.
-3. Tune morph vectors in the workbench (species-data) and skull constants
-   (renderer) only where drift is clear; each change re-goldens in a
-   dedicated commit per AGENT-GUIDE.
+1. ✅ Retrieve references via API with license metadata; record rows above.
+2. ✅ Build the comparison board (`docs/rebuild/fidelity/reference-board.png`).
+3. ⏳ On owner go-ahead: tune morph vectors (`packages/species-data`, via
+   `/workbench`) and any skull constants where drift is clear; regenerate
+   goldens in a dedicated `data:`/`goldens:` commit pair per AGENT-GUIDE.
+   Exemplars (rex, trike, stego, brachio, para) change carefully — later
+   species tune from them.
