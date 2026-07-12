@@ -130,3 +130,63 @@ export function limbPath(ctrl: readonly Pt[], widths: readonly number[]): string
 export function trianglePath(a: Pt, b: Pt, c: Pt): string {
   return `M${fmt(a[0], a[1])}L${fmt(b[0], b[1])}L${fmt(c[0], c[1])}Z`;
 }
+
+/** Open polyline path — interior contour lines are drawn with these. */
+export function linePath(pts: readonly Pt[]): string {
+  let d = `M${fmt(pts[0]![0], pts[0]![1])}`;
+  for (let i = 1; i < pts.length; i++) d += `L${fmt(pts[i]![0], pts[i]![1])}`;
+  return d;
+}
+
+/**
+ * Circular arc from angle a0 to a1 (radians, y-down screen space) around c —
+ * joint and muscle arcs. Angles are always compile-time constants so the
+ * cos/sin calls stay as deterministic as the rest of the pipeline.
+ */
+export function arcPath(c: Pt, r: number, a0: number, a1: number): string {
+  const p0: Pt = [c[0] + Math.cos(a0) * r, c[1] + Math.sin(a0) * r];
+  const p1: Pt = [c[0] + Math.cos(a1) * r, c[1] + Math.sin(a1) * r];
+  const large = Math.abs(a1 - a0) > Math.PI ? 1 : 0;
+  return `M${fmt(p0[0], p0[1])}A${round1(r)} ${round1(r)} 0 ${large} ${a1 > a0 ? 1 : 0} ${fmt(p1[0], p1[1])}`;
+}
+
+/** Point at arc-length fraction a ∈ [0,1] along a polyline. */
+export function alongPolyline(pts: readonly Pt[], a: number): Pt {
+  let total = 0;
+  const seg: number[] = [];
+  for (let i = 1; i < pts.length; i++) {
+    const d = Math.hypot(pts[i]![0] - pts[i - 1]![0], pts[i]![1] - pts[i - 1]![1]);
+    seg.push(d);
+    total += d;
+  }
+  let want = Math.min(1, Math.max(0, a)) * total;
+  for (let i = 0; i < seg.length; i++) {
+    if (want <= seg[i]! || i === seg.length - 1) {
+      const f = seg[i]! > 0 ? want / seg[i]! : 0;
+      const p0 = pts[i]!;
+      const p1 = pts[i + 1]!;
+      return [p0[0] + (p1[0] - p0[0]) * f, p0[1] + (p1[1] - p0[1]) * f];
+    }
+    want -= seg[i]!;
+  }
+  return pts[pts.length - 1]!;
+}
+
+/**
+ * Rounded petal/feather: two quadratic edges from base to tip, bulging ±w
+ * around the midline. Reads as a soft feather rather than a quill spike.
+ */
+export function petalPath(base: Pt, tip: Pt, w: number): string {
+  const mx = (base[0] + tip[0]) / 2;
+  const my = (base[1] + tip[1]) / 2;
+  const dx = tip[0] - base[0];
+  const dy = tip[1] - base[1];
+  const L = Math.hypot(dx, dy) || 1;
+  const px = dy / L;
+  const py = -dx / L;
+  return (
+    `M${fmt(base[0] - px * w, base[1] - py * w)}` +
+    `Q${fmt(mx - px * w * 1.5, my - py * w * 1.5)} ${fmt(tip[0], tip[1])}` +
+    `Q${fmt(mx + px * w * 1.5, my + py * w * 1.5)} ${fmt(base[0] + px * w, base[1] + py * w)}Z`
+  );
+}
