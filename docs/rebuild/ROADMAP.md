@@ -89,6 +89,13 @@ not the crown). New `RenderOptions.detail: 'fast'` tier skips fine-stroke
 layers for weak hardware; vignettes stay `'full'` (the skin slot exists to
 show integument). All 105 goldens regenerated in a dedicated commit;
 before/after contact sheets live in `docs/rebuild/fidelity/`.
+**Anatomy pass (owner feedback on the derp, 2026-07-12)**: parametric skull
+(cranium/brow-boss/bridge, upper+lower jaw, carnivore gape with teeth on both
+jaws, herbivore beak by snoutTip, socketed eye) stitched into the silhouette;
+jointed limbs whose thighs merge into the body (root overpaint under the
+silhouette clip — no more pinned-cutout cap lines); three-toed clawed feet,
+two-clawed theropod hands. All head features re-anchor to the authored skull.
+Same morph params, no schema change; goldens regenerated again.
 
 ## M2 — Share & remix (the growth loop)
 
