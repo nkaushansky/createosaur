@@ -1,0 +1,23 @@
+# Apache config for DreamHost shared hosting (D-016/D-018). Next.js static
+# export emits extensionless routes as .html files ("/lab" → lab.html);
+# Vercel resolved that implicitly, Apache needs the rewrite. Ships inside
+# apps/web/out/ via public/, so every deploy carries it.
+
+ErrorDocument 404 /404.html
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME}.html -f
+  RewriteRule ^(.*)$ $1.html [L]
+</IfModule>
+
+# _next assets are content-hashed — safe to cache forever. icon.svg and the
+# HTML shells are NOT hashed, so the header is scoped to /_next/ only.
+<IfModule mod_setenvif.c>
+  SetEnvIf Request_URI "^/_next/" NEXT_ASSET
+</IfModule>
+<IfModule mod_headers.c>
+  Header set Cache-Control "public, max-age=31536000, immutable" env=NEXT_ASSET
+</IfModule>

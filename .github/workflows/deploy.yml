@@ -1,0 +1,66 @@
+# Manual deploy to DreamHost (D-016/D-018): builds the static export on the
+# runner and rsyncs apps/web/out/ to the shared-hosting web directory. No
+# marketplace deploy actions — plain rsync over ssh keeps the supply-chain
+# surface at checkout/setup-node only.
+#
+# Trigger from any device: GitHub → Actions → deploy → Run workflow.
+# Secrets setup: docs/rebuild/DEPLOY.md.
+name: deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Deploy target'
+        type: choice
+        options: [staging, production]
+        default: staging
+
+concurrency:
+  group: deploy-${{ inputs.target }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      # The export must exist and look like the site before anything ships.
+      - name: Sanity-check the export
+        run: |
+          test -f apps/web/out/index.html
+          test -f apps/web/out/lab.html
+          test -f apps/web/out/.htaccess
+
+      - name: Deploy to DreamHost
+        env:
+          DH_HOST: ${{ secrets.DH_HOST }}
+          DH_USER: ${{ secrets.DH_USER }}
+          DH_SSH_KEY: ${{ secrets.DH_SSH_KEY }}
+          DH_KNOWN_HOSTS: ${{ secrets.DH_KNOWN_HOSTS }}
+          TARGET_DIR: ${{ inputs.target == 'production' && secrets.DH_PATH_PRODUCTION || secrets.DH_PATH_STAGING }}
+        run: |
+          if [ -z "$DH_HOST" ] || [ -z "$DH_USER" ] || [ -z "$DH_SSH_KEY" ] || [ -z "$DH_KNOWN_HOSTS" ] || [ -z "$TARGET_DIR" ]; then
+            echo "Missing DH_* secrets for this target — see docs/rebuild/DEPLOY.md" >&2
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DH_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$DH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          # --delete keeps the web dir an exact mirror of the export, so the
+          # target directory must be dedicated to this site and nothing else
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/deploy_key -o UserKnownHostsFile=~/.ssh/known_hosts" \
+            apps/web/out/ "$DH_USER@$DH_HOST:$TARGET_DIR/"
+          echo "Deployed ${GITHUB_SHA::7} to $TARGET_DIR"
