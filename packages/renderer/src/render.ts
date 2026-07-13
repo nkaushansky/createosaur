@@ -12,15 +12,17 @@ import {
 } from '@createosaur/genome';
 import {
   getSpecies,
+  type Archetype,
   type FeatureKind,
   type MorphVector,
   type PartSlot,
   type SpeciesId,
 } from '@createosaur/species-data';
-import { shade } from './color';
+import { mix, shade } from './color';
 import {
   alongPolyline,
   arcPath,
+  catmull,
   fmt,
   limbPath,
   linePath,
@@ -42,12 +44,17 @@ import {
  * at y=470, hip anchored at x=505, creature faces left. All styling colors
  * are literal values — the output must be self-contained for OG images.
  *
- * Look (M1b fidelity pass, owner direction 2026-07-10): "Camp Cretaceous
- * cartoony-realistic-esque / detailed field-guide drawing, not photoreal."
- * Volume comes from vertical gradients plus a belly-shadow and dorsal-light
- * ribbon that follow the spine; detail from interior contour linework and
- * low-density integument texture. All seeded variation draws from
- * genome.seed via mulberry32 with per-layer salts.
+ * Look (M1c style-bible pass, STYLE-BIBLE.md, D-019): value does the talking.
+ * Five-value structure in paint order — flipped pigment countershade (dark
+ * dorsal → cream belly, spine-relative), one wrap-light radial, a core-shadow
+ * band above the belly, ambient-occlusion pools at limb roots/jaw/tail — all
+ * gradients and geometry, never SVG filters (the slider re-renders per tick).
+ * The old hard black outline is retired for a thin self-toned edge plus a
+ * clipped rim-shadow stroke; interior linework whispers at ≤0.2 opacity.
+ * All seeded variation draws from genome.seed via mulberry32 with per-layer
+ * salts. Structural invariants: element/branch structure may depend only on
+ * genome weights (never on seed-jittered values) so sibling seeds stay
+ * shape-identical, and every number in the output is round1/round2-stable.
  */
 export interface RenderOptions {
   /** defs-id suffix to avoid collisions when several creatures share a page */
@@ -66,9 +73,9 @@ export interface RenderOptions {
   /**
    * Detail tier. 'full' (default) is the whole field-guide treatment. 'fast'
    * skips the small-stroke layers (integument texture, contour linework,
-   * striations, toe lines, secondary feather rows) so hot loops on weak
-   * hardware can re-render every slider tick; silhouette, gradients and
-   * features are unchanged, so the creature never reads as a different
+   * striations, toe creases, secondary feather rows) so hot loops on weak
+   * hardware can re-render every slider tick; silhouette, the value system
+   * and features are unchanged, so the creature never reads as a different
    * animal. Vignettes default to 'full' — the skin slot exists to show
    * integument, which 'fast' would hide.
    */
@@ -88,23 +95,52 @@ const HIPX = 505;
 const BONE = '#e6dcc0';
 const BONE_INK = '#8a7a52';
 const PAPER_LINE = '#b9b4a0';
-const TOOTH = '#f6f2e4';
+// teeth stay in the #e6dcc0 family (STYLE-BIBLE §4) — never pure white
+const TOOTH = '#ece2c4';
 const EYE_WHITE = '#fdfaef';
 const EYE_PUPIL = '#1c1a14';
 const MOUTH = '#5a3138';
 
-// Varied outline weights (fidelity pass): the silhouette is the boldest line
-// on the page, features sit a step lighter, far limbs lighter still, and
-// interior contour work is fine-nibbed. Uniform weight is what made the
-// prototype read as clip-art.
-const W_BODY = 3;
-const W_FEAT = 2.2;
-const W_NEAR = 2.4;
-const W_FAR = 1.8;
-const W_LINE = 1.5;
+// Line system (STYLE-BIBLE §3): the silhouette edge is thin and self-toned —
+// its weight comes from the rim-shadow band, not stroke width. Features sit
+// at 0.8–1.6; interior contour work whispers at ≤1.2 width / ≤0.2 opacity.
+const W_SIL = 1.2;
+const W_FEAT = 1.4;
+const W_FAR = 1;
+const W_LINE = 1;
+const RIM_W = 10;
+const RIM_O = 0.24;
 
 /** Integument class, derived from the skin slot — drives the texture layer. */
 type Integument = 'scales' | 'osteoderms' | 'sauropod' | 'feathers';
+
+/**
+ * Hind-leg curvature per archetype (STYLE-BIBLE §5): 1 = full digitigrade
+ * S-curve, 0 = graviportal column. The S-profile is theropod/ornithopod
+ * only; sauropods and the armored/ceratopsian group stand on columns.
+ * Blended by stance-slot weights so hybrids get legally intermediate legs.
+ */
+const POSTURE: Record<Archetype, number> = {
+  theropod: 1,
+  ornithopod: 0.55,
+  ceratopsian: 0.14,
+  armored: 0.12,
+  sauropod: 0.04,
+  marine: 0.35,
+  flyer: 0.45,
+};
+
+// Age multipliers mirrored from the genome blend (heads grow young) — used
+// only for structural counts that must not see the seeded ±3% jitter.
+const AGE_HEAD: Record<BlendResult['age'], number> = { hatchling: 1.45, juvenile: 1.2, adult: 1 };
+const AGE_SPAN: Record<BlendResult['age'], number> = { hatchling: 0.78, juvenile: 0.9, adult: 1 };
+
+const round2 = (x: number): number => Math.round(x * 100) / 100;
+
+function smoothstep(e0: number, e1: number, x: number): number {
+  const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
+  return t * t * (3 - 2 * t);
+}
 
 export function renderCreature(genome: Genome, opts: RenderOptions = {}): string {
   const resolve: SpeciesResolver = opts.resolveSpecies ?? getSpecies;
@@ -169,6 +205,34 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
     }
     return out;
   };
+  /**
+   * Closed strip between two signed half-width fractions over a spine range —
+   * the machinery behind every spine-relative value band (countershade, core
+   * shadow). fOut/fIn are fractions of the local half-width along `edge`.
+   */
+  const edgeStrip = (
+    a: number,
+    b: number,
+    edge: 1 | -1,
+    fOut: number,
+    fIn: number | ((t: number) => number)
+  ): string => {
+    const K = 26;
+    const outer: Pt[] = [];
+    const inner: Pt[] = [];
+    for (let i = 0; i <= K; i++) {
+      const t = a + ((b - a) * i) / K;
+      const s = at(t);
+      const half = s.w / 2;
+      const fi = typeof fIn === 'number' ? fIn : fIn(t);
+      outer.push([s.p[0] + s.n[0] * half * fOut * edge, s.p[1] + s.n[1] * half * fOut * edge]);
+      inner.push([s.p[0] + s.n[0] * half * fi * edge, s.p[1] + s.n[1] * half * fi * edge]);
+    }
+    let d = `M${fmt(outer[0]![0], outer[0]![1])}`;
+    for (let i = 1; i <= K; i++) d += `L${fmt(outer[i]![0], outer[i]![1])}`;
+    for (let i = K; i >= 0; i--) d += `L${fmt(inner[i]![0], inner[i]![1])}`;
+    return d + 'Z';
+  };
 
   // --- authored skull stitched into the tube (anatomy pass) --------------------
   // The tube ends at tNeck; from there the silhouette is buildHead's skull.
@@ -225,29 +289,123 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
     return d + 'Z';
   })();
 
+  // --- posture + structural params (weights only — never seed-jittered) --------
+  // Structure (element counts, branch choices) may depend on these; sizes may
+  // use the jittered morph freely. Mixing the two breaks the sibling test.
+  const stanceW = slotWeights(genome, 'stance');
+  const headSlotW = slotWeights(genome, 'head');
+  let curveHind = 0;
+  let armoredHead = 0;
+  let H0 = 0;
+  let span0 = 0;
+  for (const d of genome.dna) {
+    const def = resolve(d.species);
+    curveHind += (stanceW[d.species] ?? 0) * POSTURE[def.archetype];
+    if (def.archetype === 'armored') armoredHead += headSlotW[d.species] ?? 0;
+    H0 += (headSlotW[d.species] ?? 0) * def.morph.headSize;
+    span0 +=
+      (slotWeights(genome, 'back')[d.species] ?? 0) * def.morph.bodyLen +
+      (slotWeights(genome, 'tail')[d.species] ?? 0) * def.morph.tailLen +
+      (headSlotW[d.species] ?? 0) * def.morph.neckLen;
+  }
+  H0 *= AGE_HEAD[blend.age];
+
+  // --- body box (userSpace gradients) -----------------------------------------
+  // The countershade ramp and wrap light live in user space spanning the body
+  // silhouette, so limbs can sample the exact same ramp at the attachment row
+  // — that is the §5 gradient-continuity rule (no lightness seam).
+  let bxMin = Infinity;
+  let bxMax = -Infinity;
+  let byMin = Infinity;
+  let byMax = -Infinity;
+  for (let i = 0; i <= iNeck; i++) {
+    const half = ws[i]! / 2;
+    bxMin = Math.min(bxMin, pts[i]![0] - half);
+    bxMax = Math.max(bxMax, pts[i]![0] + half);
+    byMin = Math.min(byMin, pts[i]![1] - half);
+    byMax = Math.max(byMax, pts[i]![1] + half);
+  }
+  for (const q of [...head.topPts, ...head.lipPts, ...head.jawPts]) {
+    bxMin = Math.min(bxMin, q[0]);
+    bxMax = Math.max(bxMax, q[0]);
+    byMin = Math.min(byMin, q[1]);
+    byMax = Math.max(byMax, q[1]);
+  }
+  const bellyY = byMax;
+
+  // Display scale is needed *before* the face draws: STYLE-BIBLE §4 floors are
+  // post-scale (final viewBox units), so geometry sizes divide by s. Vignettes
+  // reuse the same s — crop geometry must stay byte-identical to a full render.
+  const anchorX = HIPX - p.bodyLen * 0.35;
+  const s =
+    round1(Math.min(blend.displayScale, fitScale(pts, ws, f, head.crownY, bxMin, bxMax, anchorX)) * 100) / 100;
+
   // --- palette ---------------------------------------------------------------
   const prim = genome.cosmetics.hide;
   const sec = genome.cosmetics.markings;
-  const ink = shade(prim, -0.55);
-  const farInk = shade(prim, -0.42);
+  // self-toned line system: edge = fill darkened 25–30% (§3), never black
+  const edge = shade(prim, -0.27);
+  const farEdge = shade(prim, -0.2);
+  const lineInk = shade(prim, -0.5);
+  const dark = shade(prim, -0.55);
+  // ventral cream: hide hue-shifted toward #e8e2c8 and lightened ~19% (§3.1)
+  const cream = shade(mix(prim, '#e8e2c8', 0.45), 0.19);
   const boneFeature =
     f.browHorns !== undefined ||
     f.noseHorn !== undefined ||
     f.tailSpikes !== undefined ||
     f.domeSkull !== undefined;
 
-  // --- defs: clip + gradients ---------------------------------------------------
+  // --- defs: clip + silhouette + gradients ------------------------------------
   // Gradient stops are fixed-precision hex (shade()) at literal offsets, so
-  // they serialize deterministically. objectBoundingBox units mean the same
-  // three defs shade body and limbs each within their own silhouette.
-  const vGrad = (id: string, top: string, mid: string, bot: string): string =>
+  // they serialize deterministically. The body/limb ramp is userSpaceOnUse
+  // (continuity rule above); feature gradients stay objectBoundingBox.
+  const vGrad = (id: string, top: string, midC: string, bot: string): string =>
     `<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">` +
-    `<stop offset="0" stop-color="${top}"/><stop offset="0.55" stop-color="${mid}"/>` +
+    `<stop offset="0" stop-color="${top}"/><stop offset="0.55" stop-color="${midC}"/>` +
     `<stop offset="1" stop-color="${bot}"/></linearGradient>`;
+  // Limb ramps continue the body ramp exactly at the belly row (ΔL* ≤ 4
+  // across the seam, §5), then fall back toward hide within a short run so
+  // the shank never carries the belly cream all the way to the ground — a
+  // cream shank against the darker far limb is the "pasted-on" pane.
+  const legGrad = (id: string, mul: number): string => {
+    const fBelly = Math.min(0.86, Math.max(0.3, (bellyY - byMin) / (GROUND - byMin)));
+    return (
+      `<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="0" y1="${round1(byMin)}" x2="0" y2="${GROUND}">` +
+      `<stop offset="0" stop-color="${shade(prim, -0.14 - mul)}"/>` +
+      `<stop offset="${round2(fBelly * 0.52)}" stop-color="${mul > 0 ? shade(prim, -mul) : prim}"/>` +
+      `<stop offset="${round2(fBelly)}" stop-color="${mul > 0 ? shade(cream, -mul) : cream}"/>` +
+      `<stop offset="${round2(Math.min(0.97, fBelly + 0.13))}" stop-color="${shade(prim, -0.02 - mul)}"/>` +
+      `<stop offset="1" stop-color="${shade(prim, -0.11 - mul)}"/></linearGradient>`
+    );
+  };
   let defs = `<clipPath id="${clipId}"><path d="${bodyD}"/></clipPath>`;
-  defs += vGrad(gid('gb'), shade(prim, 0.16), prim, shade(prim, -0.26));
-  defs += vGrad(gid('gl'), shade(prim, -0.02), shade(prim, -0.14), shade(prim, -0.28));
-  defs += vGrad(gid('gf'), shade(prim, -0.1), shade(prim, -0.2), shade(prim, -0.3));
+  defs += `<path id="${gid('sil')}" d="${bodyD}"/>`;
+  // flipped countershade (§3.1, owner redline: half strength): dorsal darkened
+  // ~10–14%, mid-flank = hide, ventral cream. Far limbs 12–18% darker (§5).
+  defs +=
+    `<linearGradient id="${gid('gb')}" gradientUnits="userSpaceOnUse" x1="0" y1="${round1(byMin)}" x2="0" y2="${round1(bellyY)}">` +
+    `<stop offset="0" stop-color="${shade(prim, -0.14)}"/>` +
+    `<stop offset="0.52" stop-color="${prim}"/>` +
+    `<stop offset="1" stop-color="${cream}"/></linearGradient>`;
+  defs += legGrad(gid('gl'), 0);
+  defs += legGrad(gid('gf'), 0.16);
+  // wrap light (§3.2): one radial, centered upper-forequarter of the body box
+  {
+    const wcx = bxMin + (bxMax - bxMin) * 0.4;
+    const wcy = byMin + (bellyY - byMin) * 0.26;
+    const wr = Math.max(bxMax - bxMin, bellyY - byMin) * 0.62;
+    defs +=
+      `<radialGradient id="${gid('wl')}" gradientUnits="userSpaceOnUse" cx="${round1(wcx)}" cy="${round1(wcy)}" r="${round1(wr)}">` +
+      `<stop offset="0" stop-color="${shade(prim, 0.75)}" stop-opacity="0.3"/>` +
+      `<stop offset="0.55" stop-color="${shade(prim, 0.75)}" stop-opacity="0.1"/>` +
+      `<stop offset="1" stop-color="${shade(prim, 0.75)}" stop-opacity="0"/></radialGradient>`;
+  }
+  // ambient-occlusion pool (§3.4) — one def, several ellipses
+  defs +=
+    `<radialGradient id="${gid('ao')}"><stop offset="0" stop-color="${dark}" stop-opacity="1"/>` +
+    `<stop offset="0.6" stop-color="${dark}" stop-opacity="0.5"/>` +
+    `<stop offset="1" stop-color="${dark}" stop-opacity="0"/></radialGradient>`;
   if (f.plates || f.frill) defs += vGrad(gid('sc'), shade(sec, 0.22), sec, shade(sec, -0.2));
   if (boneFeature) defs += vGrad(gid('bn'), shade(BONE, 0.35), BONE, shade(BONE, -0.16));
   if (f.sail) {
@@ -270,6 +428,14 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
   }
   let svg = `<defs>${defs}</defs>`;
 
+  // Shared limb geometry — feet need it for ground shadows before legs draw.
+  const hindFootLen = Math.min(52, Math.max(16, p.hLegThick * (0.95 + 0.3 * (1 - curveHind))));
+  const armY = shoulder[1] + 2;
+  const armFootY = Math.min(armY + 6 + p.fLegLen, GROUND - 8);
+  const foreGrounded = armFootY > GROUND - 30;
+  const foreFootLen = p.fLegThick * 0.9 + 7;
+  const curveFore = curveHind * 0.6;
+
   // --- ground + soft contact shadow -------------------------------------------
   if (drawGround) {
     svg += `<line x1="60" y1="${GROUND}" x2="780" y2="${GROUND}" stroke="${PAPER_LINE}" stroke-width="2"/>`;
@@ -277,14 +443,23 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
       svg += `<path d="M${gx} ${GROUND}l5 -9 M${gx + 7} ${GROUND}l4 -6" stroke="${PAPER_LINE}" stroke-width="1.5" fill="none"/>`;
     }
     const extent = tailTip[0] - snout[0];
-    svg += `<ellipse cx="${round1((tailTip[0] + snout[0]) / 2)}" cy="${GROUND + 8}" rx="${round1(extent * 0.46)}" ry="10" fill="${url('sh')}"/>`;
+    svg += `<ellipse cx="${round1((tailTip[0] + snout[0]) / 2)}" cy="${GROUND + 8}" rx="${round1(extent * 0.46)}" ry="10" fill="${url('sh')}" opacity="0.7"/>`;
+    // per-foot contact shadows (§5): small pools where soles meet the line
+    const foot = (cx: number, rx: number, o: number): string =>
+      `<ellipse cx="${round1(cx)}" cy="${GROUND + 4}" rx="${round1(rx)}" ry="5" fill="${url('sh')}" opacity="${o}"/>`;
+    svg += foot(hip[0] - 4 + 26, hindFootLen * 0.85, 0.7);
+    svg += foot(hip[0] - 4, hindFootLen * 0.95, 1);
+    if (foreGrounded) {
+      svg += foot(shoulder[0] - 5 + 26, foreFootLen * 0.8, 0.7);
+      svg += foot(shoulder[0] - 5, foreFootLen * 0.9, 1);
+    }
   }
 
   // --- far legs (behind the body) ---------------------------------------------
   const FAR_DX = 26;
   const FAR_DY = -6;
-  svg += hindLeg(hip, p, FAR_DX, FAR_DY, url('gf'), farInk, W_FAR, farInk, null);
-  svg += frontLeg(shoulder, p, FAR_DX, FAR_DY, url('gf'), farInk, W_FAR, farInk, lux, null);
+  svg += hindLeg(hip, p, FAR_DX, FAR_DY, url('gf'), farEdge, W_FAR, shade(prim, -0.42), null, curveHind, hindFootLen, lux);
+  svg += frontLeg(shoulder, p, FAR_DX, FAR_DY, url('gf'), farEdge, W_FAR, shade(prim, -0.42), lux, null, curveFore, foreFootLen);
 
   // --- features drawn behind the silhouette so bases hide under it -------------
   if (f.frill) {
@@ -300,7 +475,7 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
       const bx = cx + Math.sin(th) * R * 0.74;
       const by = cy - Math.cos(th) * R;
       const br = (3 + 1.3 * Math.sin(k * 2.1)) * f.frill.intensity;
-      bumps += `<circle cx="${round1(bx)}" cy="${round1(by)}" r="${round1(br)}" fill="${sec}" stroke="${shade(sec, -0.35)}" stroke-width="1.2"/>`;
+      bumps += `<circle cx="${round1(bx)}" cy="${round1(by)}" r="${round1(br)}" fill="${sec}" stroke="${shade(sec, -0.35)}" stroke-width="1"/>`;
     }
     let spokes = '';
     for (let k = 0; k < 5; k++) {
@@ -308,7 +483,7 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
       spokes += `<path d="M${fmt(cx + Math.sin(th) * R * 0.2, cy - Math.cos(th) * R * 0.28)}L${fmt(
         cx + Math.sin(th) * R * 0.64,
         cy - Math.cos(th) * R * 0.86
-      )}" stroke="${shade(sec, -0.32)}" stroke-width="1.6" opacity="0.4"/>`;
+      )}" stroke="${shade(sec, -0.32)}" stroke-width="1.3" opacity="0.4"/>`;
     }
     svg +=
       `<g transform="rotate(-24 ${round1(cx)} ${round1(cy)})">` +
@@ -322,11 +497,11 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
     const count = 8;
     for (let i = 0; i < count; i++) {
       const tt = 0.3 + (i * 0.38) / (count - 1);
-      const s = at(tt);
-      const base: Pt = [s.p[0] + s.n[0] * (s.w / 2 - 3), s.p[1] + s.n[1] * (s.w / 2 - 3)];
+      const sp = at(tt);
+      const base: Pt = [sp.p[0] + sp.n[0] * (sp.w / 2 - 3), sp.p[1] + sp.n[1] * (sp.w / 2 - 3)];
       const h = (26 + 24 * Math.sin((Math.PI * i) / (count - 1))) * f.plates.intensity;
-      const a = s.tn;
-      const n = s.n;
+      const a = sp.tn;
+      const n = sp.n;
       // kite → leaf: quadratic edges bow outward, the crown arcs between the
       // two tip corners, and a center vein grounds it like a fin bone
       const bL: Pt = [base[0] - a[0] * 13, base[1] - a[1] * 13];
@@ -338,30 +513,30 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
         `Q${fmt(base[0] - a[0] * 12 + n[0] * h * 0.5, base[1] - a[1] * 12 + n[1] * h * 0.5)} ${fmt(tL[0], tL[1])}` +
         `Q${fmt(base[0] + n[0] * h * 1.07, base[1] + n[1] * h * 1.07)} ${fmt(tR[0], tR[1])}` +
         `Q${fmt(base[0] + a[0] * 12 + n[0] * h * 0.42, base[1] + a[1] * 12 + n[1] * h * 0.42)} ${fmt(bR[0], bR[1])}Z"` +
-        ` fill="${url('sc')}" stroke="${shade(sec, -0.38)}" stroke-width="2" stroke-linejoin="round"/>`;
+        ` fill="${url('sc')}" stroke="${shade(sec, -0.38)}" stroke-width="1.5" stroke-linejoin="round"/>`;
       if (lux) {
         svg += `<path d="M${fmt(base[0] + n[0] * 3, base[1] + n[1] * 3)}Q${fmt(
           base[0] - a[0] * 2 + n[0] * h * 0.5,
           base[1] - a[1] * 2 + n[1] * h * 0.5
-        )} ${fmt(base[0] + n[0] * h * 0.82, base[1] + n[1] * h * 0.82)}" fill="none" stroke="${shade(sec, -0.42)}" stroke-width="1.3" opacity="0.45"/>`;
+        )} ${fmt(base[0] + n[0] * h * 0.82, base[1] + n[1] * h * 0.82)}" fill="none" stroke="${shade(sec, -0.42)}" stroke-width="1.2" opacity="0.45"/>`;
       }
     }
   }
   if (f.tailSpikes) {
     for (const tt of [0.035, 0.085]) {
-      const s = at(tt);
+      const sp = at(tt);
       const L = 46 * f.tailSpikes.intensity;
-      let dir: Pt = [s.n[0] - s.tn[0] * 0.55, s.n[1] - s.tn[1] * 0.55];
+      let dir: Pt = [sp.n[0] - sp.tn[0] * 0.55, sp.n[1] - sp.tn[1] * 0.55];
       const dl = Math.hypot(dir[0], dir[1]) || 1;
       dir = [dir[0] / dl, dir[1] / dl];
-      const base: Pt = [s.p[0] + s.n[0] * (s.w / 2 - 6), s.p[1] + s.n[1] * (s.w / 2 - 6)];
-      svg += `<path d="M${fmt(base[0] - s.tn[0] * 7, base[1] - s.tn[1] * 7)}Q${fmt(
-        base[0] + dir[0] * L * 0.55 - s.tn[0] * 6,
-        base[1] + dir[1] * L * 0.55 - s.tn[1] * 6
+      const base: Pt = [sp.p[0] + sp.n[0] * (sp.w / 2 - 6), sp.p[1] + sp.n[1] * (sp.w / 2 - 6)];
+      svg += `<path d="M${fmt(base[0] - sp.tn[0] * 7, base[1] - sp.tn[1] * 7)}Q${fmt(
+        base[0] + dir[0] * L * 0.55 - sp.tn[0] * 6,
+        base[1] + dir[1] * L * 0.55 - sp.tn[1] * 6
       )} ${fmt(base[0] + dir[0] * L, base[1] + dir[1] * L)}Q${fmt(
-        base[0] + dir[0] * L * 0.5 + s.tn[0] * 5,
-        base[1] + dir[1] * L * 0.5 + s.tn[1] * 5
-      )} ${fmt(base[0] + s.tn[0] * 7, base[1] + s.tn[1] * 7)}Z" fill="${url('bn')}" stroke="${BONE_INK}" stroke-width="1.6" stroke-linejoin="round"/>`;
+        base[0] + dir[0] * L * 0.5 + sp.tn[0] * 5,
+        base[1] + dir[1] * L * 0.5 + sp.tn[1] * 5
+      )} ${fmt(base[0] + sp.tn[0] * 7, base[1] + sp.tn[1] * 7)}Z" fill="${url('bn')}" stroke="${BONE_INK}" stroke-width="1.4" stroke-linejoin="round"/>`;
     }
   }
   // horns seat on the authored skull top: base sunk slightly under the crown
@@ -376,7 +551,7 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
     )} ${fmt(tip[0], tip[1])}Q${fmt(
       b[0] + hv[0] * L * 0.5 + hu[0] * 4,
       b[1] + hv[1] * L * 0.5 + hu[1] * 4
-    )} ${fmt(b[0] + hu[0] * 7, b[1] + hu[1] * 7)}Z" fill="${url('bn')}" stroke="${BONE_INK}" stroke-width="1.5" stroke-linejoin="round"/>`;
+    )} ${fmt(b[0] + hu[0] * 7, b[1] + hu[1] * 7)}Z" fill="${url('bn')}" stroke="${BONE_INK}" stroke-width="1.4" stroke-linejoin="round"/>`;
     if (lux) {
       const ax = tip[0] - b[0];
       const ay = tip[1] - b[1];
@@ -391,7 +566,7 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
         out += `<path d="M${fmt(cx - px * hw, cy - py * hw)}Q${fmt(cx + (ax / al) * 2.4, cy + (ay / al) * 2.4)} ${fmt(
           cx + px * hw,
           cy + py * hw
-        )}" fill="none" stroke="${BONE_INK}" stroke-width="1.1" opacity="0.5"/>`;
+        )}" fill="none" stroke="${BONE_INK}" stroke-width="1" opacity="0.45"/>`;
       }
     }
     return out;
@@ -420,11 +595,11 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
     const tips: Pt[] = [];
     const hs: number[] = [];
     for (let i = 0; i < S; i++) {
-      const s = at(st(i));
+      const sp = at(st(i));
       const h = peak * heightAt(i / (S - 1));
       hs.push(h);
-      bases.push([s.p[0] + s.n[0] * (s.w / 2 - 4), s.p[1] + s.n[1] * (s.w / 2 - 4)]);
-      tips.push([bases[i]![0] + s.n[0] * h, bases[i]![1] + s.n[1] * h]);
+      bases.push([sp.p[0] + sp.n[0] * (sp.w / 2 - 4), sp.p[1] + sp.n[1] * (sp.w / 2 - 4)]);
+      tips.push([bases[i]![0] + sp.n[0] * h, bases[i]![1] + sp.n[1] * h]);
     }
     let d = `M${fmt(bases[0]![0], bases[0]![1])}`;
     // leading edge bows nose-ward, then the crown sags between rays
@@ -450,19 +625,19 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
     // neural-spine rays curve gently tailward; finer half-rays fill between
     const rayInk = shade(sec, -0.46);
     for (let i = 1; i < S - 1; i++) {
-      const s = at(st(i));
-      const end: Pt = [bases[i]![0] + s.n[0] * (hs[i]! - 4), bases[i]![1] + s.n[1] * (hs[i]! - 4)];
-      const mx = (bases[i]![0] + end[0]) / 2 - s.tn[0] * 5;
-      const my = (bases[i]![1] + end[1]) / 2 - s.tn[1] * 5;
-      svg += `<path d="M${fmt(bases[i]![0], bases[i]![1])}Q${fmt(mx, my)} ${fmt(end[0], end[1])}" fill="none" stroke="${rayInk}" stroke-width="2.4" opacity="0.6" stroke-linecap="round"/>`;
+      const sp = at(st(i));
+      const end: Pt = [bases[i]![0] + sp.n[0] * (hs[i]! - 4), bases[i]![1] + sp.n[1] * (hs[i]! - 4)];
+      const mx = (bases[i]![0] + end[0]) / 2 - sp.tn[0] * 5;
+      const my = (bases[i]![1] + end[1]) / 2 - sp.tn[1] * 5;
+      svg += `<path d="M${fmt(bases[i]![0], bases[i]![1])}Q${fmt(mx, my)} ${fmt(end[0], end[1])}" fill="none" stroke="${rayInk}" stroke-width="1.6" opacity="0.55" stroke-linecap="round"/>`;
     }
     if (lux) {
       for (let i = 0; i < S - 1; i++) {
         const tm = (st(i) + st(i + 1)) / 2;
-        const s = at(tm);
+        const sp = at(tm);
         const h = Math.min(hs[i]!, hs[i + 1]!) * 0.6 + peak * 0.08;
-        const b: Pt = [s.p[0] + s.n[0] * (s.w / 2 - 4), s.p[1] + s.n[1] * (s.w / 2 - 4)];
-        svg += `<path d="M${fmt(b[0], b[1])}L${fmt(b[0] + s.n[0] * h, b[1] + s.n[1] * h)}" stroke="${rayInk}" stroke-width="1.1" opacity="0.32"/>`;
+        const b: Pt = [sp.p[0] + sp.n[0] * (sp.w / 2 - 4), sp.p[1] + sp.n[1] * (sp.w / 2 - 4)];
+        svg += `<path d="M${fmt(b[0], b[1])}L${fmt(b[0] + sp.n[0] * h, b[1] + sp.n[1] * h)}" stroke="${rayInk}" stroke-width="1" opacity="0.3"/>`;
       }
     }
   }
@@ -485,7 +660,7 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
     const spine = `M${fmt(base[0], base[1])}Q${fmt(ctrl[0], ctrl[1])} ${fmt(tip[0], tip[1])}`;
     const tint = shade(prim, 0.14);
     svg +=
-      `<path d="${spine}" fill="none" stroke="${ink}" stroke-width="${round1(tube + 5)}" stroke-linecap="round"/>` +
+      `<path d="${spine}" fill="none" stroke="${edge}" stroke-width="${round1(tube + 2.6)}" stroke-linecap="round"/>` +
       `<path d="${spine}" fill="none" stroke="${tint}" stroke-width="${round1(tube)}" stroke-linecap="round"/>` +
       `<path d="${spine}" fill="none" stroke="${shade(prim, 0.34)}" stroke-width="${round1(
         tube * 0.26
@@ -495,7 +670,7 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
       for (const u of [0.16, 0.3]) {
         const cx = base[0] + (ctrl[0] - base[0]) * u * 2 * (1 - u) + (tip[0] - base[0]) * u * u;
         const cy = base[1] + (ctrl[1] - base[1]) * u * 2 * (1 - u) + (tip[1] - base[1]) * u * u;
-        svg += `<circle cx="${round1(cx)}" cy="${round1(cy)}" r="${round1(tube * 0.42)}" fill="none" stroke="${shade(prim, -0.28)}" stroke-width="1.1" opacity="0.4"/>`;
+        svg += `<circle cx="${round1(cx)}" cy="${round1(cy)}" r="${round1(tube * 0.42)}" fill="none" stroke="${shade(prim, -0.28)}" stroke-width="1" opacity="0.4"/>`;
       }
     }
   }
@@ -509,7 +684,7 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
     // coat length tracks body bulk so a hatchling isn't swallowed by plumage
     const sizeF = Math.min(1.15, Math.max(0.75, p.bodyThick / 88));
     const len = 26 * f.feathers.intensity * sizeF;
-    const edge = shade(prim, -0.48);
+    const edgeF = shade(prim, -0.48);
     // A coat band is a nearly-smooth fringe (soft undulation, tapered ends)
     // with feather separation drawn as interior strokes — deep edge notches
     // read as sawtooth spikes the moment the band gets short on a hybrid.
@@ -518,18 +693,18 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
       const tips: Pt[] = [];
       for (let i = 0; i <= K; i++) {
         const tt = t0 + ((t1 - t0) * i) / K;
-        const s = at(tt);
+        const sp = at(tt);
         const taper = i === 0 || i === K ? 0.45 : i === 1 || i === K - 1 ? 0.8 : 1;
         const li = L * taper * (1 - jitAmp + fr() * jitAmp * 2);
-        const b: Pt = [s.p[0] + s.n[0] * (s.w / 2 - 3), s.p[1] + s.n[1] * (s.w / 2 - 3)];
+        const b: Pt = [sp.p[0] + sp.n[0] * (sp.w / 2 - 3), sp.p[1] + sp.n[1] * (sp.w / 2 - 3)];
         bases.push(b);
-        tips.push([b[0] + s.n[0] * li - s.tn[0] * li * lie, b[1] + s.n[1] * li - s.tn[1] * li * lie]);
+        tips.push([b[0] + sp.n[0] * li - sp.tn[0] * li * lie, b[1] + sp.n[1] * li - sp.tn[1] * li * lie]);
       }
       let d = `M${fmt(bases[K]![0], bases[K]![1])}L${fmt(tips[K]![0], tips[K]![1])}`;
       for (let i = K - 1; i >= 0; i--) {
-        const s = at(t0 + ((t1 - t0) * (i + 0.5)) / K);
-        const mx = (tips[i + 1]![0] + tips[i]![0]) / 2 - s.n[0] * L * 0.1;
-        const my = (tips[i + 1]![1] + tips[i]![1]) / 2 - s.n[1] * L * 0.1;
+        const sp = at(t0 + ((t1 - t0) * (i + 0.5)) / K);
+        const mx = (tips[i + 1]![0] + tips[i]![0]) / 2 - sp.n[0] * L * 0.1;
+        const my = (tips[i + 1]![1] + tips[i]![1]) / 2 - sp.n[1] * L * 0.1;
         d += `Q${fmt(mx, my)} ${fmt(tips[i]![0], tips[i]![1])}`;
       }
       d += `L${fmt(bases[0]![0], bases[0]![1])}`;
@@ -541,28 +716,28 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
         for (let i = 1; i < K; i++) {
           const b = bases[i]!;
           const tp = tips[i]!;
-          const s = at(t0 + ((t1 - t0) * i) / K);
+          const sp = at(t0 + ((t1 - t0) * i) / K);
           const ex = b[0] + (tp[0] - b[0]) * 0.3;
           const ey = b[1] + (tp[1] - b[1]) * 0.3;
           sep += `M${fmt(tp[0], tp[1])}Q${fmt(
-            (tp[0] + ex) / 2 + s.tn[0] * L * 0.1,
-            (tp[1] + ey) / 2 + s.tn[1] * L * 0.1
+            (tp[0] + ex) / 2 + sp.tn[0] * L * 0.1,
+            (tp[1] + ey) / 2 + sp.tn[1] * L * 0.1
           )} ${fmt(ex, ey)}`;
         }
         path += `<path d="${sep}" fill="none" stroke="${shade(prim, -0.45)}" stroke-width="1" opacity="0.5"/>`;
       }
       return path;
     };
-    svg += coat(0.1, 0.9, 13, len, 0.55, 0.14, `fill="${shade(prim, -0.14)}" stroke="${edge}" stroke-width="1.1" stroke-linejoin="round"`);
+    svg += coat(0.1, 0.9, 13, len, 0.55, 0.14, `fill="${shade(prim, -0.1)}" stroke="${edgeF}" stroke-width="1.1" stroke-linejoin="round"`);
     // nape tuft in the marking accent — display feathers behind the skull
     {
       let tuft = '';
       for (let k = 0; k < 3; k++) {
-        const s = at(0.83 + k * 0.032);
+        const sp = at(0.83 + k * 0.032);
         const jit = 0.85 + fr() * 0.3;
         const li = len * (0.85 + k * 0.12) * jit;
-        const b: Pt = [s.p[0] + s.n[0] * (s.w / 2 - 3), s.p[1] + s.n[1] * (s.w / 2 - 3)];
-        const tip: Pt = [b[0] + s.n[0] * li - s.tn[0] * li * 0.5, b[1] + s.n[1] * li - s.tn[1] * li * 0.5];
+        const b: Pt = [sp.p[0] + sp.n[0] * (sp.w / 2 - 3), sp.p[1] + sp.n[1] * (sp.w / 2 - 3)];
+        const tip: Pt = [b[0] + sp.n[0] * li - sp.tn[0] * li * 0.5, b[1] + sp.n[1] * li - sp.tn[1] * li * 0.5];
         tuft += `<path d="${petalPath(b, tip, 4)}"/>`;
       }
       svg += `<g fill="${shade(sec, -0.08)}" stroke="${shade(sec, -0.4)}" stroke-width="1" opacity="0.95">${tuft}</g>`;
@@ -572,56 +747,32 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
     let fan = '';
     for (let k = 0; k < 5; k++) {
       const tt = 0.008 + k * 0.012;
-      const s = at(tt);
+      const sp = at(tt);
       // first plume nearly extends the tail line so the bare tip never pokes
       // through the fan; later plumes rotate up toward the dorsal coat
       const mixK = 0.85 - k * 0.14;
-      let dir: Pt = [s.n[0] * (1 - mixK) - s.tn[0] * mixK, s.n[1] * (1 - mixK) - s.tn[1] * mixK];
+      let dir: Pt = [sp.n[0] * (1 - mixK) - sp.tn[0] * mixK, sp.n[1] * (1 - mixK) - sp.tn[1] * mixK];
       const dl = Math.hypot(dir[0], dir[1]) || 1;
       dir = [dir[0] / dl, dir[1] / dl];
       const jit = 0.85 + fr() * 0.3;
       const plume = len * (1.5 + k * 0.14) * jit;
-      const base: Pt = [s.p[0] + s.n[0] * (s.w / 2 - 3), s.p[1] + s.n[1] * (s.w / 2 - 3)];
+      const base: Pt = [sp.p[0] + sp.n[0] * (sp.w / 2 - 3), sp.p[1] + sp.n[1] * (sp.w / 2 - 3)];
       const tip: Pt = [base[0] + dir[0] * plume, base[1] + dir[1] * plume];
       fan += `<path d="${petalPath(base, tip, 6)}"/>`;
     }
     svg += `<g fill="${shade(sec, -0.08)}" stroke="${shade(sec, -0.4)}" stroke-width="1" opacity="0.95">${fan}</g>`;
   }
 
-  // --- body silhouette ---------------------------------------------------------
-  svg += `<path d="${bodyD}" fill="${url('gb')}" stroke="${ink}" stroke-width="${W_BODY}" stroke-linejoin="round"/>`;
+  // --- body silhouette: thin self-toned edge (§3 line system) -------------------
+  svg += `<use href="#${gid('sil')}" fill="${url('gb')}" stroke="${edge}" stroke-width="${W_SIL}" stroke-linejoin="round"/>`;
 
-  // --- volume: belly shadow + dorsal light, hugging the silhouette --------------
-  // These follow the spine (not the page), so a rearing sauropod neck and a
-  // level raptor tail both shade correctly at any morph position.
-  {
-    const band = (a: number, b: number, edge: 1 | -1, frac: number): string => {
-      const K = 26;
-      const outer: Pt[] = [];
-      const inner: Pt[] = [];
-      for (let i = 0; i <= K; i++) {
-        const t = a + ((b - a) * i) / K;
-        const s = at(t);
-        const half = s.w / 2;
-        outer.push([s.p[0] + s.n[0] * half * 1.04 * edge, s.p[1] + s.n[1] * half * 1.04 * edge]);
-        inner.push([s.p[0] + s.n[0] * half * (1 - frac) * edge, s.p[1] + s.n[1] * half * (1 - frac) * edge]);
-      }
-      let d = `M${fmt(outer[0]![0], outer[0]![1])}`;
-      for (let i = 1; i <= K; i++) d += `L${fmt(outer[i]![0], outer[i]![1])}`;
-      for (let i = K; i >= 0; i--) d += `L${fmt(inner[i]![0], inner[i]![1])}`;
-      return d + 'Z';
-    };
-    svg +=
-      `<g clip-path="url(#${clipId})">` +
-      `<path d="${band(0.04, 0.72, -1, 0.36)}" fill="${shade(prim, -0.4)}" opacity="0.2"/>` +
-      // the dorsal light stops at the neck join — beyond it the tube edge is
-      // fiction; the authored skull carries its own top light
-      `<path d="${band(0.3, tNeck, 1, 0.24)}" fill="${shade(prim, 0.5)}" opacity="0.26"/>` +
-      `</g>`;
-  }
-
-  // --- pattern (clipped to the silhouette, placement seeded by the genome) ------
-  svg += patternLayer(genome, clipId, sec, prim, sfx);
+  // --- value system (§3): spine-relative countershade correction, core shadow,
+  // AO pools. The userSpace ramp is page-vertical, so a rearing sauropod neck
+  // needs these bands (reused M1b machinery) to keep pigment spine-relative.
+  // Bands stack in low-opacity pairs — soft ramps from geometry, no filters.
+  // --- markings (§3.5): pattern genes, then dorsal dapple, then texture ---------
+  svg += patternLayer(genome, clipId, sec, prim, sfx, byMin, bellyY);
+  svg += dappleLayer(genome, clipId, sec, at, tNeck, span0 * AGE_SPAN[blend.age]);
 
   // --- integument texture + interior contour linework (clipped) -----------------
   if (lux) {
@@ -639,14 +790,14 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
         const t = 0.22 + tr() * 0.56;
         const lat = (tr() * 2 - 1) * 0.6;
         const r = rBase + tr() * (big ? 2.4 : 1.8);
-        const s = at(t);
-        const c: Pt = [s.p[0] + s.n[0] * (s.w / 2) * lat * 0.8, s.p[1] + s.n[1] * (s.w / 2) * lat * 0.8];
-        marks += `<path d="M${fmt(c[0] - s.tn[0] * r, c[1] - s.tn[1] * r)}Q${fmt(
-          c[0] - s.n[0] * r * 0.9,
-          c[1] - s.n[1] * r * 0.9
-        )} ${fmt(c[0] + s.tn[0] * r, c[1] + s.tn[1] * r)}"/>`;
+        const sp = at(t);
+        const c: Pt = [sp.p[0] + sp.n[0] * (sp.w / 2) * lat * 0.8, sp.p[1] + sp.n[1] * (sp.w / 2) * lat * 0.8];
+        marks += `<path d="M${fmt(c[0] - sp.tn[0] * r, c[1] - sp.tn[1] * r)}Q${fmt(
+          c[0] - sp.n[0] * r * 0.9,
+          c[1] - sp.n[1] * r * 0.9
+        )} ${fmt(c[0] + sp.tn[0] * r, c[1] + sp.tn[1] * r)}"/>`;
       }
-      detail += `<g fill="none" stroke="${ink}" stroke-width="1.2" opacity="0.2">${marks}</g>`;
+      detail += `<g fill="none" stroke="${lineInk}" stroke-width="1.1" opacity="0.18">${marks}</g>`;
     } else if (integument === 'osteoderms') {
       // armored hide: two staggered courses of oval scutes along the back
       let scutes = '';
@@ -656,31 +807,30 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
       ] as const) {
         for (let i = 0; i < 7; i++) {
           const t = 0.3 + stag + (i * 0.4) / 6;
-          const s = at(t);
-          const c: Pt = [s.p[0] + s.n[0] * (s.w / 2) * row, s.p[1] + s.n[1] * (s.w / 2) * row];
-          const r = 4.2 + (s.w / 2) * 0.045 + tr() * 1.2;
+          const sp = at(t);
+          const c: Pt = [sp.p[0] + sp.n[0] * (sp.w / 2) * row, sp.p[1] + sp.n[1] * (sp.w / 2) * row];
+          const r = 4.2 + (sp.w / 2) * 0.045 + tr() * 1.2;
           scutes += `<ellipse cx="${round1(c[0])}" cy="${round1(c[1])}" rx="${round1(r)}" ry="${round1(r * 0.72)}"/>`;
         }
       }
-      detail += `<g fill="none" stroke="${ink}" stroke-width="1.2" opacity="0.2">${scutes}</g>`;
+      detail += `<g fill="none" stroke="${lineInk}" stroke-width="1.1" opacity="0.18">${scutes}</g>`;
     }
     // contour/muscle linework off the spine samples: neck run, throat, back,
-    // belly crease, twin tail lines, and joint arcs at hip and shoulder
+    // belly crease, twin tail lines, and joint arcs at hip and shoulder —
+    // value does the talking now, so these whisper (§3: ≤1.2 width, ≤0.2)
     const lines: Array<[Pt[], number, number]> = [
-      [contour(0.72, 0.9, 0.3, 9), W_LINE, 0.3],
-      [contour(0.72, 0.86, -0.34, 8), 1.3, 0.26],
-      [contour(0.38, 0.6, 0.34, 8), W_LINE, 0.28],
-      [contour(0.4, 0.64, -0.46, 8), 1.4, 0.26],
-      [contour(0.05, 0.26, 0.3, 8), 1.3, 0.28],
-      [contour(0.07, 0.24, -0.3, 8), 1.3, 0.24],
+      [contour(0.72, 0.9, 0.3, 9), W_LINE, 0.18],
+      [contour(0.72, 0.86, -0.34, 8), 1, 0.15],
+      [contour(0.38, 0.6, 0.34, 8), W_LINE, 0.17],
+      [contour(0.4, 0.64, -0.46, 8), 1.1, 0.15],
+      [contour(0.05, 0.26, 0.3, 8), 1, 0.17],
+      [contour(0.07, 0.24, -0.3, 8), 1, 0.14],
     ];
     let strokes = '';
     for (const [ptsL, w, o] of lines) {
       strokes += `<path d="${linePath(ptsL)}" stroke-width="${w}" opacity="${o}"/>`;
     }
-    strokes += `<path d="${arcPath([hip[0] - 2, hip[1] + 12], p.hLegThick * 0.66, Math.PI * 1.06, Math.PI * 1.86)}" stroke-width="1.6" opacity="0.3"/>`;
-    strokes += `<path d="${arcPath([shoulder[0] + 8, shoulder[1] + 16], p.fLegThick * 0.9 + 6, Math.PI * 1.12, Math.PI * 1.8)}" stroke-width="1.4" opacity="0.26"/>`;
-    detail += `<g fill="none" stroke="${ink}" stroke-linecap="round">${strokes}</g>`;
+    detail += `<g fill="none" stroke="${lineInk}" stroke-linecap="round">${strokes}</g>`;
     if (f.feathers) {
       // where the coat lies over the body: one scalloped course
       const K = 11;
@@ -698,90 +848,192 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
           (a[1] + b[1]) / 2 - mid.n[1] * 2.6
         )} ${fmt(b[0], b[1])}`;
       }
-      detail += `<path d="${d}" fill="none" stroke="${ink}" stroke-width="1.3" opacity="0.25"/>`;
+      detail += `<path d="${d}" fill="none" stroke="${lineInk}" stroke-width="1.1" opacity="0.18"/>`;
     }
     svg += `<g clip-path="url(#${clipId})">${detail}</g>`;
   }
 
-  // --- face: gape/lip, teeth on both jaws, nostril, socketed eye + brow -----------
+  // --- rim-shadow band (§3): the silhouette's weight — an inner edge darkening
+  // built as a clipped stroke of the silhouette path, not a blur filter
+  svg += `<use href="#${gid('sil')}" fill="none" stroke="${dark}" stroke-width="${RIM_W}" opacity="${RIM_O}" clip-path="url(#${clipId})"/>`;
+
+  // --- face (§4): ratio table off H = authored skull height, post-scale floors,
+  // simplified tier fading in over final head height 22→26
   {
+    const H = head.H;
+    const hp = (a: number, b: number): Pt => [
+      head.C[0] + hu[0] * a * head.L + hv[0] * b * H,
+      head.C[1] + hu[1] * a * head.L + hv[1] * b * H,
+    ];
+    const carn = f.teeth?.intensity ?? 0;
+    // tier: 1 = full face detail. Fades out for small final heads and for
+    // armored-archetype heads, which keep simplified styling at any size (§4).
+    const tier = round2(
+      smoothstep(22, 26, H * s) * (1 - smoothstep(0.35, 0.7, armoredHead))
+    );
+    // post-scale floors (final viewBox units ÷ s → geometry units)
+    const eyeScale = blend.age === 'hatchling' ? 1.6 : blend.age === 'juvenile' ? 1.25 : 1;
+    const er = Math.max((0.09 - 0.02 * carn) * H * eyeScale, 3.2 / s);
+    const mouthW = round1(Math.max(1.5, 1.1 / s) * 10) / 10;
+    const nostrilR = Math.max(0.032 * H, 0.95 / s);
+    const browW = round1(Math.max(1.55, 1.2 / s) * 10) / 10;
+
+    // eye seat: 0.25–0.35 of snout length behind the brow-boss front, 0.55–0.65
+    // of H above the local jawline (both mid-range; snout = boss front → nose)
+    const eyeA = BOSS_FRONT_A - 0.3 * (NOSE_A - BOSS_FRONT_A);
+    let jawB = -0.5;
+    let bestDa = Infinity;
+    for (const q of head.jawPts) {
+      const a = ((q[0] - head.C[0]) * hu[0] + (q[1] - head.C[1]) * hu[1]) / head.L;
+      const da = Math.abs(a - eyeA);
+      if (da < bestDa) {
+        bestDa = da;
+        jawB = ((q[0] - head.C[0]) * hv[0] + (q[1] - head.C[1]) * hv[1]) / H;
+      }
+    }
+    const E = hp(eyeA, Math.min(0.34, Math.max(0.02, jawB + 0.6)));
+
+    // mouth: closed lip = interior crease; open gape = wedge filled as mouth
     if (head.gapeD) {
       svg += `<path d="${head.gapeD}" fill="${MOUTH}"/>`;
     } else {
-      // closed mouth: the lip line is an interior crease off the silhouette
-      svg += `<path d="${linePath(head.lipPts.slice(2))}" fill="none" stroke="${ink}" stroke-width="2" opacity="0.65"/>`;
+      svg += `<path d="${linePath(head.lipPts.slice(1))}" fill="none" stroke="${lineInk}" stroke-width="${mouthW}" opacity="0.72" stroke-linecap="round"/>`;
     }
-    // mouth-corner cheek crease — the "alive" cue at any gape
+    // one short mouth-corner crease — a skin fold, never an upturned grin
     {
       const mc = head.mouthCorner;
-      svg += `<path d="M${fmt(mc[0] + hu[0], mc[1] + hu[1])}Q${fmt(
-        mc[0] - hu[0] * 1.5 + hv[0] * 4.5,
-        mc[1] - hu[1] * 1.5 + hv[1] * 4.5
-      )} ${fmt(mc[0] - hu[0] * 5 + hv[0] * 8.5, mc[1] - hu[1] * 5 + hv[1] * 8.5)}" fill="none" stroke="${ink}" stroke-width="1.6" opacity="0.45"/>`;
+      const cr = Math.max(2.2, er * 0.45);
+      svg += `<path d="M${fmt(mc[0] + hu[0] * 0.6, mc[1] + hu[1] * 0.6)}Q${fmt(
+        mc[0] - hu[0] * cr * 0.5 - hv[0] * cr * 0.5,
+        mc[1] - hu[1] * cr * 0.5 - hv[1] * cr * 0.5
+      )} ${fmt(mc[0] - hu[0] * cr * 0.8 - hv[0] * cr * 1.1, mc[1] - hu[1] * cr * 0.8 - hv[1] * cr * 1.1)}" fill="none" stroke="${lineInk}" stroke-width="1.2" opacity="${round2(0.45 * Math.max(tier, 0.4))}"/>`;
     }
-    // nostril high on the snout
+    // nostril at 0.82–0.88 of snout length: a crescent, never a dot
     {
-      const c: Pt = [
-        head.C[0] + hu[0] * 0.86 * head.L + hv[0] * 0.1 * head.H,
-        head.C[1] + hu[1] * 0.86 * head.L + hv[1] * 0.1 * head.H,
-      ];
-      svg += `<path d="M${fmt(c[0] - hu[0] * 2.6, c[1] - hu[1] * 2.6)}Q${fmt(
-        c[0] + hv[0] * 2.6,
-        c[1] + hv[1] * 2.6
-      )} ${fmt(c[0] + hu[0] * 2.6, c[1] + hu[1] * 2.6)}" fill="none" stroke="${ink}" stroke-width="1.6" opacity="0.75"/>`;
+      const nA = BOSS_FRONT_A + 0.85 * (NOSE_A - BOSS_FRONT_A);
+      const c = hp(nA, 0.07 - 0.03 * beak);
+      svg += `<path d="M${fmt(c[0] - hu[0] * nostrilR, c[1] - hu[1] * nostrilR)}Q${fmt(
+        c[0] + hv[0] * nostrilR,
+        c[1] + hv[1] * nostrilR
+      )} ${fmt(c[0] + hu[0] * nostrilR, c[1] + hu[1] * nostrilR)}" fill="none" stroke="${lineInk}" stroke-width="1.3" opacity="0.72"/>`;
     }
 
-    if (head.gapeD && f.teeth && f.teeth.intensity > 0.05) {
-      const tl = Math.min(7, Math.max(3.5, p.headSize * 0.16)) * f.teeth.intensity;
+    // teeth (§4): the upper lip overhangs — tips only, ≤50% of tooth length,
+    // bone-toned, seeded ±15% spacing/length jitter, never an even picket row.
+    // Count is a weights-only function (H0) so sibling seeds stay structural.
+    if (head.gapeD && f.teeth && carn > 0.05) {
+      const nUp = Math.min(5, Math.max(3, 3 + Math.floor((H0 - 34) / 14)));
+      const nLo = nUp - 2;
+      const tr2 = mulberry32((genome.seed ^ 0x7ee7) >>> 0);
+      const tl = Math.min(7, Math.max(4, p.headSize * 0.11));
       let teeth = '';
-      // upper row hangs from the lip line; lower row rises off the jaw edge
-      for (let i = 0; i < 5; i++) {
-        const b = head.lip(0.16 + i * 0.14);
-        const len = tl * (i % 2 === 0 ? 1 : 0.72);
+      for (let i = 0; i < nUp; i++) {
+        const u = 0.2 + ((i + 0.5 + (tr2() - 0.5) * 0.3) / nUp) * 0.72;
+        const b = head.lip(u);
+        const len = tl * 0.5 * (0.85 + tr2() * 0.3) * (i % 2 === 0 ? 1 : 0.82);
+        const w = Math.max(1.2, 0.028 * H);
         teeth += `<path d="${trianglePath(
-          [b[0] - hu[0] * 2.4, b[1] - hu[1] * 2.4],
+          [b[0] - hu[0] * w, b[1] - hu[1] * w],
           [b[0] - hv[0] * len, b[1] - hv[1] * len],
-          [b[0] + hu[0] * 2.4, b[1] + hu[1] * 2.4]
-        )}" fill="${TOOTH}" stroke="${BONE_INK}" stroke-width="0.8"/>`;
+          [b[0] + hu[0] * w, b[1] + hu[1] * w]
+        )}" fill="${TOOTH}" stroke="${BONE_INK}" stroke-width="0.6"/>`;
       }
       const lowerEdge = head.jawPts.slice(0, 7);
-      for (let i = 0; i < 3; i++) {
-        const b = alongPolyline(lowerEdge, 0.3 + i * 0.2);
-        const len = tl * 0.7 * (i % 2 === 0 ? 1 : 0.8);
+      for (let i = 0; i < nLo; i++) {
+        const u = 0.3 + ((i + 0.5 + (tr2() - 0.5) * 0.3) / Math.max(1, nLo)) * 0.5;
+        const b = alongPolyline(lowerEdge, u);
+        const len = tl * 0.38 * (0.85 + tr2() * 0.3);
+        const w = Math.max(1, 0.024 * H);
         teeth += `<path d="${trianglePath(
-          [b[0] - hu[0] * 2, b[1] - hu[1] * 2],
+          [b[0] - hu[0] * w, b[1] - hu[1] * w],
           [b[0] + hv[0] * len, b[1] + hv[1] * len],
-          [b[0] + hu[0] * 2, b[1] + hu[1] * 2]
-        )}" fill="${TOOTH}" stroke="${BONE_INK}" stroke-width="0.8"/>`;
+          [b[0] + hu[0] * w, b[1] + hu[1] * w]
+        )}" fill="${TOOTH}" stroke="${BONE_INK}" stroke-width="0.6"/>`;
       }
-      svg += `<g opacity="${round1(f.teeth.intensity)}">${teeth}</g>`;
+      svg += `<g opacity="${round2(carn * tier)}">${teeth}</g>`;
     }
 
-    const E = head.eye;
-    const eyeScale = blend.age === 'hatchling' ? 1.6 : blend.age === 'juvenile' ? 1.25 : 1;
-    const er = Math.min(7, Math.max(3.5, p.headSize * 0.11)) * eyeScale;
-    // socket shadow seats the eye IN the skull instead of stuck onto it
-    // (capped by head height so a sauropod's pea-sized head isn't all socket)
+    // socket shadow seats the eye IN the skull — a seat, not a panda patch
     svg += `<ellipse cx="${round1(E[0] - hu[0] * er * 0.15)}" cy="${round1(E[1] - hu[1] * er * 0.15)}" rx="${round1(
-      Math.min(er * 2, p.headSize * 0.32)
-    )}" ry="${round1(Math.min(er * 1.5, p.headSize * 0.24))}" fill="${ink}" opacity="0.1"/>`;
-    // sclera → iris (markings-tinted) → pupil → catchlight: the deliberate
-    // cartoon-life treatment; the catchlight is what makes it look awake
+      Math.min(er * 1.4, H * 0.3)
+    )}" ry="${round1(Math.min(er * 1.05, H * 0.22))}" fill="${lineInk}" opacity="${round2(0.14 * tier)}"/>`;
+    // sclera → iris (markings-tinted) → pupil → one catchlight in the
+    // upper-nasal quadrant — the catchlight is the "alive" cue and stays
+    // at every tier
     svg +=
-      `<circle cx="${round1(E[0])}" cy="${round1(E[1])}" r="${round1(er)}" fill="${EYE_WHITE}" stroke="${ink}" stroke-width="1.5"/>` +
-      `<circle cx="${round1(E[0] - er * 0.12)}" cy="${round1(E[1])}" r="${round1(er * 0.62)}" fill="${shade(sec, -0.08)}"/>` +
-      `<circle cx="${round1(E[0] - er * 0.18)}" cy="${round1(E[1])}" r="${round1(er * 0.34)}" fill="${EYE_PUPIL}"/>` +
-      `<circle cx="${round1(E[0] - er * 0.34)}" cy="${round1(E[1] - er * 0.3)}" r="${round1(Math.max(0.8, er * 0.16))}" fill="${EYE_WHITE}" opacity="0.9"/>`;
-    // brow under the boss: higher at the back, dipping toward the snout
-    const b0: Pt = [E[0] - hu[0] * er * 1.5 + hv[0] * er * 2, E[1] - hu[1] * er * 1.5 + hv[1] * er * 2];
-    const b1: Pt = [E[0] + hu[0] * er * 1.9 + hv[0] * er * 1.25, E[1] + hu[1] * er * 1.9 + hv[1] * er * 1.25];
-    const bc: Pt = [E[0] + hu[0] * er * 0.1 + hv[0] * er * 2.35, E[1] + hu[1] * er * 0.1 + hv[1] * er * 2.35];
-    svg += `<path d="M${fmt(b0[0], b0[1])}Q${fmt(bc[0], bc[1])} ${fmt(b1[0], b1[1])}" fill="none" stroke="${ink}" stroke-width="2.2" stroke-linecap="round"/>`;
+      `<circle cx="${round1(E[0])}" cy="${round1(E[1])}" r="${round1(er)}" fill="${EYE_WHITE}" stroke="${lineInk}" stroke-width="1.2"/>` +
+      `<circle cx="${round1(E[0] - er * 0.12)}" cy="${round1(E[1])}" r="${round1(er * 0.63)}" fill="${shade(sec, -0.08)}"/>` +
+      `<circle cx="${round1(E[0] - er * 0.16)}" cy="${round1(E[1])}" r="${round1(er * 0.33)}" fill="${EYE_PUPIL}"/>` +
+      `<circle cx="${round1(E[0] + hu[0] * er * 0.35 + hv[0] * er * 0.35)}" cy="${round1(
+        E[1] + hu[1] * er * 0.35 + hv[1] * er * 0.35
+      )}" r="${round1(Math.max(0.8, er * 0.25))}" fill="${EYE_WHITE}" opacity="0.9"/>`;
+    // brow: one stroke, angled down-toward-snout for carnivores (8–15°),
+    // near-level for herbivores (0–6°) — never an arch above the skull line
+    {
+      const th = 0.05 + 0.17 * carn;
+      const cth = Math.cos(th);
+      const sth = Math.sin(th);
+      const bLen = er * 3.3;
+      const b0: Pt = [E[0] - hu[0] * er * 1.45 + hv[0] * er * 1.9, E[1] - hu[1] * er * 1.45 + hv[1] * er * 1.9];
+      const dir: Pt = [hu[0] * cth - hv[0] * sth, hu[1] * cth - hv[1] * sth];
+      const b1: Pt = [b0[0] + dir[0] * bLen, b0[1] + dir[1] * bLen];
+      const bc: Pt = [b0[0] + dir[0] * bLen * 0.5 + hv[0] * er * 0.35, b0[1] + dir[1] * bLen * 0.5 + hv[1] * er * 0.35];
+      svg += `<path d="M${fmt(b0[0], b0[1])}Q${fmt(bc[0], bc[1])} ${fmt(b1[0], b1[1])}" fill="none" stroke="${lineInk}" stroke-width="${browW}" stroke-linecap="round" opacity="${round2(0.8 * tier)}"/>`;
+    }
   }
 
   // --- near legs (in front of the body, thighs merging into it) -------------------
-  svg += hindLeg(hip, p, 0, 0, url('gl'), ink, W_NEAR, ink, `url(#${clipId})`);
-  svg += frontLeg(shoulder, p, 0, 0, url('gl'), ink, W_NEAR, ink, lux, `url(#${clipId})`);
+  svg += hindLeg(hip, p, 0, 0, url('gl'), edge, W_SIL, lineInk, `url(#${clipId})`, curveHind, hindFootLen, lux);
+  svg += frontLeg(shoulder, p, 0, 0, url('gl'), edge, W_SIL, lineInk, lux, `url(#${clipId})`, curveFore, foreFootLen);
+
+  // --- value system (§3), drawn OVER the near-leg root overpaint --------------------
+  // The spine-relative bands land after the near legs so body wall and thigh
+  // receive identical countershade/core-shadow — the §5 continuity rule holds
+  // by construction and the thigh never reads as an erased patch. (Paint-order
+  // detail inside the §3 stack; the visual order of the five values is kept.)
+  {
+    const pool = (cx: number, cy: number, rx: number, ry: number, o: number): string =>
+      `<ellipse cx="${round1(cx)}" cy="${round1(cy)}" rx="${round1(rx)}" ry="${round1(ry)}" fill="${url('ao')}" opacity="${o}"/>`;
+    let v = '';
+    // dorsal dark reinforcement along the ridge — shallow steps, and the
+    // deepest margin undulates gently so the pigment edge reads organic,
+    // never a ruled two-tone line
+    v += `<path d="${edgeStrip(0.05, tNeck, 1, 1.04, (t) => 0.5 + 0.05 * Math.sin(t * 7))}" fill="${shade(prim, -0.5)}" opacity="0.04"/>`;
+    v += `<path d="${edgeStrip(0.05, tNeck, 1, 1.04, (t) => 0.7 + 0.04 * Math.sin(t * 7 + 1.3))}" fill="${shade(prim, -0.5)}" opacity="0.05"/>`;
+    v += `<path d="${edgeStrip(0.05, tNeck, 1, 1.04, 0.87)}" fill="${shade(prim, -0.5)}" opacity="0.06"/>`;
+    // ventral cream, spine-relative (throat to tail underside)
+    v += `<path d="${edgeStrip(0.04, 0.72, -1, 1.04, 0.62)}" fill="${cream}" opacity="0.3"/>`;
+    v += `<path d="${edgeStrip(0.04, 0.72, -1, 1.04, 0.8)}" fill="${cream}" opacity="0.18"/>`;
+    // core shadow (§3.3): the turn of the form — a soft dark band hugging the
+    // belly line just above the cream, never a stripe
+    v += `<path d="${edgeStrip(0.05, 0.7, -1, 0.72, 0.4)}" fill="${dark}" opacity="0.06"/>`;
+    v += `<path d="${edgeStrip(0.05, 0.7, -1, 0.64, 0.44)}" fill="${dark}" opacity="0.06"/>`;
+    v += `<path d="${edgeStrip(0.05, 0.7, -1, 0.56, 0.48)}" fill="${dark}" opacity="0.06"/>`;
+    // AO pools (§3.4): limb roots, throat, tail-meets-hips. Root pools hug
+    // the local belly line and span past the thigh, darkening body wall and
+    // emerging limb together — the seam-killer where a leg crosses the edge
+    const throat = alongPolyline(head.jawPts, 0.62);
+    const hipHalf = at(0.3).w / 2;
+    const chestHalf = at(0.625).w / 2;
+    v += pool(hip[0] - 2, hip[1] + hipHalf * 0.78, p.hLegThick * 1.8, hipHalf * 0.62, 0.17);
+    v += pool(hip[0] - 2 + FAR_DX, hip[1] + hipHalf * 0.6, p.hLegThick * 1.4, hipHalf * 0.5, 0.12);
+    v += pool(shoulder[0] + 6, shoulder[1] + chestHalf * 0.74, p.fLegThick * 1.7 + 12, chestHalf * 0.6, 0.15);
+    v += pool(shoulder[0] + 6 + FAR_DX, shoulder[1] + chestHalf * 0.56, p.fLegThick * 1.4 + 9, chestHalf * 0.48, 0.11);
+    v += pool(throat[0], throat[1], p.headSize * 0.62, p.headSize * 0.4, 0.13);
+    v += pool(hip[0] + 34, hip[1] + p.bodyThick * 0.16, p.tailThick * 1.1, p.tailThick * 0.7, 0.13);
+    // hip and shoulder joint arcs read on the thigh, not under it
+    if (lux) {
+      v +=
+        `<g fill="none" stroke="${lineInk}" stroke-linecap="round">` +
+        `<path d="${arcPath([hip[0] - 2, hip[1] + 12], p.hLegThick * 0.66, Math.PI * 1.06, Math.PI * 1.86)}" stroke-width="1.2" opacity="0.18"/>` +
+        `<path d="${arcPath([shoulder[0] + 8, shoulder[1] + 16], p.fLegThick * 0.9 + 6, Math.PI * 1.12, Math.PI * 1.8)}" stroke-width="1.1" opacity="0.16"/>` +
+        `</g>`;
+    }
+    svg += `<g clip-path="url(#${clipId})">${v}</g>`;
+    // wrap light (§3.2): the body's own shape refilled with the radial. Last
+    // of the value stack so the thigh overpaint sits under the same light.
+    svg += `<use href="#${gid('sil')}" fill="${url('wl')}"/>`;
+  }
   if (f.feathers) {
     // pennaceous arm fringe trailing off the near forelimb
     const fr = mulberry32((genome.seed ^ 0x0a51) >>> 0);
@@ -810,16 +1062,16 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
     // away behind the boss, and a shallow chord bridges the drop with a
     // visible sliver of sky under its rim
     const seat = head.headTop(0.34);
-    const bx = seat[0] - hv[0] * 13;
-    const by = seat[1] - hv[1] * 13;
-    const rx = R * 0.95;
+    const bx = seat[0] - hv[0] * 16;
+    const by = seat[1] - hv[1] * 16;
+    const rx = R * 0.82;
     const p0: Pt = [bx - hu[0] * rx, by - hu[1] * rx];
     const p1: Pt = [bx + hu[0] * rx, by + hu[1] * rx];
     // sweep 0 arcs the cap UP over the crown (sweep 1 bowls it over the face
     // — p0 sits tail-ward of p1, so the clockwise arc dips below the chord)
     svg +=
       `<path d="M${fmt(p0[0], p0[1])}A${round1(rx)} ${round1(R)} 0 0 0 ${fmt(p1[0], p1[1])}Z" ` +
-      `fill="${url('dm')}" stroke="${ink}" stroke-width="${W_FEAT}" stroke-linejoin="round"/>`;
+      `fill="${url('dm')}" stroke="${edge}" stroke-width="${W_FEAT}" stroke-linejoin="round"/>`;
     if (lux) {
       // shallow pits — the battering surface is never smooth in a field guide
       for (const [ox, oy] of [
@@ -829,7 +1081,7 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
       ] as const) {
         const kx = bx + hu[0] * rx * ox + hv[0] * R * oy;
         const ky = by + hu[1] * rx * ox + hv[1] * R * oy;
-        svg += `<circle cx="${round1(kx)}" cy="${round1(ky)}" r="1.3" fill="${ink}" opacity="0.3"/>`;
+        svg += `<circle cx="${round1(kx)}" cy="${round1(ky)}" r="1.3" fill="${lineInk}" opacity="0.3"/>`;
       }
     }
     for (const off of [0.5, 0.82]) {
@@ -845,12 +1097,12 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
   // Ankylosaurus tail club: paired bony lobes at the very tip of the tail —
   // the visible seam between the two osteoderms is what sells the texture.
   if (f.tailClub) {
-    const s = at(0.015);
+    const sp = at(0.015);
     const R = 15 + 16 * f.tailClub.intensity;
-    const cx = s.p[0] + s.tn[0] * R * 0.4;
-    const cy = s.p[1] + s.tn[1] * R * 0.4;
+    const cx = sp.p[0] + sp.tn[0] * R * 0.4;
+    const cy = sp.p[1] + sp.tn[1] * R * 0.4;
     const lobe = (dx: number, rxF: number, ryF: number): string =>
-      `<ellipse cx="${round1(cx + s.tn[0] * R * dx)}" cy="${round1(cy + s.tn[1] * R * dx)}" rx="${round1(
+      `<ellipse cx="${round1(cx + sp.tn[0] * R * dx)}" cy="${round1(cy + sp.tn[1] * R * dx)}" rx="${round1(
         R * rxF
       )}" ry="${round1(R * ryF)}" fill="${url('cb')}" stroke="${BONE_INK}" stroke-width="${W_FEAT}"/>`;
     svg += lobe(-0.34, 0.72, 0.64) + lobe(0.36, 0.62, 0.56);
@@ -862,14 +1114,14 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
         [0.06, 0.26, 2.5],
         [0.52, -0.14, 2.6],
       ] as const) {
-        const px = cx + s.tn[0] * R * dx + s.n[0] * R * dy;
-        const py = cy + s.tn[1] * R * dx + s.n[1] * R * dy;
+        const px = cx + sp.tn[0] * R * dx + sp.n[0] * R * dy;
+        const py = cy + sp.tn[1] * R * dx + sp.n[1] * R * dy;
         pits += `<path d="M${fmt(px - r, py)}Q${fmt(px, py + r * 0.9)} ${fmt(px + r, py)}"/>`;
       }
-      svg += `<g fill="none" stroke="${BONE_INK}" stroke-width="1.1" opacity="0.45">${pits}</g>`;
+      svg += `<g fill="none" stroke="${BONE_INK}" stroke-width="1" opacity="0.45">${pits}</g>`;
     }
-    svg += `<ellipse cx="${round1(cx - s.tn[0] * R * 0.3 + s.n[0] * R * 0.22)}" cy="${round1(
-      cy - s.tn[1] * R * 0.3 + s.n[1] * R * 0.22
+    svg += `<ellipse cx="${round1(cx - sp.tn[0] * R * 0.3 + sp.n[0] * R * 0.22)}" cy="${round1(
+      cy - sp.tn[1] * R * 0.3 + sp.n[1] * R * 0.22
     )}" rx="${round1(R * 0.34)}" ry="${round1(R * 0.24)}" fill="${shade(BONE, 0.34)}" opacity="0.8"/>`;
   }
 
@@ -889,12 +1141,9 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
   }
 
   // --- scale around the ground anchor, wrap in <svg> --------------------------------
-  const anchorX = HIPX - p.bodyLen * 0.35;
-  // Fit-to-frame clamp: the display scale may only *shrink* to keep a creature
-  // inside the viewBox — it never grows past its genome size. This is what lets
-  // a full-height sauropod's neck stay in frame at size 100 without capping the
-  // species. It only engages when geometry would overflow.
-  const s = round1(Math.min(blend.displayScale, fitScale(pts, ws, f, head.crownY)) * 100) / 100;
+  // Fit-to-frame clamp (computed above, pre-face, for the §4 floors): the
+  // display scale may only *shrink* to keep a creature inside the viewBox —
+  // it never grows past its genome size.
   const { name } = composeName(genome);
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${VIEW.width} ${VIEW.height}" role="img" aria-label="${escapeAttr(name)}, a hybrid dinosaur">` +
@@ -902,6 +1151,12 @@ export function renderCreature(genome: Genome, opts: RenderOptions = {}): string
     `</svg>`
   );
 }
+
+// head-frame anatomy anchors (§4): the brow boss ends and the snout begins at
+// a=0.40; the nose point sits at a=1.06. "Snout length" in the ratio table is
+// the distance between them.
+const BOSS_FRONT_A = 0.4;
+const NOSE_A = 1.06;
 
 /**
  * Integument class for the texture layer, decided by the skin slot: an
@@ -925,18 +1180,23 @@ function integumentOf(
 }
 
 /**
- * Largest display scale (about the ground anchor at HIPX-relative anchorX) that
- * keeps the creature's top edge inside the viewBox. Only the *vertical* extent
- * is clamped: a too-tall creature (a full-height sauropod at max size) would
- * otherwise push its head off the top of the frame. Horizontal overhang at
- * extreme sizes is left as-is — it is the established M0 behaviour and clamping
- * it would move existing goldens. Returns Infinity when nothing overflows.
+ * Largest display scale (about the ground anchor at anchorX) that keeps the
+ * creature inside the viewBox. Vertical: the top edge (silhouette, skull
+ * crown, features over their own anchor region — a sail must not borrow
+ * headroom from a sauropod's head, or tall hybrids over-shrink and the size
+ * slider goes dead, M1 review). Horizontal: snout and tail-tip features stay
+ * in frame too — STYLE-BIBLE §2 judges every species at full-frame max size,
+ * so "no clipped features" now includes the frame edges. Returns Infinity
+ * when nothing overflows.
  */
 function fitScale(
   pts: readonly Pt[],
   ws: readonly number[],
   feat: BlendResult['features'],
-  crownY: number
+  crownY: number,
+  bxMin: number,
+  bxMax: number,
+  anchorX: number
 ): number {
   const PAD = 10;
   const N = pts.length;
@@ -948,10 +1208,6 @@ function fitScale(
     for (let i = i0; i <= i1; i++) y = Math.min(y, pts[i]![1] - (ws[i] ?? 0) / 2);
     return y;
   };
-  // Features rise above their OWN anchor region, not the global apex — a
-  // sail on the back must not borrow headroom from a sauropod's head, or
-  // tall hybrids over-shrink and the size slider goes dead (M1 review).
-  // The authored skull crown can top the tube edge, so it clamps too.
   let ymin = Math.min(topOver(0, 1), crownY);
   const rise = (k: FeatureKind, h: number, a: number, b: number) => {
     if (!feat[k]) return;
@@ -965,7 +1221,16 @@ function fitScale(
   rise('frill', 70, 0.6, 0.8);
   rise('domeSkull', 48, 0.7, 1);
   rise('feathers', 44, 0, 0.95); // coat petals + tail fan (fan lives near t=0)
-  return ymin < GROUND ? (GROUND - PAD) / (GROUND - ymin) : Infinity;
+  let s = ymin < GROUND ? (GROUND - PAD) / (GROUND - ymin) : Infinity;
+  // tail-tip features overhang the silhouette bbox on the right
+  const tailReach =
+    (feat.tailClub ? 34 * feat.tailClub.intensity : 0) +
+    (feat.feathers ? 30 * feat.feathers.intensity : 0) +
+    (feat.tailSpikes ? 14 * feat.tailSpikes.intensity : 0);
+  if (bxMin < anchorX) s = Math.min(s, (anchorX - PAD) / (anchorX - bxMin));
+  const right = bxMax + tailReach;
+  if (right > anchorX) s = Math.min(s, (VIEW.width - PAD - anchorX) / (right - anchorX));
+  return s;
 }
 
 /**
@@ -1097,19 +1362,20 @@ interface HeadInfo {
   /** arc-fraction samplers over the authored polylines */
   headTop: (a: number) => Pt;
   lip: (a: number) => Pt;
-  eye: Pt;
   mouthCorner: Pt;
   /** highest authored point (viewBox fitting) */
   crownY: number;
 }
 
 /**
- * Parametric skull, replacing the tapered tube-end that made every face read
- * as a sock puppet. Cranium + brow boss + snout bridge on top; upper-jaw lip
- * line and a real lower jaw below; carnivores (teeth gene expressed) hold the
- * mouth open by `gape`, herbivores close it and sharpen toward a beak as
- * snoutTip narrows. Everything is a linear map of blended morph params in the
- * head frame, so hybrid heads morph as smoothly as the tube they replace.
+ * Parametric skull. Cranium + brow boss + snout bridge on top; a short
+ * upper-jaw lip line and a real lower jaw below. Carnivores (teeth gene
+ * expressed) part the jaws by a narrow gape — STYLE-BIBLE §4: 10–16° between
+ * jaws at full expression, mouth corner ≤ 0.35 of snout length back from the
+ * nose (a deeper corner is the grin that reads as derp). Herbivores close
+ * the mouth and sharpen toward a beak as snoutTip narrows. Everything is a
+ * linear map of blended morph params in the head frame, so hybrid heads
+ * morph as smoothly as the tube they replace.
  */
 function buildHead(
   C: Pt,
@@ -1142,41 +1408,46 @@ function buildHead(
   // notch where the tube hands over to the skull.
   const bJoin = ((neckTop[0] - C[0]) * v[0] + (neckTop[1] - C[1]) * v[1]) / H;
   const crownB = Math.max(0.63, bJoin + 0.05);
-  const nose = lp(1.06, -0.02 - 0.02 * beak);
+  const nose = lp(NOSE_A, -0.02 - 0.02 * beak);
   const topPts = chain(neckTop, [
     [lp(-0.02, crownB - 0.01), lp(0.14, crownB)],
     [lp(0.3, Math.max(0.68, crownB + 0.04)), lp(0.4, Math.max(0.55, crownB - 0.08))],
     [lp(0.5, 0.38), lp(0.64, 0.28 - 0.06 * beak)],
     [lp(0.82, 0.2 - 0.06 * beak), lp(0.94, 0.12 - 0.05 * beak)],
-    [lp(1.06, 0.06 - 0.04 * beak), nose],
+    [lp(NOSE_A, 0.06 - 0.04 * beak), nose],
   ]);
-  const mouthCorner = lp(0.32, -0.3);
-  // lip line nose → corner (drawn as a crease when closed, silhouette when open)
+  // mouth corner ≤ 0.35 snout lengths back from the nose (§4) — the visible
+  // oral margin stays forward; lips cover the rear of the jaw
+  const mouthCorner = lp(NOSE_A - 0.33 * (NOSE_A - BOSS_FRONT_A), -0.15);
   const lipPts = chain(nose, [
-    [lp(1.02, -0.15), lp(0.9, -0.16)],
-    [lp(0.58, -0.21), mouthCorner],
+    [lp(1.01, -0.11), lp(0.95, -0.13)],
+    [lp(0.89, -0.145), mouthCorner],
   ]);
 
-  const gd = gape * (0.1 + 0.26 * gape); // gape drop, fraction of H
+  // narrow carnivore gape: the lower jaw rotates down ~12° at full expression
+  // (10–16° range) about the mouth corner; gd is that drop in H units at the
+  // lower-lip tip
+  const jawTipA = 1.02;
+  const gd = Math.tan(0.24 * gape) * (jawTipA - (NOSE_A - 0.33 * (NOSE_A - BOSS_FRONT_A))) * (L / H);
   let jawPts: Pt[];
   let gapeD = '';
   if (gape > 0.04) {
-    const lowerTip = lp(0.92, -0.28 - gd);
+    const lowerTip = lp(jawTipA, -0.155 - gd);
     jawPts = chain(mouthCorner, [
-      [lp(0.62, -0.3 - gd * 0.7), lowerTip],
-      [lp(1.0, -0.34 - gd), lp(0.9, -0.44 - gd * 0.85)],
-      [lp(0.44, -0.56 - gd * 0.3), lp(0.1, -0.55)],
+      [lp(0.95, -0.15 - gd * 0.5), lowerTip],
+      [lp(1.06, -0.24 - gd * 0.8), lp(0.9, -0.36 - gd * 0.4)],
+      [lp(0.48, -0.53), lp(0.1, -0.55)],
       [lp(-0.04, -0.54), neckBot],
     ]);
     // mouth interior behind the teeth
-    const gi = chain(mouthCorner, [[lp(0.66, -0.3 - gd * 0.65), lp(0.88, -0.29 - gd * 0.92)]]);
+    const gi = chain(mouthCorner, [[lp(0.95, -0.15 - gd * 0.55), lp(1.0, -0.15 - gd * 0.9)]]);
     let d = `M${fmt(mouthCorner[0], mouthCorner[1])}`;
     for (const q of lipPts.slice(0, -1).reverse()) d += `L${fmt(q[0], q[1])}`; // corner → nose
     for (const q of gi.reverse()) d += `L${fmt(q[0], q[1])}`;
     gapeD = d + 'Z';
   } else {
     jawPts = chain(nose, [
-      [lp(1.03, -0.16 - 0.04 * beak), lp(0.93, -0.24)],
+      [lp(1.03, -0.13 - 0.04 * beak), lp(0.94, -0.22)],
       [lp(0.7, -0.4), lp(0.42, -0.48)],
       [lp(0.06, -0.56), lp(-0.02, -0.54)],
       [lp(-0.06, -0.53), neckBot],
@@ -1198,7 +1469,6 @@ function buildHead(
     gape,
     headTop: (a) => alongPolyline(topPts, a),
     lip: (a) => alongPolyline(lipPts, a),
-    eye: lp(0.37, 0.15),
     mouthCorner,
     crownY,
   };
@@ -1206,9 +1476,211 @@ function buildHead(
 
 // --- limbs -------------------------------------------------------------------------
 
+/** catmull-sampled centerline + interpolated widths + normals for a limb */
+function limbSamples(ctrl: readonly Pt[], widths: readonly number[]) {
+  const pts = catmull(ctrl, 8);
+  const ws = pts.map((_, i) => {
+    const f = (i / (pts.length - 1)) * (widths.length - 1);
+    const j = Math.floor(f);
+    const w0 = widths[j]!;
+    const w1 = widths[Math.min(j + 1, widths.length - 1)]!;
+    return w0 + (w1 - w0) * (f - j);
+  });
+  return { pts, ws, nm: normals(pts) };
+}
+
 /**
- * Tapered toe with a rounded tip and a dark claw. The rounded cap is a Q
- * pushed past the tip along the toe axis.
+ * Leg and foot as ONE continuous silhouette path (STYLE-BIBLE §5): the ribbon
+ * runs down the leg, the front edge flows over the toes, the sole lies flat
+ * on the ground (≥60% of foot length in contact), and the heel closes back up
+ * the rear edge — no appended ellipse, no ankle cap-line. Toe splits scallop
+ * the front edge by `c` (posture curvature): deep clawed splits for
+ * digitigrade legs, a smooth pad for graviportal columns. Returns the path
+ * plus claw/nail wedges and (lux) toe creases.
+ */
+function legWithFoot(
+  ctrl: readonly Pt[],
+  widths: readonly number[],
+  groundY: number,
+  footLen: number,
+  c: number,
+  ink: string,
+  lux: boolean
+): { d: string; extras: (fill: string) => string } {
+  const { pts, ws, nm } = limbSamples(ctrl, widths);
+  const last = pts.length - 1;
+  const fx = pts[last]![0];
+  // front (nose-ward) edge then toes then sole then heel then rear edge
+  let d = '';
+  for (let i = 0; i <= last; i++) {
+    const w = ws[i]! / 2;
+    d += `${i === 0 ? 'M' : 'L'}${fmt(pts[i]![0] + nm[i]![0] * w, pts[i]![1] + nm[i]![1] * w)}`;
+  }
+  const wA = ws[last]! / 2;
+  const frontX = fx - wA;
+  const backX = fx + wA;
+  const toeX = fx - footLen * 0.72;
+  const heelX = Math.max(backX + 2, fx + footLen * 0.3);
+  const notch = 0.8 + 5.4 * c;
+  const t1: Pt = [fx - footLen * 0.38, groundY - 2.8 - notch * 0.55]; // far toe tip
+  const t2: Pt = [toeX, groundY - 1.6]; // near toe tip, frontmost
+  // over the metatarsus front down to the far toe
+  d += `Q${fmt(frontX - footLen * 0.06, groundY - 5.5 - notch * 0.4)} ${fmt(t1[0] + 2.6, t1[1] - 1.2)}`;
+  d += `Q${fmt(t1[0] - 1.2, t1[1] - 0.8)} ${fmt(t1[0] - 1.6, t1[1] + 1)}`;
+  // notch between the toes — the split that makes them read as separate
+  d += `Q${fmt((t1[0] + t2[0]) / 2, t1[1] - 0.6 + notch)} ${fmt(t2[0] + 2.2, t2[1] - 1)}`;
+  d += `Q${fmt(t2[0] - 2.4, t2[1] - 0.6)} ${fmt(t2[0] - 1, groundY)}`;
+  // flat sole in ground contact from near-toe to heel
+  d += `L${fmt(heelX - 2.4, groundY)}`;
+  d += `Q${fmt(heelX + 2.2, groundY - 1.6)} ${fmt(backX, pts[last]![1] + 1)}`;
+  for (let i = last; i >= 0; i--) {
+    const w = ws[i]! / 2;
+    d += `L${fmt(pts[i]![0] - nm[i]![0] * w, pts[i]![1] - nm[i]![1] * w)}`;
+  }
+  d += 'Z';
+
+  // claws morph continuously with posture: long narrow talons on digitigrade
+  // feet, short broad hoof-nails on columns — same 3 elements either way
+  const extras = (fill: string): string => {
+    const nl = 2 + 4.6 * c;
+    const nw = 3.1 - 1.1 * c;
+    const nail = (bx: number, by: number, dx: number, dy: number, sc: number): string => {
+      const L2 = Math.hypot(dx, dy) || 1;
+      const ux = dx / L2;
+      const uy = dy / L2;
+      return `<path d="${trianglePath(
+        [bx - uy * nw * sc, by + ux * nw * sc],
+        [bx + ux * nl * sc, by + uy * nl * sc],
+        [bx + uy * nw * sc, by - ux * nw * sc]
+      )}" fill="${fill}"/>`;
+    };
+    let out = nail(t2[0] + 0.6, t2[1] + 0.4, -0.9, 0.44, 1);
+    out += nail(t1[0] + 0.4, t1[1], -0.86, 0.5, 0.86);
+    out += nail(fx - footLen * 0.08, groundY - 1.8, -0.8, 0.6, 0.7);
+    if (lux) {
+      // toe creases off the notch toward the sole
+      out += `<path d="M${fmt((t1[0] + t2[0]) / 2 + 1, t1[1] + notch * 0.5)}L${fmt(
+        (t1[0] + t2[0]) / 2 - 0.6,
+        groundY - 0.8
+      )}M${fmt(fx - footLen * 0.18, groundY - 3.4)}L${fmt(fx - footLen * 0.22, groundY - 0.8)}" stroke="${ink}" stroke-width="1" opacity="0.35" fill="none"/>`;
+    }
+    return out;
+  };
+  return { d, extras };
+}
+
+/**
+ * Hind leg: jointed chain (thigh root high inside the body → knee → ankle →
+ * metatarsus → unified foot). Posture follows the archetype blend `c`
+ * (STYLE-BIBLE §5): c→1 is the digitigrade S (knee forward at 0.44 of leg
+ * length, ankle high, metatarsus near-vertical), c→0 straightens every
+ * offset into a graviportal column within 4° of vertical through the hip.
+ * The thigh root is ≥ 0.5 × body depth at the hip; `bodyClip` (near legs)
+ * overpaints the stroke inside the body silhouette so the thigh grows out
+ * of the hip instead of ending in a visible root cap.
+ */
+function hindLeg(
+  hip: Pt,
+  p: MorphVector,
+  dx: number,
+  dy: number,
+  fill: string,
+  stroke: string,
+  strokeW: number,
+  ink: string,
+  bodyClip: string | null,
+  c: number,
+  footLen: number,
+  lux: boolean
+): string {
+  const legLen = GROUND - hip[1];
+  const footH = 8 + 3 * c;
+  const groundY = GROUND - 1 + dy * 0.5;
+  const rootW = Math.max(p.hLegThick * 1.3, p.bodyThick * 0.485);
+  const ctrl: Pt[] = [
+    [hip[0] + 6 + 2 * c + dx, hip[1] - p.hLegThick * 0.1 + dy],
+    [hip[0] - 14 * c + dx, hip[1] + legLen * 0.44 + dy],
+    [hip[0] + 12 * c + dx, GROUND - (12 + 32 * c) + dy],
+    [hip[0] - 2 + dx, GROUND - footH + dy * 0.5],
+  ];
+  const widths = [
+    rootW,
+    p.hLegThick * 0.66,
+    p.hLegThick * (0.4 + 0.12 * (1 - c)),
+    p.hLegThick * (0.44 + 0.14 * (1 - c)),
+  ];
+  const { d, extras } = legWithFoot(ctrl, widths, groundY, footLen, c, ink, lux);
+  let out = `<path d="${d}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}" stroke-linejoin="round"/>`;
+  // the overpaint hides the leg's own stroke inside the body; the side-edge
+  // whisper then draws the thigh as a contour, so the smooth muscle mass
+  // reads as *in front of* the textured body wall, not an erased patch
+  if (bodyClip) {
+    out += `<g clip-path="${bodyClip}"><path d="${d}" fill="${fill}"/></g>`;
+  }
+  out += extras(ink);
+  return out;
+}
+
+/**
+ * Front leg. Grounded quadruped forelimbs get the same unified leg+foot
+ * treatment as hind legs (column posture per archetype, hoof-nails);
+ * theropod hanging arms keep the tucked two-claw hand.
+ */
+function frontLeg(
+  shoulder: Pt,
+  p: MorphVector,
+  dx: number,
+  dy: number,
+  fill: string,
+  stroke: string,
+  strokeW: number,
+  lineInk: string,
+  lux: boolean,
+  bodyClip: string | null,
+  c: number,
+  footLen: number
+): string {
+  const ax = shoulder[0] + 6 + dx;
+  const ay = shoulder[1] + 2 + dy;
+  const footY = Math.min(ay + 6 + p.fLegLen, GROUND - 8 + dy);
+  if (footY > GROUND - 30 + dy) {
+    // grounded quadruped column: three control points only — clustering an
+    // elbow and wrist mid-leg makes the ribbon fold on long legs
+    const footH = 7 + 2 * c;
+    const groundY = GROUND - 1 + dy * 0.5;
+    const ctrl: Pt[] = [
+      [ax, ay],
+      [ax + 2 + 3 * c, (ay + groundY) / 2 + 3],
+      [ax - 4 - 6 * c, GROUND - footH + dy * 0.5],
+    ];
+    const widths = [p.fLegThick * 1.2, p.fLegThick * 0.7, p.fLegThick * 0.56];
+    const { d, extras } = legWithFoot(ctrl, widths, groundY, footLen, c * 0.75, lineInk, lux);
+    let out = `<path d="${d}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}" stroke-linejoin="round"/>`;
+    if (bodyClip) {
+      out += `<g clip-path="${bodyClip}"><path d="${d}" fill="${fill}"/></g>`;
+    }
+    out += extras(lineInk);
+    return out;
+  }
+  // hanging theropod arm: short ribbon, two curved claws (shipped look)
+  const armCtrl: Pt[] = [
+    [ax, ay],
+    [ax + 2, (ay + footY) / 2 + 3],
+    [ax - 9, footY],
+  ];
+  const armW = [p.fLegThick * 1.2, p.fLegThick * 0.66, p.fLegThick * 0.48];
+  const path = limbPath(armCtrl, armW);
+  let out = `<path d="${path}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}"/>`;
+  if (bodyClip) out += `<g clip-path="${bodyClip}"><path d="${path}" fill="${fill}"/></g>`;
+  const W: Pt = [ax - 10, footY];
+  out += toe([W[0] + 2, W[1] - 2], [W[0] - 5, W[1] + 7], p.fLegThick * 0.34, 2.2, fill, stroke, lineInk);
+  out += toe([W[0] + 4, W[1]], [W[0] + 1, W[1] + 8], p.fLegThick * 0.26, 1.8, fill, stroke, lineInk);
+  return out;
+}
+
+/**
+ * Tapered toe with a rounded tip and a dark claw — the hanging theropod
+ * hand. The rounded cap is a Q pushed past the tip along the toe axis.
  */
 function toe(b: Pt, t: Pt, w0: number, w1: number, fill: string, stroke: string, ink: string): string {
   const dx = t[0] - b[0];
@@ -1221,7 +1693,7 @@ function toe(b: Pt, t: Pt, w0: number, w1: number, fill: string, stroke: string,
   return (
     `<path d="M${fmt(b[0] - px * w0, b[1] - py * w0)}L${fmt(t[0] - px * w1, t[1] - py * w1)}` +
     `Q${fmt(t[0] + ux * w1 * 1.4, t[1] + uy * w1 * 1.4)} ${fmt(t[0] + px * w1, t[1] + py * w1)}` +
-    `L${fmt(b[0] + px * w0, b[1] + py * w0)}Z" fill="${fill}" stroke="${stroke}" stroke-width="1.5" stroke-linejoin="round"/>` +
+    `L${fmt(b[0] + px * w0, b[1] + py * w0)}Z" fill="${fill}" stroke="${stroke}" stroke-width="1.2" stroke-linejoin="round"/>` +
     `<path d="${trianglePath(
       [t[0] - px * 1.6, t[1] - py * 1.6],
       [t[0] + ux * 4.5, t[1] + uy * 4.5],
@@ -1230,144 +1702,119 @@ function toe(b: Pt, t: Pt, w0: number, w1: number, fill: string, stroke: string,
   );
 }
 
-/**
- * Hind leg: jointed chain (thigh root high inside the body → knee forward →
- * ankle back → metatarsus) with joint-aware widths, and a three-toed foot.
- * `bodyClip` (near legs) overpaints the stroke inside the body silhouette so
- * the thigh grows out of the hip instead of ending in a visible root cap —
- * the "paper cutout pinned on" tell.
- */
-function hindLeg(
-  hip: Pt,
-  p: MorphVector,
-  dx: number,
-  dy: number,
-  fill: string,
-  stroke: string,
-  strokeW: number,
-  ink: string,
-  bodyClip: string | null
-): string {
-  const path = limbPath(
-    [
-      [hip[0] + 8 + dx, hip[1] - p.hLegThick * 0.1 + dy],
-      [hip[0] - 16 + dx, hip[1] + (GROUND - hip[1]) * 0.42 + dy],
-      [hip[0] + 14 + dx, GROUND - 44 + dy],
-      [hip[0] - 2 + dx, GROUND - 12 + dy],
-    ],
-    [p.hLegThick * 1.3, p.hLegThick * 0.66, p.hLegThick * 0.4, p.hLegThick * 0.46]
-  );
-  let out = `<path d="${path}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}"/>`;
-  if (bodyClip) out += `<g clip-path="${bodyClip}"><path d="${path}" fill="${fill}"/></g>`;
-  // three-toed foot planted on the ground line
-  const F: Pt = [hip[0] - 2 + dx, GROUND - 7 + dy * 0.5];
-  const spread = p.hLegThick * 0.1;
-  out += toe([F[0] + 5, F[1] + 1], [F[0] - 9 - spread * 0.6, GROUND - 1 + dy * 0.5], 3.4, 2.4, fill, stroke, ink);
-  out += toe([F[0] + 2, F[1] - 1], [F[0] - 14 - spread, GROUND - 2 + dy * 0.5], 3.8, 2.6, fill, stroke, ink);
-  out += toe([F[0] + 7, F[1] + 2], [F[0] + 12 + spread * 0.4, GROUND - 1.5 + dy * 0.5], 3, 2.2, fill, stroke, ink);
-  return out;
-}
+// --- markings -----------------------------------------------------------------------
 
 /**
- * Front leg: jointed (root in the chest → elbow → wrist). Grounded quadruped
- * forefeet keep the simple hoof + creases; theropod hanging arms end in a
- * two-clawed hand instead of the old broken-twig triangle.
+ * Pattern genes render between core shadow and texture, and must respect the
+ * countershade (STYLE-BIBLE §7): every pattern fades toward the belly cream
+ * instead of painting over it at full strength.
  */
-function frontLeg(
-  shoulder: Pt,
-  p: MorphVector,
-  dx: number,
-  dy: number,
-  fill: string,
-  stroke: string,
-  strokeW: number,
-  lineInk: string,
-  lux: boolean,
-  bodyClip: string | null
+function patternLayer(
+  genome: Genome,
+  clipId: string,
+  sec: string,
+  prim: string,
+  sfx: string,
+  topY: number,
+  bellyY: number
 ): string {
-  const ax = shoulder[0] + 6 + dx;
-  const ay = shoulder[1] + 2 + dy;
-  const footY = Math.min(ay + 6 + p.fLegLen, GROUND - 8 + dy);
-  // three control points only: clustering an elbow and wrist mid-leg makes
-  // the catmull ribbon fold into bow-ties on long quadruped legs
-  const path = limbPath(
-    [
-      [ax, ay],
-      [ax + 2, (ay + footY) / 2 + 3],
-      [ax - 9, footY],
-    ],
-    [p.fLegThick * 1.2, p.fLegThick * 0.66, p.fLegThick * 0.48]
-  );
-  let out = `<path d="${path}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}"/>`;
-  if (bodyClip) out += `<g clip-path="${bodyClip}"><path d="${path}" fill="${fill}"/></g>`;
-  if (footY > GROUND - 30 + dy) {
-    const fx = ax - 12;
-    const fy = GROUND - 5 + dy * 0.5;
-    const frx = p.fLegThick * 0.45 + (dx === 0 ? 6 : 5);
-    const fry = dx === 0 ? 6 : 5.5;
-    out += `<ellipse cx="${round1(fx)}" cy="${round1(fy)}" rx="${round1(frx)}" ry="${fry}" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`;
-    if (lux) out += toeLines(fx, fy, frx, fry, lineInk);
-  } else {
-    // hanging theropod hand: short palm, two curved claws
-    const W: Pt = [ax - 10, footY];
-    out += toe([W[0] + 2, W[1] - 2], [W[0] - 5, W[1] + 7], p.fLegThick * 0.34, 2.2, fill, stroke, lineInk);
-    out += toe([W[0] + 4, W[1]], [W[0] + 1, W[1] + 8], p.fLegThick * 0.26, 1.8, fill, stroke, lineInk);
-  }
-  return out;
-}
-
-/** Two short toe creases on a hoof ellipse — quadruped forefeet. */
-function toeLines(fx: number, fy: number, rx: number, ry: number, ink: string): string {
-  let d = '';
-  for (const off of [-0.3, 0.12]) {
-    d += `M${fmt(fx + rx * off, fy - ry * 0.65)}L${fmt(fx + rx * off - 1.6, fy + ry * 0.3)}`;
-  }
-  return `<path d="${d}" fill="none" stroke="${ink}" stroke-width="1.2" opacity="0.45"/>`;
-}
-
-// --- patterns -----------------------------------------------------------------------
-
-function patternLayer(genome: Genome, clipId: string, sec: string, prim: string, sfx: string): string {
   const pattern = genome.cosmetics.pattern;
   if (pattern === 'solid') return '';
   const clip = `clip-path="url(#${clipId})"`;
 
   if (pattern === 'stripes') {
-    let g = `<g ${clip} fill="${sec}" opacity="0.42">`;
+    // one shared userSpace fade: full strength on the back, ~quarter at the belly
+    const gradId = `ps-${sfx}`;
+    let g =
+      `<g ${clip}><defs><linearGradient id="${gradId}" gradientUnits="userSpaceOnUse" x1="0" y1="${round1(topY)}" x2="0" y2="${round1(bellyY)}">` +
+      `<stop offset="0" stop-color="${sec}" stop-opacity="0.46"/>` +
+      `<stop offset="0.6" stop-color="${sec}" stop-opacity="0.4"/>` +
+      `<stop offset="1" stop-color="${sec}" stop-opacity="0.12"/></linearGradient></defs>`;
     for (let x = 250; x <= 730; x += 52) {
-      g += `<rect x="${x - 9}" y="130" width="18" height="360" rx="9" transform="rotate(-7 ${x} 300)"/>`;
+      g += `<rect x="${x - 9}" y="130" width="18" height="360" rx="9" fill="url(#${gradId})" transform="rotate(-7 ${x} 300)"/>`;
     }
     return g + '</g>';
   }
 
   if (pattern === 'spots' || pattern === 'rings') {
     // Placement is part of the creature's identity: seeded by the genome.
+    // Marks fade individually as they near the belly cream.
     const rand = mulberry32((genome.seed ^ 0x5f0e) >>> 0);
     const marks: string[] = [];
     for (let i = 0; i < 18; i++) {
       const cx = round1(230 + rand() * 500);
       const cy = round1(205 + rand() * 215);
       const r = round1(7 + rand() * 9);
+      const o = round2(0.5 * (1 - 0.75 * smoothstep(bellyY - 95, bellyY - 10, cy)));
       marks.push(
         pattern === 'spots'
-          ? `<circle cx="${cx}" cy="${cy}" r="${r}"/>`
-          : `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${sec}" stroke-width="3"/>`
+          ? `<circle cx="${cx}" cy="${cy}" r="${r}" opacity="${o}"/>`
+          : `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${sec}" stroke-width="3" opacity="${o}"/>`
       );
     }
     return pattern === 'spots'
-      ? `<g ${clip} fill="${sec}" opacity="0.45">${marks.join('')}</g>`
-      : `<g ${clip} opacity="0.5">${marks.join('')}</g>`;
+      ? `<g ${clip} fill="${sec}">${marks.join('')}</g>`
+      : `<g ${clip}>${marks.join('')}</g>`;
   }
 
-  // countershade: pale underside fading upward — soft edge, not a band line
-  const pale = shade(prim, 0.55);
+  // countershade: extra-pale underside fading upward — reinforces the base
+  // ramp's cream, anchored to the actual belly line
+  const pale = shade(mix(prim, '#e8e2c8', 0.5), 0.38);
   return (
     `<g ${clip}><defs><linearGradient id="cs-${sfx}" x1="0" y1="1" x2="0" y2="0">` +
     `<stop offset="0" stop-color="${pale}" stop-opacity="0.62"/>` +
     `<stop offset="0.55" stop-color="${pale}" stop-opacity="0.42"/>` +
     `<stop offset="1" stop-color="${pale}" stop-opacity="0"/></linearGradient></defs>` +
-    `<rect x="120" y="315" width="620" height="195" fill="url(#cs-${sfx})"/></g>`
+    `<rect x="120" y="${round1(bellyY - 165)}" width="620" height="225" fill="url(#cs-${sfx})"/></g>`
   );
+}
+
+/**
+ * Dorsal dapple (STYLE-BIBLE §7): seeded spots scattered along the dorsal
+ * ridge, fading out by ~60 units below it. Dots are grouped into three
+ * fixed-membership opacity buckets (membership by index, depth seeded inside
+ * the bucket's band) so sibling seeds keep identical element structure, and
+ * each bucket serializes as ONE path of circle arc-pairs — 3 elements total
+ * against the Chromebook budget. Count scales with the *unjittered* blended
+ * body span for the same reason.
+ */
+function dappleLayer(
+  genome: Genome,
+  clipId: string,
+  sec: string,
+  at: (t: number) => { p: Pt; n: Pt; w: number; tn: Pt },
+  tNeck: number,
+  span0: number
+): string {
+  const count = Math.min(60, Math.max(30, Math.round(span0 / 9)));
+  const rand = mulberry32((genome.seed ^ 0xdaf1e) >>> 0);
+  // bucket bands: near-ridge dots darkest, deep dots faintest → the fade
+  const bands: (readonly [number, number, number])[] = [
+    [2, 16, 0.3],
+    [16, 34, 0.19],
+    [34, 56, 0.1],
+  ];
+  const split = [Math.round(count * 0.42), Math.round(count * 0.33)];
+  const dPaths = ['', '', ''];
+  for (let i = 0; i < count; i++) {
+    const bi = i < split[0]! ? 0 : i < split[0]! + split[1]! ? 1 : 2;
+    const [d0, d1] = bands[bi]!;
+    const t = 0.05 + rand() * (tNeck - 0.08);
+    const depth = d0 + rand() * (d1 - d0);
+    const r = round1(2 + rand() * 3);
+    const sp = at(t);
+    // clamp instead of skip: a dot sliding past a thin tail's centerline
+    // stays drawn, so seeds can never change the arc count
+    const off = Math.max(-sp.w * 0.15, sp.w / 2 - depth - r);
+    const cx = sp.p[0] + sp.n[0] * off;
+    const cy = sp.p[1] + sp.n[1] * off;
+    dPaths[bi] += `M${fmt(cx - r, cy)}a${r} ${r} 0 1 0 ${round1(r * 2)} 0a${r} ${r} 0 1 0 ${round1(-r * 2)} 0`;
+  }
+  let g = `<g clip-path="url(#${clipId})" fill="${shade(sec, -0.06)}">`;
+  for (let bi = 0; bi < 3; bi++) {
+    g += `<path d="${dPaths[bi]}" opacity="${bands[bi]![2]}"/>`;
+  }
+  return g + '</g>';
 }
 
 function escapeAttr(s: string): string {

@@ -17,6 +17,17 @@ export function rgb2hex(rgb: readonly [number, number, number]): string {
   );
 }
 
+/** Linear RGB mix a→b; the countershade belly leans toward cream via this. */
+export function mix(a: string, b: string, t: number): string {
+  const ca = hex2rgb(a);
+  const cb = hex2rgb(b);
+  return rgb2hex([
+    ca[0] + (cb[0] - ca[0]) * t,
+    ca[1] + (cb[1] - ca[1]) * t,
+    ca[2] + (cb[2] - ca[2]) * t,
+  ]);
+}
+
 /**
  * amt in [-1, 1]: negative shades toward a warm near-black, positive tints
  * toward warm white — the field-guide look never uses pure black/white.
