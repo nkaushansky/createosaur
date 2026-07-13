@@ -124,6 +124,22 @@ lands.
 implementation details. **No latitude**: bible numbers themselves (owner
 redlines only), invariants, schema.
 
+**Shipped (M1c)**: the style-bible pass per the spec above. Value system:
+flipped half-strength countershade (spine-relative via the band machinery,
+with an undulating dorsal pigment margin), wrap light, stepped core shadow,
+AO pools at limb roots/throat/tail; line system: self-toned 1.2 silhouette +
+clipped rim-shadow band, whispered interior lines. Face per §4 ratios with
+post-scale floors and the 22→26 simplified-tier fade (armored heads stay
+simplified); carnivores hold the narrow lip-overhang gape with bone-toned
+tip teeth. Limbs per the §5 posture table (columns vs S-curves blended from
+stance-slot weights), unified leg+foot silhouettes with posture-morphing
+claws/nails, exact gradient continuity at attachment rows, per-foot contact
+shadows. Dorsal dapple + belly-fading patterns per §7. `fitScale` now clamps
+horizontally too, so max-size sauropods/clubs stay in frame (§2 bar). A new
+budget test enforces §2's ≤300/≤180-element and no-`<filter>` rules in CI.
+Contact sheets: `docs/rebuild/style-bible/`. All 105 goldens regenerated in
+a dedicated commit.
+
 ## M2 — Share & remix (the growth loop)
 
 - Creature pages `/c/:id` (server-rendered), OG image = the creature.
