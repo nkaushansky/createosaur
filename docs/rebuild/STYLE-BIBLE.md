@@ -68,10 +68,13 @@ Per-creature checklist:
 Five-value structure, in paint order (all gradients, no filters):
 
 1. **Base countershade** — vertical 3-stop gradient *flipped from the M1b
-   ramp*: dorsal = species base darkened 18–24%, mid-flank = base, ventral =
-   cream (base hue-shifted toward `#e8e2c8`, lightened 30–38%). Runs
-   spine-relative (reuse the M1b spine-following band machinery), so a rearing
-   neck countershades correctly.
+   ramp*, at **half strength** (owner redline 2026-07-13): dorsal = species
+   base darkened 10–14%, mid-flank = base, ventral = cream-leaning (base
+   hue-shifted toward `#e8e2c8`, lightened 18–24%). The countershade should
+   read as pigment on the animal, not repaint it — species palettes and
+   pattern genes stay dominant. Runs spine-relative (reuse the M1b
+   spine-following band machinery), so a rearing neck countershades
+   correctly.
 2. **Wrap light** — one radial gradient, center at upper-forequarter (~40% x,
    ~26% y of the body box), light tint ≤ 55% → 0 opacity, clipped to body.
 3. **Core shadow** — a soft dark band (gradient, not filter) hugging the belly
@@ -207,3 +210,12 @@ Feet:
   welcome); an implementing session may tune *within* stated ranges freely.
 - Every art-affecting PR quotes which §2 checklist items its screenshots
   demonstrate, and regenerates goldens in a dedicated commit per AGENT-GUIDE.
+
+Redline log:
+
+- **2026-07-13, round 1 (owner, interactive review)**: §3 countershade set to
+  half strength (10–14% dorsal / 18–24% ventral — was 18–24% / 30–38%).
+  Confirmed as specced: §4 adult eye 0.14–0.18 × H; §4 carnivore narrow gape
+  with tip-teeth (not closed-lipped, not gene-driven gape); §3 thin
+  self-toned outline 1.0–1.4; §4 small-head floors + simplified-tier fade
+  ("gentle big-eye giants").
