@@ -24,6 +24,7 @@ recommendation, awaiting owner) · **OPEN** (genuinely undecided) ·
 | D-013 | Domains: createosaur.com primary; buildasaur.us 301-redirects to it; never mirrored | **ACCEPTED** | Owner call, 2026-07-10 session |
 | D-014 | Names/stats derive from identity weights (DNA + pins), not DNA alone | **ACCEPTED** | Prototype-validated: pinned Trike head on 100% T-Rex = "Tyrannoceratosaurus" |
 | D-015 | Anonymous play is local-first; server storage only for shared creatures (claimable) | **ACCEPTED** | Kid-safety posture + v2 localStorage-quota lesson (store genomes, never images) |
+| D-019 | Launch art bar: the live morph ships on the procedural renderer pushed to its ceiling per `STYLE-BIBLE.md` (value-based field-guide look, measurable spec, full-frame max-size acceptance). Paul/Camp-Cretaceous-grade realism is **deferred to the M5 generated portrait** of a committed creature — not attempted in the live vector render. No commissioned art or authored-parts content program before launch; the authored-parts spike (PR #6) stays a shelved post-launch option requiring its own row. D-018 cutover is gated on the STYLE-BIBLE acceptance test passing (M1c) | **ACCEPTED** | Owner call, 2026-07-13, after the fidelity-ladder / procedural-ceiling probes: no shading pass reaches Paul while morphing, and artist time is the wrong spend pre-launch. Realism belongs to the generation layer ("deterministic first, AI as the reward") |
 
 ## How to use this log
 

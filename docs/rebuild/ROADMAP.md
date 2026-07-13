@@ -97,6 +97,33 @@ silhouette clip — no more pinned-cutout cap lines); three-toed clawed feet,
 two-clawed theropod hands. All head features re-anchor to the authored skull.
 Same morph params, no schema change; goldens regenerated again.
 
+**Planned next — M1c, the style-bible pass** (gates D-018; spec + decision:
+`STYLE-BIBLE.md` + D-019, owner-decided 2026-07-13 after close-zoom review of
+M1b found the procedural passes at diminishing returns). One renderer pass,
+no schema change, no authored/commissioned art:
+
+- Value system: flip to pigment countershading (dark dorsal → cream belly),
+  wrap light, core-shadow band, AO pools at limb roots/jaw/tail — gradients
+  only, no SVG filters in the per-tick path (STYLE-BIBLE §3).
+- Line system: retire the hard black outline for self-toned edge + rim-shadow
+  band; interior linework drops to a whisper (§3).
+- Face: ratio table + per-archetype skull notes, lip-overhang tooth tips (no
+  muppet picket row), post-scale feature floors + smooth simplified-tier fade
+  for small heads — the brachiosaurus fix (§4).
+- Limbs: archetype posture table (sauropod/armored columns — S-curve is
+  theropod/ornithopod only), unified leg+foot silhouette, gradient-continuity
+  at junctions, far-limb belly-line rule (§5).
+- Dorsal dapple + grain addenda (§7).
+
+**DoD**: the STYLE-BIBLE §2 acceptance ritual passes — every pure species at
+full-frame max size, all archetype pairwise mixes, hatchlings, both themes,
+checklist all-green, Chromebook element budget held; goldens regenerated in a
+dedicated commit; contact sheets in the PR. D-018 cutover unblocks when this
+lands.
+**Latitude**: any tuning inside the bible's stated ranges; paint-order and
+implementation details. **No latitude**: bible numbers themselves (owner
+redlines only), invariants, schema.
+
 ## M2 — Share & remix (the growth loop)
 
 - Creature pages `/c/:id` (server-rendered), OG image = the creature.
@@ -136,6 +163,10 @@ atavism reachable in seeded tests; dex tracks discovery.
 
 - img2img portrait pipeline per ARCHITECTURE; credits + global budget
   breaker from day one; Stripe checkout for credit packs.
+- Per D-019 the portrait is the product's **realism layer**: the
+  Paul-grade/Camp-Cretaceous finish the live vector morph deliberately does
+  not attempt. Style brief = STYLE-BIBLE §1 register at full painterly
+  quality; portraits are outputs, never tracing bases (ART-REFERENCES rails).
 - Portrait gallery on creature pages.
 
 **DoD**: portrait visibly matches its creature (silhouette/parts/palette);
