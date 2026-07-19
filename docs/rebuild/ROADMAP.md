@@ -140,6 +140,47 @@ budget test enforces §2's ≤300/≤180-element and no-`<filter>` rules in CI.
 Contact sheets: `docs/rebuild/style-bible/`. All 105 goldens regenerated in
 a dedicated commit.
 
+## Illustrated Renderer Track (IR0 / IR1 / IR2)
+
+A parallel renderer experiment recorded by D-020 (supersedes D-019's
+procedural-only restriction). This track is named IR0/IR1/IR2 so it does not
+collide with the product milestones M0/M1/M2. It runs beside the product
+milestones; the procedural SVG renderer stays the production path until the
+owner accepts the interactive result.
+
+### IR0 — One playable illustrated T. rex
+
+- exact approved authored T. rex layer pack;
+- deterministic pose evaluator;
+- `/rig-lab` parallel route;
+- torso/neck mesh deformation;
+- head/jaw/limb transforms;
+- solid, mottle and band patterns;
+- fixed-time screenshots and debug overlays.
+
+**DoD:** the owner approves neutral, breathing, look, stride, stress and pattern
+states; no obvious seam openings at stated ranges; patterns stay registered;
+static export, typecheck, lint, unit, build and e2e pass; `/lab`,
+`packages/renderer`, genome schema and SVG goldens are unchanged.
+
+**Non-goals:** production cutover, hybrid anatomy, additional species, share
+rendering, genome integration, Triceratops traits.
+
+**Status:** implementation PR open — not shipped until the owner reviews the
+PR screenshots and approves the interactive result.
+
+### IR1 — Theropod family
+
+T. rex, Allosaurus, Velociraptor and Spinosaurus using a shared theropod rig,
+after IR0 approval.
+
+### IR2 — One rig per terrestrial archetype
+
+Theropod, sauropod, ceratopsian, armored and ornithopod exemplars, followed by
+cross-archetype attachment and dominant-body rules.
+
+Do not schedule IR1 or IR2 as active work until IR0 passes.
+
 ## M2 — Share & remix (the growth loop)
 
 - Creature pages `/c/:id` (server-rendered), OG image = the creature.
