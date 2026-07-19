@@ -138,7 +138,11 @@ export async function createPixiRig(
     backgroundAlpha: 0,
     antialias: true,
     preference: 'webgl',
-    resolution: Math.min(globalThis.devicePixelRatio || 1, 2),
+    // The 1536-wide logical stage always displays smaller than itself (the
+    // layout caps the stage around 840 CSS px), so a 1× backbuffer is already
+    // supersampled on every screen. Scaling by devicePixelRatio quadruples
+    // fill cost for no visible gain — and collapses under software GL.
+    resolution: 1,
     autoDensity: true,
     autoStart: false,
     sharedTicker: false,
