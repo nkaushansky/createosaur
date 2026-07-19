@@ -117,12 +117,16 @@ function prepareMask(bitmap: ImageBitmap, layer: RigManifestLayer): PreparedMask
   return { canvas, offsetX: x, offsetY: y };
 }
 
+// Next inlines NEXT_PUBLIC_* at build time; when the export is staged under
+// a subfolder (basePath), asset fetches must carry the same prefix.
+const DEPLOY_PREFIX = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
+
 /**
  * Fetch, validate and prepare the whole pack. Progress is reported per
  * fetched file; any failure carries the exact pack-relative path.
  */
 export async function loadRigAssets(
-  baseUrl: string = `/${TREX_R0_PACK_PATH}`,
+  baseUrl: string = `${DEPLOY_PREFIX}/${TREX_R0_PACK_PATH}`,
   onProgress?: (progress: LoadProgress) => void
 ): Promise<LoadedRigAssets> {
   onProgress?.({ step: 'manifest', loaded: 0, total: 1 });
