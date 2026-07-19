@@ -18,7 +18,10 @@ export const PIVOTS = {
   neck: { x: 438, y: 470 },
   head: { x: 315, y: 390 },
   jaw: { x: 300, y: 366 },
-  farHip: { x: 607, y: 525 },
+  // The far hip sits forward/up of the prototype estimate: rotating nearer
+  // the thigh's front-edge contact keeps that edge from dropping out of the
+  // belly silhouette when the far leg swings back (round-1 finding).
+  farHip: { x: 585, y: 502 },
   farKnee: { x: 612, y: 645 },
   nearHip: { x: 748, y: 498 },
   nearKnee: { x: 770, y: 645 },

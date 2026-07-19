@@ -49,7 +49,7 @@ export function effectiveMotion(params: IllustratedRigParams, options: PoseOptio
  * boundary (that seam's vertices hold still); a slight forward chest swell
  * keeps the ribcage reading as volume rather than a vertical elevator.
  */
-function torsoField(x: number, y: number, breath: number): Point {
+function torsoFieldBase(x: number, y: number, breath: number): Point {
   const wDorsal = ramp(760, 300, y);
   const wPelvisPin = 1 - ramp(650, 734, x);
   const wChestY = ramp(280, 420, y) * (1 - ramp(520, 700, y));
@@ -59,13 +59,36 @@ function torsoField(x: number, y: number, breath: number): Point {
   };
 }
 
+/**
+ * The forearms hang over the chest edge along an alpha-flush contact — any
+ * differential motion there opens a hairline (round-1 finding). The field is
+ * flattened to one value across the arm-contact strip, and both arms ride
+ * that same value, so arms and the chest art covering them move in unison.
+ */
+const SHOULDER_SAMPLE: Point = { x: 455, y: 495 };
+
+function shoulderPlateauWeight(x: number, y: number): number {
+  const wx = ramp(343, 388, x) * (1 - ramp(500, 545, x));
+  const wy = ramp(367, 412, y) * (1 - ramp(580, 625, y));
+  return wx * wy;
+}
+
+function torsoField(x: number, y: number, breath: number): Point {
+  const base = torsoFieldBase(x, y, breath);
+  const plateau = torsoFieldBase(SHOULDER_SAMPLE.x, SHOULDER_SAMPLE.y, breath);
+  const w = shoulderPlateauWeight(x, y);
+  return { x: base.x + (plateau.x - base.x) * w, y: base.y + (plateau.y - base.y) * w };
+}
+
 /** Neck bend parameter: 0 at the torso junction, 1 where the skull takes over. */
 function neckT(x: number): number {
   return ramp(465, 305, x);
 }
 
-const NECK_LIFT_BASE = 6;
-const NECK_LIFT_HEAD = 4;
+// Base lift matches the flattened torso field at the neck-torso junction so
+// the two layers ride together; the head end gets a little extra rise.
+const NECK_LIFT_BASE = 5.5;
+const NECK_LIFT_HEAD = 4.5;
 
 function neckAngles(motion: MotionParams): { neckRot: number; headRot: number } {
   return {
@@ -96,14 +119,26 @@ function legMatrices(motion: MotionParams): {
   nearThigh: Mat2D;
   nearShank: Mat2D;
 } {
+  // Trailing-leg knee flexion only (the max branches). The prototype's small
+  // counter-rotation on the leading shank popped the shank's hidden top
+  // corner past the thigh silhouette (round-1 finding) — dropped.
   const s = motion.stride;
-  const farThighRot = s * -7;
-  const farShankRot = Math.max(0, s) * 9 + Math.min(0, s) * 2;
-  const nearThighRot = s * 7;
-  const nearShankRot = Math.max(0, -s) * 9 + Math.min(0, -s) * 2;
+  const farThighRot = s * -5.2;
+  const farShankRot = Math.max(0, s) * 7.5;
+  const nearThighRot = s * 5.8;
+  const nearShankRot = Math.max(0, -s) * 8;
+
+  // The near thigh's exposed contact flips with direction: swinging forward
+  // (s>0) pops its trailing edge out of the pelvis/tail silhouette; swinging
+  // back (s<0) drops its front edge out of the belly line. A small counter-
+  // translate pins whichever contact is exposed (the opposite edge tucks
+  // deeper under cover, which is always safe) — and lets the stepping foot
+  // lift a little, which reads naturally.
+  const nearShift =
+    s >= 0 ? translate(0, -6 * s) : translate(4.2 * s, 3.6 * s);
 
   const farThigh = rotateAboutDeg(PIVOTS.farHip, farThighRot);
-  const nearThigh = rotateAboutDeg(PIVOTS.nearHip, nearThighRot);
+  const nearThigh = compose(nearShift, rotateAboutDeg(PIVOTS.nearHip, nearThighRot));
   return {
     farThigh,
     farShank: compose(farThigh, rotateAboutDeg(PIVOTS.farKnee, farShankRot)),
@@ -113,15 +148,18 @@ function legMatrices(motion: MotionParams): {
 }
 
 function forearmMatrices(motion: MotionParams): { far: Mat2D; near: Mat2D } {
-  // Arms hang from the breathing chest: they track the torso field at their
-  // shoulder pivots, then add the prototype's small compensating swings.
-  const farDrift = torsoField(PIVOTS.farShoulder.x, PIVOTS.farShoulder.y, motion.breath);
-  const nearDrift = torsoField(PIVOTS.nearShoulder.x, PIVOTS.nearShoulder.y, motion.breath);
-  const farRot = motion.stride * 4 - motion.breath * 1.2;
-  const nearRot = -motion.stride * 4 - motion.breath * 0.8;
+  // Both arms ride the chest's plateau displacement in unison, with identical
+  // breath swing — any differential would slice a hairline where the hands
+  // hang flush against each other and the belly edge.
+  // No stride swing at all: the arms' outer edges sit flush against the
+  // belly silhouette, and any rotation differential tears that contact at
+  // reverse stride. Arms live through the breath drift alone.
+  const drift = torsoField(SHOULDER_SAMPLE.x, SHOULDER_SAMPLE.y, motion.breath);
+  const farRot = -motion.breath * 1.0;
+  const nearRot = -motion.breath * 1.0;
   return {
-    far: compose(translate(farDrift.x, farDrift.y), rotateAboutDeg(PIVOTS.farShoulder, farRot)),
-    near: compose(translate(nearDrift.x, nearDrift.y), rotateAboutDeg(PIVOTS.nearShoulder, nearRot)),
+    far: compose(translate(drift.x, drift.y), rotateAboutDeg(PIVOTS.farShoulder, farRot)),
+    near: compose(translate(drift.x, drift.y), rotateAboutDeg(PIVOTS.nearShoulder, nearRot)),
   };
 }
 
