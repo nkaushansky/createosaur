@@ -6,6 +6,7 @@ const nextConfig = {
   output: 'export',
   transpilePackages: [
     '@createosaur/genome',
+    '@createosaur/illustrated-rig',
     '@createosaur/renderer',
     '@createosaur/species-data',
   ],

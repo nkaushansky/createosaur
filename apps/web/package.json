@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@createosaur/genome": "*",
+    "@createosaur/illustrated-rig": "*",
     "@createosaur/renderer": "*",
     "@createosaur/species-data": "*",
     "next": "^15.3.4",
