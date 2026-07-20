@@ -5,6 +5,7 @@ import {
   Matrix,
   Mesh,
   MeshGeometry,
+  Rectangle,
   Sprite,
   Text,
   Texture,
@@ -71,6 +72,8 @@ export interface RigHandle {
   /** Last evaluated motion values — lets the UI freeze exactly where idle was. */
   effectiveMotion(): { headAngle: number; jawAngle: number; breath: number; stride: number; tailSway: number };
   currentTimeMs(): number;
+  /** Debug: toggle one anatomical layer (seam attribution during review). */
+  setLayerVisible(id: string, visible: boolean): void;
   extractPng(): Promise<string>;
   metrics(): RigMetrics;
   destroy(): void;
@@ -357,8 +360,20 @@ export async function createPixiRig(
     currentTimeMs(): number {
       return lastTimeMs;
     },
+    setLayerVisible(id: string, visible: boolean): void {
+      const node = nodes.find((n) => n.id === id);
+      if (node) {
+        node.group.visible = visible;
+        app.render();
+      }
+    },
     async extractPng(): Promise<string> {
-      return app.renderer.extract.base64(app.stage);
+      // Explicit frame: without it, extract crops to the pose's content
+      // bounds and the image origin drifts with the pose.
+      return app.renderer.extract.base64({
+        target: app.stage,
+        frame: new Rectangle(0, 0, CANVAS_W, CANVAS_H),
+      });
     },
     metrics(): RigMetrics {
       const avg =

@@ -33,6 +33,7 @@ declare global {
       currentTimeMs: () => number;
       extractPng: () => Promise<string>;
       metrics: () => { assetBytes: number; avgFrameMs: number; frameSamples: number };
+      setLayerVisible: (id: string, visible: boolean) => void;
       firstRigMs: number;
     };
   }
@@ -100,6 +101,7 @@ export function IllustratedRigStage({ inputs, seed, onPhase, onHandle, attempt }
           extractPng: () => handleRef.current?.extractPng() ?? Promise.reject(new Error('rig gone')),
           metrics: () =>
             handleRef.current?.metrics() ?? { assetBytes: 0, avgFrameMs: 0, frameSamples: 0 },
+          setLayerVisible: (id, visible) => handleRef.current?.setLayerVisible(id, visible),
           firstRigMs,
         };
         onPhase({ state: 'ready' });

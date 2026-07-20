@@ -13,8 +13,8 @@ screenshots.
 | `01-neutral.png` | Neutral, no pattern | Reassembly matches the approved master |
 | `02-inhale.png` | Breath 1.0 | Torso mesh lift, neck compensation, planted feet, chest/arm unison |
 | `03-look-up.png` | Head +6°, jaw 0.4° | Head↔neck seam under the bend, jaw hinge |
-| `04-stride.png` | Stride +0.92 | Thigh roots, knees, trailing-edge behavior |
-| `05-reverse-stride.png` | Stride −1.0 (slider) | The mirrored contacts (near-thigh front, arm/belly) |
+| `04-stride.png` | Stride +0.55 (preset) | Thigh roots, knees, trailing-edge behavior |
+| `05-reverse-stride.png` | Stride −0.6 (slider bound) | The mirrored contacts (near-thigh front, arm/belly) |
 | `06-stress.png` | Every axis at its bound | The deliberate seam test |
 | `07-pattern-solid.png` | Solid @ 0.75, inhale pose | Luminosity preserved, fixed details not flattened |
 | `08-pattern-mottle.png` | Mottle @ 0.75, inhale pose | Blotches move with anatomy, cross-seam registration |
@@ -55,7 +55,29 @@ thigh silhouette (leading-shank counter-rotation removed), and an arm/belly
 tear at reverse stride (arm stride-swing removed; arms live on breath drift
 alone). A quantitative gap detector (transparent pixels flanked by solid art)
 reads neutral 41 / inhale 40 / stride 43 / stress 50 px — i.e. the posed
-states sit at the rest pose's own crevice baseline. What remains at the full
-stride/stress bounds are small dark nicks at the near-thigh's trailing and
-front contacts, reading as crevice shadow; nothing resembling the round-1
-white tears survives inside the control ranges.
+states sit at the rest pose's own crevice baseline.
+
+## Stride finding (owner phone review, 2026-07-20) and the pack limit
+
+Owner-reported leg gaps at the stride extremes were root-caused by per-layer
+attribution (a `setLayerVisible` debug hook exists for exactly this): the
+pack's hidden-overlap regions are cut with **straight polygon edges** (see
+the overlap map), and at large leg swings two of those cut lines leave their
+cover — the tail-root extension behind the near calf, and the near-thigh
+front against the belly contour. These are source-art limits, not rig bugs;
+no transform can heal an exposed cut edge. Mitigations shipped: leg
+amplitudes trimmed ~20%, the stride control is capped at ±0.6 (the pack's
+seam-clean envelope — documented in `MOTION_RANGES`), and the tail-root
+flesh now follows the forward leg slightly (weight-faded haunch follow),
+which closes the remaining slit to a crease. At −0.6 a ~3 px hairline
+remains at the thigh-front cut line at close zoom.
+
+**Requirements for the next pack revision** (both are slice-construction
+rules, cheap in the ChatGPT extraction workflow):
+
+1. Extend the near-thigh's hidden overlap forward along the belly contour by
+   ≥24 px, with the cut edge following the belly's painted crease (never a
+   straight line through open hide).
+2. Assign the tail-underside spur behind the near thigh to the thigh layer
+   (it moves with the leg), or extend the tail-root overlap so its cut edge
+   stays ≥16 px behind the calf silhouette at 6° of thigh swing.

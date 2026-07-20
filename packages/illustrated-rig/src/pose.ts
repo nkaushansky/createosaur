@@ -122,20 +122,27 @@ function legMatrices(motion: MotionParams): {
   // Trailing-leg knee flexion only (the max branches). The prototype's small
   // counter-rotation on the leading shank popped the shank's hidden top
   // corner past the thigh silhouette (round-1 finding) — dropped.
+  //
+  // Amplitudes are sized so the FULL slider stays inside the pack's
+  // artifact-free envelope. Beyond roughly these swings, two source-art
+  // limits appear that no transform can fix (owner-reported, verified by
+  // per-layer attribution): the forward-swinging near leg reveals the tail's
+  // static underside spur behind the thigh, and the backward-swinging near
+  // thigh pulls its front edge off the belly contour. Both are recorded as
+  // slice requirements for the next pack revision.
   const s = motion.stride;
-  const farThighRot = s * -5.2;
-  const farShankRot = Math.max(0, s) * 7.5;
-  const nearThighRot = s * 5.8;
-  const nearShankRot = Math.max(0, -s) * 8;
+  const farThighRot = s * -4.2;
+  const farShankRot = Math.max(0, s) * 6;
+  const nearThighRot = s * 4.6;
+  const nearShankRot = Math.max(0, -s) * 6.5;
 
   // The near thigh's exposed contact flips with direction: swinging forward
   // (s>0) pops its trailing edge out of the pelvis/tail silhouette; swinging
-  // back (s<0) drops its front edge out of the belly line. A small counter-
+  // back (s<0) drops its front edge out of the belly line. A counter-
   // translate pins whichever contact is exposed (the opposite edge tucks
   // deeper under cover, which is always safe) — and lets the stepping foot
   // lift a little, which reads naturally.
-  const nearShift =
-    s >= 0 ? translate(0, -6 * s) : translate(4.2 * s, 3.6 * s);
+  const nearShift = s >= 0 ? translate(0, -4.8 * s) : translate(7.2 * s, 2 * s);
 
   const farThigh = rotateAboutDeg(PIVOTS.farHip, farThighRot);
   const nearThigh = compose(nearShift, rotateAboutDeg(PIVOTS.nearHip, nearThighRot));
@@ -196,8 +203,11 @@ function pelvisMesh(motion: MotionParams): number[] {
   for (let i = 0; i < positions.length; i += 2) {
     const x = positions[i]!;
     const y = positions[i + 1]!;
-    // Bend toward the tail side; the torso-boundary vertices stay pinned.
-    const w = ramp(700, 820, x);
+    // Bend toward the tail side; the torso-boundary vertices stay pinned —
+    // and so does the lower half: the pelvis's rear-bottom silhouette is the
+    // cover over the tail-root and shank overlap strips, and any slide there
+    // uncovers them (owner-reported stride fragments).
+    const w = ramp(700, 820, x) * (1 - ramp(560, 660, y));
     const turned = applyMat(rotateAboutDeg(PIVOTS.pelvis, rot * w), { x, y });
     positions[i] = turned.x;
     positions[i + 1] = turned.y + settleDy;
@@ -209,6 +219,10 @@ function tailMesh(motion: MotionParams): number[] {
   const tailRot = motion.tailSway * 5 + motion.stride * 2.4 - motion.breath * 0.7;
   const shiftX = -motion.tailSway * 4;
   const shiftY = motion.tailSway * 2;
+  // The tail-root flesh behind the near thigh follows the forward-swinging
+  // leg a little (weight-faded, like haunch flesh) — otherwise the leg pulls
+  // away from the root's extraction-cut edge and leaves a straight slit.
+  const legFollow = Math.max(0, motion.stride);
   const positions = restMeshPositions('tail');
   for (let i = 0; i < positions.length; i += 2) {
     const x = positions[i]!;
@@ -216,8 +230,9 @@ function tailMesh(motion: MotionParams): number[] {
     // The base (hidden under the pelvis) is pinned; sway grows toward the tip.
     const t = smoothstep01(ramp(870, 1500, x));
     const turned = applyMat(rotateAboutDeg(PIVOTS.tail, tailRot * t), { x, y });
-    positions[i] = turned.x + shiftX * t;
-    positions[i + 1] = turned.y + shiftY * t;
+    const wFollow = (1 - ramp(900, 970, x)) * ramp(545, 610, y);
+    positions[i] = turned.x + shiftX * t - legFollow * 8 * wFollow;
+    positions[i + 1] = turned.y + shiftY * t + legFollow * 4 * wFollow;
   }
   return positions;
 }

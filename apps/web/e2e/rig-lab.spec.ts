@@ -18,6 +18,7 @@ declare global {
       currentTimeMs: () => number;
       extractPng: () => Promise<string>;
       metrics: () => { assetBytes: number; avgFrameMs: number; frameSamples: number };
+      setLayerVisible: (id: string, visible: boolean) => void;
       firstRigMs: number;
     };
   }

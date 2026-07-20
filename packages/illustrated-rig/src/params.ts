@@ -10,7 +10,11 @@ export const MOTION_RANGES = {
   headAngle: { min: -6, max: 8 },
   jawAngle: { min: 0, max: 6 },
   breath: { min: 0, max: 1 },
-  stride: { min: -1, max: 1 },
+  // Stride is capped where the pack stays seam-clean: beyond ~0.6 the legs
+  // expose the straight extraction-cut edges of neighbouring hidden overlap
+  // (tail root behind the near calf, thigh front against the belly) — a
+  // source-art limit recorded for the next pack revision, not a rig bug.
+  stride: { min: -0.6, max: 0.6 },
   tailSway: { min: -1, max: 1 },
 } as const satisfies Record<keyof MotionParams, { min: number; max: number }>;
 
@@ -67,6 +71,6 @@ export const RIG_PRESETS: Record<PresetName, MotionParams> = {
   neutral: { headAngle: 0, jawAngle: 0, breath: 0, stride: 0, tailSway: 0 },
   inhale: { headAngle: 0.5, jawAngle: 0, breath: 1, stride: 0, tailSway: -0.08 },
   lookUp: { headAngle: 6, jawAngle: 0.4, breath: 0.2, stride: 0, tailSway: -0.1 },
-  stride: { headAngle: -1.2, jawAngle: 0, breath: 0.35, stride: 0.92, tailSway: 0.55 },
-  stress: { headAngle: 7.5, jawAngle: 4.5, breath: 1, stride: 1, tailSway: 1 },
+  stride: { headAngle: -1.2, jawAngle: 0, breath: 0.35, stride: 0.55, tailSway: 0.55 },
+  stress: { headAngle: 7.5, jawAngle: 4.5, breath: 1, stride: 0.6, tailSway: 1 },
 };

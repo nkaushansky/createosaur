@@ -20,7 +20,7 @@ describe('parameter clamping', () => {
     expect(clamped.headAngle).toBe(MOTION_RANGES.headAngle.max);
     expect(clamped.jawAngle).toBe(MOTION_RANGES.jawAngle.min);
     expect(clamped.breath).toBe(1);
-    expect(clamped.stride).toBe(-1);
+    expect(clamped.stride).toBe(MOTION_RANGES.stride.min);
     expect(clamped.tailSway).toBe(1);
   });
 
