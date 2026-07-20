@@ -98,16 +98,14 @@ export function IllustratedRigLab() {
       </header>
 
       <div className="grid gap-4 md:grid-cols-[300px_1fr]">
-        <RigControls
-          params={params}
-          debug={debug}
-          disabled={rigState !== 'ready'}
-          onParams={patchParams}
-          onPreset={applyPreset}
-          onDebug={patchDebug}
-        />
-
-        <div className="flex flex-col gap-2">
+        {/* The stage leads the flow and sticks: on phones it pins to the top
+            while the controls scroll beneath (you must see the creature
+            respond — instant consequence); on wider screens it pins beside
+            the scrolling control column. */}
+        <div
+          className="sticky top-0 z-10 -mx-4 flex flex-col gap-2 px-4 pb-2 md:order-2 md:top-4 md:m-0 md:self-start md:p-0"
+          style={{ background: 'var(--bg)' }}
+        >
           <div
             className="viewport-paper relative overflow-hidden rounded-xl border p-2"
             style={{ borderColor: 'var(--paper-line)' }}
@@ -163,6 +161,17 @@ export function IllustratedRigLab() {
               resume).
             </p>
           ) : null}
+        </div>
+
+        <div className="md:order-1">
+          <RigControls
+            params={params}
+            debug={debug}
+            disabled={rigState !== 'ready'}
+            onParams={patchParams}
+            onPreset={applyPreset}
+            onDebug={patchDebug}
+          />
         </div>
       </div>
     </main>

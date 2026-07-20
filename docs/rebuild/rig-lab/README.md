@@ -24,7 +24,7 @@ screenshots.
 | `12-debug-master-underlay.png` | Approved-master ghost, neutral | Rig-vs-master alignment |
 | `13-page-light.png` / `14-page-dark.png` | Full page, both themes | Controls, layout; specimen paper stays paper |
 | `15a-current-renderer-trex.png` / `15b-ir0-rig-trex.png` | Production `/lab` procedural T-Rex vs IR0 | The before/after this experiment exists to compare |
-| `16-page-mobile.png` | Pixel-7-class viewport | Layout, no clipping |
+| `16-page-mobile.png` / `16b-page-mobile-scrolled.png` | Pixel-7-class viewport, top and fully scrolled | Stage stays pinned while controls scroll (owner phone feedback, 2026-07-20) |
 
 ## Measured performance (`measurements.json`)
 
@@ -38,9 +38,11 @@ screenshots.
 - The "mobile" row was captured under Playwright's Pixel-7 emulation on
   CI-class software GL (SwiftShader): **~297 ms/frame, 11.2 s first rig**.
   That is a floor, not a phone: there is no hardware GPU in the container.
-  Real-device numbers are an open item for owner review; the obvious first
-  optimization if needed is cropping layer textures to their manifest bounds
-  (~4× less texture upload) and a WebP/atlas export in a future pack.
+- **Real-device result (owner, 2026-07-20, via the DreamHost staging copy):
+  "loads almost immediately, feels very responsive and lightweight."** The
+  open mobile-performance question is answered; the emulated numbers above
+  were indeed only the software-GL floor. The bounds-cropped-texture /
+  WebP-atlas optimizations remain future options, not current needs.
 
 ## Seam-review outcome (three iteration rounds)
 
