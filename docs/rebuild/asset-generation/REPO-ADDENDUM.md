@@ -14,9 +14,10 @@ revision can absorb it.
 - The creature **always faces LEFT**. The rig stage, pose math, and future
   family/hybrid composition assume one facing; Template B's "[LEFT or
   RIGHT]" placeholder is amended to LEFT, always.
-- Ground contact ≈ **y 780**, body spanning roughly 70–85 % of canvas width
-  — match the approved T. rex's visual weight so species read at a shared
-  scale on the shared stage.
+- Ground contact ≈ **y 780–800**, body spanning ≈ **95 % of canvas width**
+  (the measured T. rex/Allosaurus family framing; an earlier revision of
+  this file said 70–85 %, which was wrong) — match the approved masters'
+  visual weight so species read at a shared scale on the shared stage.
 - Approved master background: flat warm paper, **RGB(250, 247, 242)** (the
   pack's recorded `backgroundSample`). Clean master and layers: transparent.
 
@@ -76,12 +77,21 @@ render** only: D-020 supersedes D-019's procedural-only constraint, but the
 M5 AI-portrait finishing layer remains in the roadmap as the optional
 finish. The bible's statement is about the live loop, not about M5.
 
-## 7. Division of labor per species (summary)
+## 7. Division of labor per species (summary — revised 2026-07-21)
 
-1. ChatGPT: approved master → slices with painted hidden overlap → per-layer
-   masks (staged, per the bible's workflow docs).
-2. Claude Code: extraction verification, manifest/csv/checksum generation,
-   reassembly-error measurement, repo integration, rig tuning, tests,
-   screenshots (`AGENT-GUIDE.md` verify loop).
-3. Owner: approves the master before slicing, and the interactive result
-   before any species is marked shipped.
+The bible's Stages 2–4 originally assigned extraction to the ChatGPT image
+workflow. Practice showed the exact-source properties (zero-error
+reassembly, pixel-copied overlap) come from **programmatic cutting**, not
+image generation — so extraction moved in-repo:
+
+1. ChatGPT: the **approved master illustration only** (Stage 1, per the
+   bible's staged workflow and Template A/B with this addendum's framing).
+2. Claude Code: everything after the master — segmentation authoring and
+   the full cut via `tools/rig-pack/` (layers, crease-following overlap,
+   pattern masks, manifest/csv, debug artifacts, zero-error verification),
+   integrity tables, repo integration, rig tuning, tests, screenshots
+   (`AGENT-GUIDE.md` verify loop). First pack produced this way:
+   `allosaurus-r0-v1`.
+3. Owner: approves the master before cutting, reviews the pack's contact
+   sheets, and approves the interactive result before any species is marked
+   shipped.
