@@ -166,13 +166,19 @@ static export, typecheck, lint, unit, build and e2e pass; `/lab`,
 **Non-goals:** production cutover, hybrid anatomy, additional species, share
 rendering, genome integration, Triceratops traits.
 
-**Status:** implementation PR open — not shipped until the owner reviews the
-PR screenshots and approves the interactive result.
+**Shipped (2026-07-20, PR #8):** owner approved the interactive result after
+real-device review and merged. Live at `/rig-lab` (unlinked, noindex).
+Notable scope note from the seam rounds: stride is capped at ±0.6 — the
+`trex-r0-v1` pack's seam-clean envelope; the pack-revision slice rules that
+restore full range are recorded in `docs/rebuild/rig-lab/README.md` and
+`docs/rebuild/asset-generation/REPO-ADDENDUM.md`.
 
 ### IR1 — Theropod family
 
 T. rex, Allosaurus, Velociraptor and Spinosaurus using a shared theropod rig,
-after IR0 approval.
+after IR0 approval. Asset production follows
+`docs/rebuild/asset-generation/` (the owner-approved generation bible plus
+the repo addendum's technical contract).
 
 ### IR2 — One rig per terrestrial archetype
 
