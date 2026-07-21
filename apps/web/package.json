@@ -10,9 +10,11 @@
   },
   "dependencies": {
     "@createosaur/genome": "*",
+    "@createosaur/illustrated-rig": "*",
     "@createosaur/renderer": "*",
     "@createosaur/species-data": "*",
     "next": "^15.3.4",
+    "pixi.js": "^8.19.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "zustand": "^5.0.5"

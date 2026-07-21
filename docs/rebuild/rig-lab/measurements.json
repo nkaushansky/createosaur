@@ -1,0 +1,16 @@
+{
+  "capturedAt": "2026-07-19",
+  "desktop": {
+    "assetBytes": 11274760,
+    "avgFrameMs": 11.225000000209548,
+    "frameSamples": 16,
+    "firstRigMs": 755
+  },
+  "mobile": {
+    "assetBytes": 11274760,
+    "avgFrameMs": 297.30769230776394,
+    "frameSamples": 13,
+    "firstRigMs": 11242.799999999814
+  },
+  "pageErrors": []
+}
