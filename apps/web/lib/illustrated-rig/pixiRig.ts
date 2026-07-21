@@ -12,8 +12,6 @@ import {
 } from 'pixi.js';
 import {
   MESH_LAYER_IDS,
-  MESH_SPECS,
-  PIVOTS,
   RIG_STAGE,
   evaluateRigPose,
   hexColorToInt,
@@ -25,8 +23,8 @@ import {
   type IllustratedRigParams,
   type MaskedPatternType,
   type MeshLayerId,
-  type PoseOptions,
   type RigLayerId,
+  type SpeciesRigDef,
 } from '@createosaur/illustrated-rig';
 import type { LoadedRigAssets, LoadedRigLayer } from './rigAssets';
 
@@ -91,14 +89,14 @@ interface LayerNode {
 const CANVAS_W = RIG_STAGE.width;
 const CANVAS_H = RIG_STAGE.height;
 
-function buildMeshLayer(layer: LoadedRigLayer, texture: Texture): {
+function buildMeshLayer(def: SpeciesRigDef, layer: LoadedRigLayer, texture: Texture): {
   mesh: Mesh;
   layerGeometry: MeshGeometry;
   patternGeometry: MeshGeometry;
 } {
   const id = layer.id as MeshLayerId;
-  const spec = MESH_SPECS[id];
-  const rest = restMeshPositions(id);
+  const spec = def.meshSpecs[id];
+  const rest = restMeshPositions(def, id);
   const b = layer.spec.bounds;
 
   const positions = new Float32Array(rest);
@@ -132,8 +130,9 @@ function writeMeshPositions(geometry: MeshGeometry, positions: number[]): void {
 export async function createPixiRig(
   host: HTMLElement,
   assets: LoadedRigAssets,
-  options: PoseOptions & { initialInputs: RigInputs }
+  options: { def: SpeciesRigDef; initialInputs: RigInputs }
 ): Promise<RigHandle> {
+  const def = options.def;
   const app = new Application();
   await app.init({
     width: CANVAS_W,
@@ -156,7 +155,7 @@ export async function createPixiRig(
   app.canvas.setAttribute('role', 'img');
   app.canvas.setAttribute(
     'aria-label',
-    'Illustrated Tyrannosaurus rex rig — experimental authored-artwork renderer'
+    `Illustrated ${def.label} rig — experimental authored-artwork renderer`
   );
   host.appendChild(app.canvas);
 
@@ -187,7 +186,7 @@ export async function createPixiRig(
     let patternGeometry: MeshGeometry | undefined;
 
     if ((MESH_LAYER_IDS as readonly string[]).includes(layer.id)) {
-      const built = buildMeshLayer(layer, texture);
+      const built = buildMeshLayer(def, layer, texture);
       layerGeometry = built.layerGeometry;
       patternGeometry = built.patternGeometry;
       group.addChild(built.mesh);
@@ -209,7 +208,7 @@ export async function createPixiRig(
   const wireframe = new Graphics();
   debugLayer.addChild(wireframe);
   const pivotLabels = new Map<string, Text>();
-  for (const name of Object.keys(PIVOTS)) {
+  for (const name of Object.keys(def.pivots)) {
     const label = new Text({
       text: name,
       style: { fontSize: 13, fill: 0xc2185b, fontFamily: 'ui-monospace, monospace' },
@@ -261,7 +260,7 @@ export async function createPixiRig(
       wireframe.stroke({ width: 1, color: colors[id], alpha: 0.85 });
     }
     // Pivots at their posed positions.
-    const pivots = posedPivots(pose);
+    const pivots = posedPivots(def, pose);
     for (const [name, point] of Object.entries(pivots)) {
       wireframe.moveTo(point.x - 7, point.y).lineTo(point.x + 7, point.y);
       wireframe.moveTo(point.x, point.y - 7).lineTo(point.x, point.y + 7);
@@ -305,7 +304,7 @@ export async function createPixiRig(
     const started = performance.now();
     const timeMs = inputs.freezeTimeMs ?? performance.now() - clockStart;
     lastTimeMs = timeMs;
-    const pose = evaluateRigPose(inputs.params, { seed: options.seed, timeMs });
+    const pose = evaluateRigPose(def, inputs.params, { seed: def.seed, timeMs });
     lastPose = pose;
     applyPose(pose);
     app.render();

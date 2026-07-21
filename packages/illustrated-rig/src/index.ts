@@ -26,15 +26,26 @@ export {
   type RigManifest,
   type RigManifestLayer,
 } from './manifest';
-export { LAYER_BOUNDS, MESH_SPECS, PIVOTS, RIG_STAGE, meshIndices, restMeshPositions, type PivotId } from './rig-def';
+export {
+  ALLOSAURUS_RIG_DEF,
+  RIG_STAGE,
+  SPECIES_RIG_DEFS,
+  TREX_RIG_DEF,
+  meshIndices,
+  restMeshPositions,
+  type PivotId,
+  type RigDeformDef,
+  type SpeciesId,
+  type SpeciesRigDef,
+} from './species-defs';
 export {
   DEFAULT_PATTERN_COLOR,
   DEFAULT_RIG_PARAMS,
   MOTION_RANGES,
   PATTERN_TYPES,
   PRESET_NAMES,
-  RIG_PRESETS,
   clampRigParams,
+  rigPresets,
   type PresetName,
 } from './params';
 export { idleMotion, idlePhases, type IdlePhases } from './idle';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import type { IllustratedRigParams } from '@createosaur/illustrated-rig';
+import type { IllustratedRigParams, SpeciesRigDef } from '@createosaur/illustrated-rig';
 import type { LoadProgress } from '@/lib/illustrated-rig/rigAssets';
 import type { RigDebugFlags, RigHandle } from '@/lib/illustrated-rig/pixiRig';
 
@@ -41,7 +41,7 @@ declare global {
 
 interface Props {
   inputs: RigStageInputs;
-  seed: number;
+  def: SpeciesRigDef;
   onPhase: (phase: RigPhase) => void;
   /** Called with the live rig handle once ready (for freeze-in-place snapshots). */
   onHandle: (handle: RigHandle | null) => void;
@@ -49,7 +49,7 @@ interface Props {
   attempt: number;
 }
 
-export function IllustratedRigStage({ inputs, seed, onPhase, onHandle, attempt }: Props) {
+export function IllustratedRigStage({ inputs, def, onPhase, onHandle, attempt }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<RigHandle | null>(null);
   const inputsRef = useRef(inputs);
@@ -70,7 +70,7 @@ export function IllustratedRigStage({ inputs, seed, onPhase, onHandle, attempt }
         import('@/lib/illustrated-rig/pixiRig'),
       ]);
       try {
-        const assets = await loadRigAssets(undefined, (progress: LoadProgress) => {
+        const assets = await loadRigAssets(def, (progress: LoadProgress) => {
           if (cancelled) return;
           onPhase({
             state: 'loading',
@@ -82,8 +82,7 @@ export function IllustratedRigStage({ inputs, seed, onPhase, onHandle, attempt }
         });
         if (cancelled) return;
         handle = await createPixiRig(host, assets, {
-          seed,
-          timeMs: 0,
+          def,
           initialInputs: inputsRef.current,
         });
         if (cancelled) {
@@ -122,8 +121,8 @@ export function IllustratedRigStage({ inputs, seed, onPhase, onHandle, attempt }
       handleRef.current = null;
       handle?.destroy();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- build once per attempt/seed; live inputs flow via the effect below
-  }, [attempt, seed]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- build once per attempt/species; live inputs flow via the effect below
+  }, [attempt, def.speciesId]);
 
   useEffect(() => {
     handleRef.current?.setInputs(inputs);

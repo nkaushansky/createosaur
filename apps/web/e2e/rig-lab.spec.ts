@@ -118,7 +118,40 @@ test('pattern types swap without errors or rig reloads, and never move the pose'
   expect(pageErrors).toEqual([]);
 });
 
+test('switching species loads the Allosaurus rig and it responds to controls', async ({ page }) => {
+  await openRigLab(page, '/rig-lab?t=0');
+  await page.selectOption('#rig-species', 'allosaurus');
+  await expect(page.getByTestId('rig-stage')).toHaveAttribute('data-rig-state', 'ready', {
+    timeout: 30_000,
+  });
+  await expect(page.locator('canvas[role="img"]')).toHaveAttribute('aria-label', /Allosaurus/);
+
+  await page.getByTestId('rig-preset-neutral').click();
+  const before = await frameState(page);
+  await setRange(page, '#rig-head', 6);
+  await expect
+    .poll(async () => (await frameState(page)) !== before)
+    .toBe(true);
+
+  // The Allosaurus trial range reaches full stride; the slider must allow it.
+  await expect(page.locator('#rig-stride')).toHaveAttribute('max', '1');
+});
+
+test('allosaurus deep link renders deterministically at a frozen clock', async ({ page }) => {
+  await openRigLab(page, '/rig-lab?species=allosaurus&t=2500');
+  const first = await frameState(page);
+  await page.reload();
+  await expect(page.getByTestId('rig-stage')).toHaveAttribute('data-rig-state', 'ready', {
+    timeout: 30_000,
+  });
+  expect(await frameState(page)).toBe(first);
+});
+
 test('reduced motion freezes the pose where it was', async ({ page }) => {
+  // The only live-clock test: the rig renders every rAF, which saturates a
+  // software-GL worker, and two projects can hit it concurrently. The freeze
+  // assertions stay exact — only the interaction budget is widened.
+  test.setTimeout(60_000);
   await openRigLab(page); // live clock, auto-idle on
   const a = await frameState(page);
   await expect
