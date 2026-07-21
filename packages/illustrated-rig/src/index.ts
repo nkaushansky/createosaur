@@ -40,4 +40,10 @@ export {
 export { idleMotion, idlePhases, type IdlePhases } from './idle';
 export { effectiveMotion, evaluateRigPose, posedPivots } from './pose';
 export { MASKED_PATTERN_TYPES, hexColorToInt, isMaskedPattern, patternPixel, type MaskedPatternType } from './pattern';
-export { TREX_R0_ASSET_SHA256, TREX_R0_PACK_PATH, runtimeAssetPaths } from './integrity';
+export {
+  ALLOSAURUS_R0_ASSET_SHA256,
+  ALLOSAURUS_R0_PACK_PATH,
+  TREX_R0_ASSET_SHA256,
+  TREX_R0_PACK_PATH,
+  runtimeAssetPaths,
+} from './integrity';

@@ -4,6 +4,8 @@ import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
+  ALLOSAURUS_R0_ASSET_SHA256,
+  ALLOSAURUS_R0_PACK_PATH,
   LAYER_BOUNDS,
   RIG_LAYER_IDS,
   TREX_R0_ASSET_SHA256,
@@ -20,7 +22,8 @@ import {
  * here means the approved artwork changed and the owner has not signed off.
  */
 
-const packDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', TREX_R0_PACK_PATH);
+const publicDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'public');
+const packDir = join(publicDir, TREX_R0_PACK_PATH);
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -29,21 +32,45 @@ function walk(dir: string): string[] {
   });
 }
 
-describe('trex-r0-v1 pack integrity', () => {
+const PACKS: { name: string; path: string; table: ReadonlyArray<readonly [string, string]> }[] = [
+  { name: 'trex-r0-v1', path: TREX_R0_PACK_PATH, table: TREX_R0_ASSET_SHA256 },
+  { name: 'allosaurus-r0-v1', path: ALLOSAURUS_R0_PACK_PATH, table: ALLOSAURUS_R0_ASSET_SHA256 },
+];
+
+describe.each(PACKS)('$name pack integrity', ({ path, table }) => {
+  const dir = join(publicDir, path);
+
   it('every recorded file exists and hashes to its approved digest', () => {
-    for (const [relPath, expected] of TREX_R0_ASSET_SHA256) {
-      const actual = createHash('sha256').update(readFileSync(join(packDir, relPath))).digest('hex');
-      expect(actual, `${relPath} does not match the approved handoff digest`).toBe(expected);
+    for (const [relPath, expected] of table) {
+      const actual = createHash('sha256').update(readFileSync(join(dir, relPath))).digest('hex');
+      expect(actual, `${relPath} does not match the approved digest`).toBe(expected);
     }
   });
 
-  it('the pack contains no files beyond the approved manifest of 58', () => {
-    const onDisk = walk(packDir)
-      .map((f) => relative(packDir, f))
+  it('the pack contains no files beyond the recorded set', () => {
+    const onDisk = walk(dir)
+      .map((f) => relative(dir, f))
       .sort();
-    const recorded = TREX_R0_ASSET_SHA256.map(([p]) => p).sort();
+    const recorded = table.map(([p]) => p).sort();
     expect(onDisk).toEqual(recorded);
   });
+
+  it('manifest.json validates as a twelve-layer theropod rig', () => {
+    const parsed: unknown = JSON.parse(readFileSync(join(dir, 'manifest.json'), 'utf8'));
+    const result = validateTrexR0Manifest(parsed);
+    expect(result).toMatchObject({ ok: true });
+  });
+
+  it('reassembly verification recorded zero visible error', () => {
+    const parsed = JSON.parse(readFileSync(join(dir, 'manifest.json'), 'utf8')) as {
+      verification: { maxVisibleRgbError: number; maxAlphaError: number };
+    };
+    expect(parsed.verification.maxVisibleRgbError).toBe(0);
+    expect(parsed.verification.maxAlphaError).toBe(0);
+  });
+});
+
+describe('trex-r0-v1 pack specifics', () => {
 
   it('manifest.json validates as the twelve-layer trex-r0 rig', () => {
     const parsed: unknown = JSON.parse(readFileSync(join(packDir, 'manifest.json'), 'utf8'));
