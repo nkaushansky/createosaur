@@ -40,5 +40,20 @@ export default tseslint.config(
   {
     files: ['**/*.test.ts', '**/e2e/**'],
     rules: { 'no-console': 'off' },
+  },
+  {
+    // Asset-pipeline CLIs drive a browser page: node globals for the drivers,
+    // browser globals for the injected page-side code and evaluate callbacks.
+    files: ['tools/**/*.{js,mjs}'],
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        window: 'readonly',
+        document: 'readonly',
+        Image: 'readonly',
+      },
+    },
+    rules: { 'no-console': 'off' },
   }
 );

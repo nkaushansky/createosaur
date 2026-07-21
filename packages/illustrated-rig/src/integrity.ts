@@ -80,3 +80,73 @@ export function runtimeAssetPaths(): string[] {
     (p) => p === 'manifest.json' || p.startsWith('layers/') || p.startsWith('pattern-masks/')
   );
 }
+
+/** Public base path of the Allosaurus pack inside the web app. */
+export const ALLOSAURUS_R0_PACK_PATH = 'rigs/allosaurus-r0-v1';
+
+/**
+ * Pack-relative path → SHA-256 (hex) of every shipped allosaurus-r0-v1 file.
+ * Cut in-repo by tools/rig-pack from the owner-approved master (2026-07-21);
+ * zero-error reassembly verified at generation time.
+ */
+export const ALLOSAURUS_R0_ASSET_SHA256: ReadonlyArray<readonly [path: string, sha256: string]> = [
+  ["allosaurus-master-clean.png", "f7d1ce42f5659d7fa3e5ba14b90c6e4b6d025b7f69f7baae77d90d3ac30afd2d"],
+  ["allosaurus-master-neutral-preview.jpg", "09a6c2fea378566b1859240f79589064218f890f4602ba2776696d578a33bf66"],
+  ["debug/approved-master-original.png", "2ef2f649e29bbaadefc034871743b4bf1d3d22f898f50e37e5986bc1ecbd9fdf"],
+  ["debug/hidden-overlap-map.png", "effc14e16c65cd264c09a22568f9fa41986bdf444059faf695375135bef6dcc9"],
+  ["debug/layer-contact-sheet.jpg", "d5402674269e1214d86f50ea3bff7f5f1f26b9d426c38fcc0f24890ad649d4aa"],
+  ["debug/pattern-mask-contact-sheet.jpg", "7e3d128a215ce331e11d1a82ab2a8e1ba40237f0354499d6e3d92190229b54f3"],
+  ["debug/reassembled-transparent.png", "f7d1ce42f5659d7fa3e5ba14b90c6e4b6d025b7f69f7baae77d90d3ac30afd2d"],
+  ["debug/visible-layer-ownership.png", "1d13d13ec8f63c59ce7c8619888823e2ba3d71cc1258c342c408e8510fc9c610"],
+  ["layer-index.csv", "5b2b7d4107f5b8ed75261cf33601cff8f0192da1abf679978cabe5d6ebf8aa39"],
+  ["layers/00-far-hind-shank-foot.png", "abea559947f8d8f3ab9f9e7bd50c0ef6a961bc343162c0b955c0cb0a5642727d"],
+  ["layers/01-far-hind-thigh.png", "d34ce6b598ca93bad6109cb30a790ba6af4669653434c4aaca1d2d5da1d560bf"],
+  ["layers/02-near-hind-shank-foot.png", "c61f9cd533f063aa6cff3f71103269c310ec87ddb2ff04e9e8bcc4687f2ca9df"],
+  ["layers/03-near-hind-thigh.png", "f72056566bf613f25f21b4952d7689308b36435dc7328c0db17ec4a41b4ed6ed"],
+  ["layers/04-far-forearm.png", "db66682c368aa3157d33fe26c4575a0c0d39b9f06adaccc71670e8e35646a6d1"],
+  ["layers/05-near-forearm.png", "b1a57ef7b154f09565d5e4dafec67f54408cc90050265f8ff30bb5e32a8caf1a"],
+  ["layers/06-tail.png", "3b51f662ac3d0ef4b65bd8a69e16140b276b07160da30e62e24f8d56e43a473c"],
+  ["layers/07-pelvis.png", "b7becbc783e8edae7e78fb8dcdd3ef4c6cf522fef9db7fe2e4bf6fa1bc443956"],
+  ["layers/08-torso.png", "b708f513169a81326eec8298e71697b92c3f5ec0477dc6dd25ae5ac248f1cd32"],
+  ["layers/09-neck.png", "e0b2105a73c05e3893398eecb66ade393e479940458ea24ff8c97900ba29f828"],
+  ["layers/10-head-upper.png", "8740543cc2eb2ffc3a54e5da7d8b37d529b0ea90bb9c06af9d53f7737282bb34"],
+  ["layers/11-jaw-lower.png", "93e538132f22916c50575f6232f8071e48e870d0615514465c1c975e4a25aa29"],
+  ["manifest.json", "bb356248b16b33d3be56c8b8bab5576af0de937629064769c18ee9fea93bcfa2"],
+  ["pattern-masks/far-forearm/bands.png", "aee188922b8161710b998c7f53474bc3c7631da3a63a94a23746198164da10e7"],
+  ["pattern-masks/far-forearm/mottle.png", "26d6c5f1b09ea49112dc59d08f0f4eeb682a442c611f154c560f1d17e8e96126"],
+  ["pattern-masks/far-forearm/solid.png", "9d07195a74bb97e456ec10b4100879e81fe1c6cddf05105ccc79d95f2f1bf3d2"],
+  ["pattern-masks/far-hind-shank-foot/bands.png", "c6a3264f72305b660838583441a121c47c9936e4f8f8f987a4a19fffd739143c"],
+  ["pattern-masks/far-hind-shank-foot/mottle.png", "6089081957218fa788925a3c8238c8620c3d4f7a47af23ba578694fc95fd54dc"],
+  ["pattern-masks/far-hind-shank-foot/solid.png", "6347e4d04ae867ce5668d0d15a9f9df044125983ce43c601c4779de7a4f7e72d"],
+  ["pattern-masks/far-hind-thigh/bands.png", "f37039ae8c1fbbb902463282b9c272f1e21442f5c5b4dfd69e016a8113363b7e"],
+  ["pattern-masks/far-hind-thigh/mottle.png", "bd766dd9bf67708ad5bf5302dfad4fb29298e18b5093c550448bad16f6e018da"],
+  ["pattern-masks/far-hind-thigh/solid.png", "00f785d68bfcaadb2f787f91a75260ebcf0083177794a34218704820edae576f"],
+  ["pattern-masks/head-upper/bands.png", "b4945bcf3cd5b35af5022a16b2ce0c833836649f7b0f61926521f5603fd92491"],
+  ["pattern-masks/head-upper/mottle.png", "67a33022ec9ab2a3d0ce95f39df62b9d793c8ac7d883df50a63e93233bff3027"],
+  ["pattern-masks/head-upper/solid.png", "ceb4dc141ebb3aaaa66df26e8e108bb7849d57028a6357dd14a055dd060d910e"],
+  ["pattern-masks/jaw-lower/bands.png", "cc40e6cc98e23b09438d5af0cc179fbf61c40855ba98fd79b7694d843c501719"],
+  ["pattern-masks/jaw-lower/mottle.png", "da90920a2d196f166aa9960d9c14a25ad2ddaba7c485a852729de862ba219dba"],
+  ["pattern-masks/jaw-lower/solid.png", "31e1651007500b3ea4a917eaca8412bd49ffe0abf2b65fc359c310cd56a18d4a"],
+  ["pattern-masks/near-forearm/bands.png", "42e168f97927e9aefcdff2db77567c0fb5bc05f0c98d3383d095a2acb14e19c8"],
+  ["pattern-masks/near-forearm/mottle.png", "b958de3dba6b194cd4b2fd94a25203b55605dce6627223c787a3a0f4822196b4"],
+  ["pattern-masks/near-forearm/solid.png", "b333aa2bc30137e048f83293d1bb5c1e9c7496650c7eb1178a7c8367dff985ca"],
+  ["pattern-masks/near-hind-shank-foot/bands.png", "40c656212a0f95bd774a523f7fce0ad608baf85347ddcd74210ac88d7b60203b"],
+  ["pattern-masks/near-hind-shank-foot/mottle.png", "170d17a3358c8009cf16eef0583d8b744e92efbe552361ed2899f5e6684e0e73"],
+  ["pattern-masks/near-hind-shank-foot/solid.png", "365712caf4d7b924402b469315fbc932c256eb679f7fa9f51249301160e15cdd"],
+  ["pattern-masks/near-hind-thigh/bands.png", "9ff659b0f2f4857efc0c8dc5085ce1248d8f2dbbd613d8b6a69ee8695fa257d4"],
+  ["pattern-masks/near-hind-thigh/mottle.png", "8799fb76dc44cb44c0028b37eac115f8712df53de551473b1cc0b5ebf2f1a931"],
+  ["pattern-masks/near-hind-thigh/solid.png", "907aa8115403121ed5966f8fb26c1763603b745554089983652b47be399dbe7f"],
+  ["pattern-masks/neck/bands.png", "b05741557bda56438f0ec516594e55f90dd23468521b9ecf266016b1e8e867f0"],
+  ["pattern-masks/neck/mottle.png", "a3ad1e7fe2cf643cf35624d4d97c42b19aaa29fc86fdb9e85a130d864f134eca"],
+  ["pattern-masks/neck/solid.png", "98c673158feed4541d4955ad7973e527fa202c02d3a7041d29932eb268037340"],
+  ["pattern-masks/pelvis/bands.png", "5bfa5eb344628a1a594784782a2242fccab0988452264ba46446c24222b7c556"],
+  ["pattern-masks/pelvis/mottle.png", "445253c7f9bf06641f01b1fc9180be11658973de0f6e7fd1df40c12be10a8344"],
+  ["pattern-masks/pelvis/solid.png", "5ddb55e33a8c301e84b3644a7a093852b0c5b716cfd99d0ff57a3996f7364e4b"],
+  ["pattern-masks/tail/bands.png", "50353976463e34aa5067af0d6799ca2e0e3dceb1281c8a2bae6a419b1bb236f8"],
+  ["pattern-masks/tail/mottle.png", "1c9f957c6539f3f397d0add2b90de7a58f72c8d8f796f7578f97b111fe50eff9"],
+  ["pattern-masks/tail/solid.png", "7214cc3ef751fcab85b963baa800be0a4a68ac65d9a1d1aadbdb2654017b3bdb"],
+  ["pattern-masks/torso/bands.png", "9316bf88326879d6685d784b1ce28e0e43fe42c86de6466a18ecae9cb9f3c912"],
+  ["pattern-masks/torso/mottle.png", "b6652fe4575632390f9b47f4147a28b68d27896262d10c77d51c877e588b218e"],
+  ["pattern-masks/torso/solid.png", "bf8628d33a7ef9dee9d8f82515506c7ad1eebe59f71cdb78c59162274f95eab4"],
+  ["README.md", "a0c443491a324c30fefcefd53d397981fbf9c9a7cc3c7a4c75006068433ebc6f"],
+];
