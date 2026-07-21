@@ -20,6 +20,20 @@ revision can absorb it.
   visual weight so species read at a shared scale on the shared stage.
 - Approved master background: flat warm paper, **RGB(250, 247, 242)** (the
   pack's recorded `backgroundSample`). Clean master and layers: transparent.
+- **Mouth: PARTIALLY OPEN, never sealed** (supersedes Template B's "mouth
+  closed or nearly closed"; owner decision 2026-07-21). The master must show
+  both tooth rows and a dark mouth-interior gap between them — roughly
+  10–15 % of head height at the widest point, a calm parted mouth, not a
+  roar. Rationale: the rig can *close* an open mouth (the jaw rotates up and
+  painted pixels tuck into hidden overlap under the cheek) but can never
+  *open* a sealed one — a closed-mouth master contains no interior pixels,
+  so the jaw axis dies at a few degrees (measured on `trex-r0-v1` /
+  `allosaurus-r0-v1`: background shows through the slit past ~8–10°). Cut
+  contract for the mouth: lower tooth row + interior floor belong to
+  `jaw-lower`; upper tooth row + interior roof/shadow belong to
+  `head-upper`; `head-upper`'s cheek overlap conceals the jaw's rear edge
+  through the full swing. Neutral pose = as-painted opening; the jaw range
+  then spans from pressed-shut (negative rotation) to wide (positive).
 
 ## 2. Hidden-overlap depth (bible: "seems sufficient for modest motion")
 

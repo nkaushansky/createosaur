@@ -192,6 +192,13 @@ the repo addendum: bottom-of-z-stack layers (far leg) cannot be backed by
 overlap, so knee counter-rotation must stay small and pivot on the visible
 thigh/shank seam.
 
+**Jaw articulation (owner decision 2026-07-21):** masters are now generated
+with a **partially open mouth** (addendum §1) so the jaw axis can really
+open and close — the rig closes an open mouth into hidden overlap, but can
+never open a sealed one. The T. rex and Allosaurus masters will be
+regenerated to this spec and cut as `*-r0-v2` packs (owner approves each
+new master); Velociraptor onward uses the spec from the start.
+
 ### IR2 — One rig per terrestrial archetype
 
 Theropod, sauropod, ceratopsian, armored and ornithopod exemplars, followed by
