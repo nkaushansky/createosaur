@@ -6,13 +6,15 @@ import { describe, expect, it } from 'vitest';
 import {
   ALLOSAURUS_R0_ASSET_SHA256,
   ALLOSAURUS_R0_PACK_PATH,
-  LAYER_BOUNDS,
+  ALLOSAURUS_RIG_DEF,
   RIG_LAYER_IDS,
   TREX_R0_ASSET_SHA256,
   TREX_R0_PACK_PATH,
+  TREX_RIG_DEF,
   runtimeAssetPaths,
   validateTrexR0Manifest,
   type RigLayerId,
+  type SpeciesRigDef,
 } from '@createosaur/illustrated-rig';
 
 /**
@@ -32,12 +34,22 @@ function walk(dir: string): string[] {
   });
 }
 
-const PACKS: { name: string; path: string; table: ReadonlyArray<readonly [string, string]> }[] = [
-  { name: 'trex-r0-v1', path: TREX_R0_PACK_PATH, table: TREX_R0_ASSET_SHA256 },
-  { name: 'allosaurus-r0-v1', path: ALLOSAURUS_R0_PACK_PATH, table: ALLOSAURUS_R0_ASSET_SHA256 },
+const PACKS: {
+  name: string;
+  path: string;
+  table: ReadonlyArray<readonly [string, string]>;
+  def: SpeciesRigDef;
+}[] = [
+  { name: 'trex-r0-v1', path: TREX_R0_PACK_PATH, table: TREX_R0_ASSET_SHA256, def: TREX_RIG_DEF },
+  {
+    name: 'allosaurus-r0-v1',
+    path: ALLOSAURUS_R0_PACK_PATH,
+    table: ALLOSAURUS_R0_ASSET_SHA256,
+    def: ALLOSAURUS_RIG_DEF,
+  },
 ];
 
-describe.each(PACKS)('$name pack integrity', ({ path, table }) => {
+describe.each(PACKS)('$name pack integrity', ({ path, table, def }) => {
   const dir = join(publicDir, path);
 
   it('every recorded file exists and hashes to its approved digest', () => {
@@ -68,6 +80,42 @@ describe.each(PACKS)('$name pack integrity', ({ path, table }) => {
     expect(parsed.verification.maxVisibleRgbError).toBe(0);
     expect(parsed.verification.maxAlphaError).toBe(0);
   });
+
+  it("the species def's embedded layer bounds match the manifest exactly", () => {
+    const parsed: unknown = JSON.parse(readFileSync(join(dir, 'manifest.json'), 'utf8'));
+    const result = validateTrexR0Manifest(parsed);
+    if (!result.ok) throw new Error('manifest invalid');
+    for (const layer of result.manifest.layers) {
+      expect(def.layerBounds[layer.id as RigLayerId], `bounds for ${layer.id}`).toEqual(layer.bounds);
+    }
+  });
+
+  it("the species def's pack path and seed match the pack", () => {
+    const parsed = JSON.parse(readFileSync(join(dir, 'manifest.json'), 'utf8')) as {
+      patterns: { seed: number };
+    };
+    expect(def.packPath).toBe(path);
+    expect(def.seed).toBe(parsed.patterns.seed);
+  });
+
+  it('every file the runtime loader fetches exists in this pack', () => {
+    const parsed: unknown = JSON.parse(readFileSync(join(dir, 'manifest.json'), 'utf8'));
+    const result = validateTrexR0Manifest(parsed);
+    if (!result.ok) throw new Error('manifest invalid');
+    const recorded = new Set(table.map(([p]) => p));
+    const runtimeLoads = [
+      'manifest.json',
+      def.masterFile,
+      'debug/hidden-overlap-map.png',
+      ...result.manifest.layers.flatMap((layer) => [
+        layer.source,
+        ...Object.values(layer.patternMasks),
+      ]),
+    ];
+    for (const relPath of runtimeLoads) {
+      expect(recorded.has(relPath), `runtime fetch ${relPath} is not in the pack`).toBe(true);
+    }
+  });
 });
 
 describe('trex-r0-v1 pack specifics', () => {
@@ -76,15 +124,6 @@ describe('trex-r0-v1 pack specifics', () => {
     const parsed: unknown = JSON.parse(readFileSync(join(packDir, 'manifest.json'), 'utf8'));
     const result = validateTrexR0Manifest(parsed);
     expect(result).toMatchObject({ ok: true });
-  });
-
-  it('the pose package’s embedded layer bounds match the manifest exactly', () => {
-    const parsed: unknown = JSON.parse(readFileSync(join(packDir, 'manifest.json'), 'utf8'));
-    const result = validateTrexR0Manifest(parsed);
-    if (!result.ok) throw new Error('manifest invalid');
-    for (const layer of result.manifest.layers) {
-      expect(LAYER_BOUNDS[layer.id as RigLayerId], `bounds for ${layer.id}`).toEqual(layer.bounds);
-    }
   });
 
   it('every runtime asset the rig loads is hash-locked', () => {

@@ -35,9 +35,19 @@ IR0 measured what "sufficient" means; these are now requirements:
 - The tail-underside spur behind the near thigh either belongs to the
   **thigh layer** (so it moves with the leg) or its cut edge stays ≥ 16 px
   behind the calf silhouette at 6° of thigh swing.
+- **The inter-leg region needs deep rims on the far-leg layers** (verified on
+  `allosaurus-r0-v1`: 44 px). When the near leg swings forward and the far
+  leg back, the band between them is vacated and only the far-leg layers sit
+  low enough in the z-stack to fill it with hidden art.
+- **Bottom-of-z-stack layers cannot be backed by overlap** — nothing draws
+  behind the far leg, so any gap it opens against itself is bare background.
+  Keep the far-knee counter-rotation small (≈ 4°) and place the knee pivot
+  on the visible thigh/shank seam so divergence is least along the cut.
 
-Packs meeting these rules restore the full ±1 stride range that
-`trex-r0-v1` had to cap at ±0.6.
+These rules are verified: `allosaurus-r0-v1` (crease-following cut edges,
+28-44 px leg rims) holds the **full ±1 stride** that `trex-r0-v1`'s straight
+cut edges forced down to ±0.6 — the enclosed-hole scan stays flat across the
+whole sweep.
 
 ## 3. Machine-readable pack contract (bible: "manifest / index exists")
 

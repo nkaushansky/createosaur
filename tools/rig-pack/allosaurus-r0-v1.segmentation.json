@@ -37,11 +37,13 @@
   ],
   "overlapRadius": {
     "default": 18,
-    "near-hind-thigh": 24,
+    "near-hind-thigh": 32,
+    "near-hind-shank-foot": 28,
     "tail": 20,
     "neck": 20,
     "pelvis": 20,
-    "far-hind-thigh": 20,
+    "far-hind-thigh": 44,
+    "far-hind-shank-foot": 44,
     "torso": 18
   },
   "regions": {

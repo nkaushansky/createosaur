@@ -1,8 +1,8 @@
 z,layer_id,source,visible_pixels,hidden_overlap_pixels,bounds_x,bounds_y,bounds_width,bounds_height
-0,far-hind-shank-foot,layers/00-far-hind-shank-foot.png,11878,1070,810,584,140,211
-1,far-hind-thigh,layers/01-far-hind-thigh.png,2447,3671,818,453,112,164
-2,near-hind-shank-foot,layers/02-near-hind-shank-foot.png,12055,1143,606,589,173,212
-3,near-hind-thigh,layers/03-near-hind-thigh.png,26617,7380,628,429,244,194
+0,far-hind-shank-foot,layers/00-far-hind-shank-foot.png,11878,2829,796,561,154,234
+1,far-hind-thigh,layers/01-far-hind-thigh.png,2447,9233,796,429,152,192
+2,near-hind-shank-foot,layers/02-near-hind-shank-foot.png,12055,1868,606,579,173,222
+3,near-hind-thigh,layers/03-near-hind-thigh.png,26617,9977,620,421,258,202
 4,far-forearm,layers/04-far-forearm.png,6011,3099,392,434,74,242
 5,near-forearm,layers/05-near-forearm.png,10996,2637,425,434,106,264
 6,tail,layers/06-tail.png,49306,2990,874,326,642,175

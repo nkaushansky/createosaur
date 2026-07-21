@@ -3,23 +3,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   DEFAULT_RIG_PARAMS,
-  RIG_PRESETS,
+  SPECIES_RIG_DEFS,
   clampRigParams,
+  rigPresets,
   type IllustratedRigParams,
   type PresetName,
+  type SpeciesId,
 } from '@createosaur/illustrated-rig';
 import type { RigDebugFlags, RigHandle } from '@/lib/illustrated-rig/pixiRig';
 import { IllustratedRigStage, type RigPhase } from './IllustratedRigStage';
 import { RigControls } from './RigControls';
 
 /**
- * IR0 experiment shell — deliberately isolated from the lab store and
- * production components. The rig's variation seed is the pack's own pattern
- * seed, so "the" IR0 T. rex is one specific individual everywhere: here, in
- * unit snapshots, and in Playwright's frozen-time screenshots.
+ * IR0/IR1 experiment shell — deliberately isolated from the lab store and
+ * production components. Each species' variation seed is its pack's own
+ * pattern seed, so a given species is one specific individual everywhere:
+ * here, in unit snapshots, and in Playwright's frozen-time screenshots.
  */
-const RIG_SEED = 20260718;
-
 const DEFAULT_DEBUG: RigDebugFlags = {
   masterUnderlay: false,
   overlapMap: false,
@@ -34,17 +34,26 @@ function freezeTimeFromLocation(): number | null {
   return Number.isFinite(value) && value >= 0 ? value : null;
 }
 
+/** Read the requested species (?species=allosaurus) once on the client. */
+function speciesFromLocation(): SpeciesId {
+  const raw = new URLSearchParams(window.location.search).get('species');
+  return raw !== null && raw in SPECIES_RIG_DEFS ? (raw as SpeciesId) : 'trex';
+}
+
 export function IllustratedRigLab() {
   const [mounted, setMounted] = useState(false);
   const [freezeTimeMs, setFreezeTimeMs] = useState<number | null>(null);
+  const [species, setSpecies] = useState<SpeciesId>('trex');
   const [params, setParams] = useState<IllustratedRigParams>(DEFAULT_RIG_PARAMS);
   const [debug, setDebug] = useState<RigDebugFlags>(DEFAULT_DEBUG);
   const [phase, setPhase] = useState<RigPhase>({ state: 'loading', message: 'Preparing…' });
   const [attempt, setAttempt] = useState(0);
   const handleRef = useRef<RigHandle | null>(null);
+  const def = SPECIES_RIG_DEFS[species];
 
   useEffect(() => {
     setFreezeTimeMs(freezeTimeFromLocation());
+    setSpecies(speciesFromLocation());
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       setParams((current) => ({ ...current, autoIdle: false, reducedMotion: true }));
     }
@@ -69,8 +78,21 @@ export function IllustratedRigLab() {
     });
   }, []);
 
-  const applyPreset = useCallback((name: PresetName) => {
-    setParams((current) => clampRigParams({ ...current, ...RIG_PRESETS[name], autoIdle: false }));
+  const applyPreset = useCallback(
+    (name: PresetName) => {
+      const presets = rigPresets(def.strideRange.max);
+      setParams((current) => clampRigParams({ ...current, ...presets[name], autoIdle: false }));
+    },
+    [def.strideRange.max]
+  );
+
+  const switchSpecies = useCallback((next: SpeciesId) => {
+    setSpecies(next);
+    setPhase({ state: 'loading', message: 'Loading species…' });
+    // Motion resets to a neutral static pose so the new rig loads predictably.
+    setParams((current) =>
+      clampRigParams({ ...current, headAngle: 0, jawAngle: 0, breath: 0, stride: 0, tailSway: 0 })
+    );
   }, []);
 
   const patchDebug = useCallback((patch: Partial<RigDebugFlags>) => {
@@ -89,10 +111,10 @@ export function IllustratedRigLab() {
       <header className="flex flex-wrap items-baseline justify-between gap-2">
         <div className="flex items-baseline gap-3">
           <h1 className="text-2xl font-bold">Rig Lab</h1>
-          <span className="chip">IR0 experiment</span>
+          <span className="chip">IR experiment</span>
         </div>
         <p className="text-sm" style={{ color: 'var(--muted)' }}>
-          Authored illustrated T.&nbsp;rex under deterministic deformation (D-020). Not linked from
+          Authored illustrated dinosaurs under deterministic deformation (D-020). Not linked from
           the product; the production lab is untouched.
         </p>
       </header>
@@ -115,7 +137,7 @@ export function IllustratedRigLab() {
             {mounted ? (
               <IllustratedRigStage
                 inputs={stageInputs}
-                seed={RIG_SEED}
+                def={def}
                 onPhase={setPhase}
                 onHandle={onHandle}
                 attempt={attempt}
@@ -168,6 +190,9 @@ export function IllustratedRigLab() {
             params={params}
             debug={debug}
             disabled={rigState !== 'ready'}
+            species={species}
+            strideRange={def.strideRange}
+            onSpecies={switchSpecies}
             onParams={patchParams}
             onPreset={applyPreset}
             onDebug={patchDebug}

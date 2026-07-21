@@ -180,6 +180,18 @@ after IR0 approval. Asset production follows
 `docs/rebuild/asset-generation/` (the owner-approved generation bible plus
 the repo addendum's technical contract).
 
+**In progress (2026-07-21):** the rig is species-parameterized — one shared
+pose evaluator reads a per-species `SpeciesRigDef` (pivots, deform constants,
+stride bound, pack identity), and the T. rex refactor is proven bit-identical
+by its unregenerated pose snapshot. Allosaurus is live at
+`/rig-lab?species=allosaurus` (owner-approved `allosaurus-r0-v1` cut, PR #10)
+and its seam rounds **verified the full ±1 stride range** — the enclosed-hole
+scan stays flat across the whole sweep, confirming IR0's cap was the trex
+pack's straight cut edges, not the approach. New-pack learning recorded in
+the repo addendum: bottom-of-z-stack layers (far leg) cannot be backed by
+overlap, so knee counter-rotation must stay small and pivot on the visible
+thigh/shank seam.
+
 ### IR2 — One rig per terrestrial archetype
 
 Theropod, sauropod, ceratopsian, armored and ornithopod exemplars, followed by

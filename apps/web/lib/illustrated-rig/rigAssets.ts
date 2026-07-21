@@ -1,11 +1,11 @@
 import {
   MASKED_PATTERN_TYPES,
-  TREX_R0_PACK_PATH,
   validateTrexR0Manifest,
   type MaskedPatternType,
   type RigLayerId,
   type RigManifest,
   type RigManifestLayer,
+  type SpeciesRigDef,
 } from '@createosaur/illustrated-rig';
 
 /**
@@ -121,14 +121,20 @@ function prepareMask(bitmap: ImageBitmap, layer: RigManifestLayer): PreparedMask
 // a subfolder (basePath), asset fetches must carry the same prefix.
 const DEPLOY_PREFIX = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
 
+/** Deploy-prefixed URL of a species' pack. */
+export function packUrl(def: SpeciesRigDef): string {
+  return `${DEPLOY_PREFIX}/${def.packPath}`;
+}
+
 /**
- * Fetch, validate and prepare the whole pack. Progress is reported per
+ * Fetch, validate and prepare a species' whole pack. Progress is reported per
  * fetched file; any failure carries the exact pack-relative path.
  */
 export async function loadRigAssets(
-  baseUrl: string = `${DEPLOY_PREFIX}/${TREX_R0_PACK_PATH}`,
+  def: SpeciesRigDef,
   onProgress?: (progress: LoadProgress) => void
 ): Promise<LoadedRigAssets> {
+  const baseUrl = packUrl(def);
   onProgress?.({ step: 'manifest', loaded: 0, total: 1 });
   const { blob: manifestBlob, bytes: manifestBytes } = await fetchBytes(baseUrl, 'manifest.json');
   let parsed: unknown;
@@ -174,7 +180,7 @@ export async function loadRigAssets(
     }),
   ]);
 
-  const { bitmap: master, bytes: masterBytes } = await fetchBitmap(baseUrl, 'trex-master-clean.png');
+  const { bitmap: master, bytes: masterBytes } = await fetchBitmap(baseUrl, def.masterFile);
   tick(masterBytes);
   const { bitmap: overlapMap, bytes: overlapBytes } = await fetchBitmap(baseUrl, 'debug/hidden-overlap-map.png');
   tick(overlapBytes);

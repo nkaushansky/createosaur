@@ -3,9 +3,11 @@
 import {
   MOTION_RANGES,
   PRESET_NAMES,
+  SPECIES_RIG_DEFS,
   type IllustratedRigParams,
   type PatternType,
   type PresetName,
+  type SpeciesId,
 } from '@createosaur/illustrated-rig';
 import type { RigDebugFlags } from '@/lib/illustrated-rig/pixiRig';
 
@@ -28,6 +30,9 @@ interface Props {
   params: IllustratedRigParams;
   debug: RigDebugFlags;
   disabled: boolean;
+  species: SpeciesId;
+  strideRange: { min: number; max: number };
+  onSpecies: (species: SpeciesId) => void;
   onParams: (patch: Partial<IllustratedRigParams>) => void;
   onPreset: (name: PresetName) => void;
   onDebug: (patch: Partial<RigDebugFlags>) => void;
@@ -96,10 +101,40 @@ function DebugToggle({
   );
 }
 
-export function RigControls({ params, debug, disabled, onParams, onPreset, onDebug }: Props) {
+export function RigControls({
+  params,
+  debug,
+  disabled,
+  species,
+  strideRange,
+  onSpecies,
+  onParams,
+  onPreset,
+  onDebug,
+}: Props) {
   const motionDisabled = disabled || params.autoIdle;
   return (
     <div className="flex flex-col gap-4">
+      <section className="card-panel p-4">
+        <h2 className="section-title">Species</h2>
+        <label htmlFor="rig-species" className="text-sm">
+          Rig
+        </label>
+        <select
+          id="rig-species"
+          className="select-input mt-1"
+          value={species}
+          disabled={disabled}
+          onChange={(e) => onSpecies(e.target.value as SpeciesId)}
+        >
+          {Object.values(SPECIES_RIG_DEFS).map((def) => (
+            <option key={def.speciesId} value={def.speciesId}>
+              {def.label}
+            </option>
+          ))}
+        </select>
+      </section>
+
       <section className="card-panel p-4">
         <h2 className="section-title">Presets</h2>
         <div className="flex flex-wrap gap-2">
@@ -159,8 +194,8 @@ export function RigControls({ params, debug, disabled, onParams, onPreset, onDeb
           id="rig-stride"
           label="Stride"
           value={params.stride}
-          min={-1}
-          max={1}
+          min={strideRange.min}
+          max={strideRange.max}
           step={0.01}
           disabled={motionDisabled}
           onChange={(stride) => onParams({ stride })}
