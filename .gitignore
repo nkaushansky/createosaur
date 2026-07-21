@@ -47,3 +47,6 @@ scratch-*
 *.njsproj
 *.sln
 *.sw?
+
+# rig-pack scratch (masters land in apps/web/public/rigs, not here)
+tools/rig-pack/work/
