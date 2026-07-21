@@ -194,10 +194,14 @@ thigh/shank seam.
 
 **Jaw articulation (owner decision 2026-07-21):** masters are now generated
 with a **partially open mouth** (addendum §1) so the jaw axis can really
-open and close — the rig closes an open mouth into hidden overlap, but can
-never open a sealed one. The T. rex and Allosaurus masters will be
-regenerated to this spec and cut as `*-r0-v2` packs (owner approves each
-new master); Velociraptor onward uses the spec from the start.
+close — the rig clenches an open mouth into hidden overlap, but can never
+open a sealed one. **Shipped as `trex-r0-v2` / `allosaurus-r0-v2`:** both
+species re-mastered to the spec (owner-approved), cut in-repo with a
+per-tooth mouth boundary (upper fangs on the head, lower row + interior
+floor on the jaw, jaw drawn under the head for correct occlusion), and both
+verified at **full ±1 stride + full −8° clench** — neutral is the painted
+open pose, so `jawRange` is [−8, 0]. Velociraptor onward uses the spec from
+the first generation.
 
 ### IR2 — One rig per terrestrial archetype
 

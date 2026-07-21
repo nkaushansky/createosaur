@@ -80,10 +80,10 @@ export function IllustratedRigLab() {
 
   const applyPreset = useCallback(
     (name: PresetName) => {
-      const presets = rigPresets(def.strideRange.max);
+      const presets = rigPresets(def.strideRange.max, def.jawRange);
       setParams((current) => clampRigParams({ ...current, ...presets[name], autoIdle: false }));
     },
-    [def.strideRange.max]
+    [def.strideRange.max, def.jawRange]
   );
 
   const switchSpecies = useCallback((next: SpeciesId) => {
@@ -192,6 +192,7 @@ export function IllustratedRigLab() {
             disabled={rigState !== 'ready'}
             species={species}
             strideRange={def.strideRange}
+            jawRange={def.jawRange}
             onSpecies={switchSpecies}
             onParams={patchParams}
             onPreset={applyPreset}

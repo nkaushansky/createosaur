@@ -83,6 +83,12 @@ export interface SpeciesRigDef {
   seed: number;
   /** Per-species stride bound: how far this pack's overlap stays seam-clean. */
   strideRange: { min: number; max: number };
+  /**
+   * Per-species jaw bound in degrees around the as-painted neutral: negative
+   * clenches shut (painted pixels tuck into hidden overlap under the cheek).
+   * The as-painted gap is the widest backable open, so max is 0 today.
+   */
+  jawRange: { min: number; max: number };
   pivots: Record<PivotId, Point>;
   layerBounds: Record<RigLayerId, RectBounds>;
   meshSpecs: Record<MeshLayerId, MeshGridSpec>;
@@ -99,73 +105,78 @@ const SHARED_MESH_SPECS: Record<MeshLayerId, MeshGridSpec> = {
 export const TREX_RIG_DEF: SpeciesRigDef = {
   speciesId: 'trex',
   label: 'Tyrannosaurus rex',
-  packPath: 'rigs/trex-r0-v1',
+  packPath: 'rigs/trex-r0-v2',
   masterFile: 'trex-master-clean.png',
   seed: 20260718,
-  // The trex-r0-v1 pack's straight extraction-cut edges expose beyond ~0.6
-  // (IR0 finding); the range stays capped until a pack revision.
-  strideRange: { min: -0.6, max: 0.6 },
+  // Trial: the v2 cut applies every IR1 slice rule (crease-following edges,
+  // deep leg rims), so the range starts at full; the seam rounds set it.
+  strideRange: { min: -1, max: 1 },
+  // Jaw seam rounds (2026-07-21): clenching is fully backed (the jaw tucks
+  // under the cheek with correct tooth occlusion) but opening past the
+  // painted gap cannot be — the head is top of the z-stack, so nothing can
+  // fill the strip the jaw vacates. Neutral IS the open pose.
+  jawRange: { min: -8, max: 0 },
   pivots: {
-    torso: { x: 705, y: 505 },
-    pelvis: { x: 748, y: 432 },
-    tail: { x: 848, y: 420 },
-    neck: { x: 438, y: 470 },
-    head: { x: 315, y: 390 },
-    jaw: { x: 300, y: 366 },
-    farHip: { x: 585, y: 502 },
-    farKnee: { x: 612, y: 645 },
-    nearHip: { x: 748, y: 498 },
-    nearKnee: { x: 770, y: 645 },
-    farShoulder: { x: 447, y: 448 },
-    nearShoulder: { x: 414, y: 432 },
+    torso: { x: 650, y: 480 },
+    pelvis: { x: 950, y: 400 },
+    tail: { x: 1100, y: 400 },
+    neck: { x: 430, y: 400 },
+    head: { x: 185, y: 300 },
+    jaw: { x: 250, y: 366 },
+    farHip: { x: 620, y: 465 },
+    farKnee: { x: 615, y: 635 },
+    nearHip: { x: 755, y: 465 },
+    nearKnee: { x: 800, y: 640 },
+    farShoulder: { x: 405, y: 492 },
+    nearShoulder: { x: 445, y: 480 },
   },
   layerBounds: {
-    'far-hind-shank-foot': { x: 512, y: 560, width: 188, height: 225 },
-    'far-hind-thigh': { x: 513, y: 458, width: 167, height: 147 },
-    'near-hind-shank-foot': { x: 645, y: 532, width: 256, height: 257 },
-    'near-hind-thigh': { x: 609, y: 365, width: 280, height: 237 },
-    'far-forearm': { x: 420, y: 398, width: 96, height: 187 },
-    'near-forearm': { x: 368, y: 387, width: 129, height: 205 },
-    tail: { x: 805, y: 280, width: 719, height: 380 },
-    pelvis: { x: 622, y: 263, width: 309, height: 410 },
-    torso: { x: 375, y: 265, width: 361, height: 514 },
-    neck: { x: 240, y: 233, width: 231, height: 357 },
-    'head-upper': { x: 46, y: 230, width: 320, height: 223 },
-    'jaw-lower': { x: 43, y: 335, width: 278, height: 105 },
+    'far-hind-shank-foot': { x: 510, y: 571, width: 189, height: 213 },
+    'far-hind-thigh': { x: 552, y: 415, width: 144, height: 225 },
+    'near-hind-shank-foot': { x: 751, y: 596, width: 151, height: 192 },
+    'near-hind-thigh': { x: 609, y: 400, width: 299, height: 246 },
+    'far-forearm': { x: 382, y: 470, width: 47, height: 43 },
+    'near-forearm': { x: 394, y: 460, width: 108, height: 129 },
+    tail: { x: 1057, y: 326, width: 474, height: 149 },
+    pelvis: { x: 812, y: 280, width: 283, height: 219 },
+    torso: { x: 404, y: 254, width: 474, height: 381 },
+    neck: { x: 223, y: 218, width: 255, height: 274 },
+    'jaw-lower': { x: 45, y: 326, width: 216, height: 128 },
+    'head-upper': { x: 34, y: 228, width: 234, height: 176 },
   },
   meshSpecs: SHARED_MESH_SPECS,
   deform: {
     torso: {
       liftAmp: 9,
-      dorsalRamp: [760, 300],
-      pelvisPinRamp: [650, 734],
-      chest: { amp: 2.5, cx: 690, halfW: 315, envelope: { rise: [280, 420], fall: [520, 700] } },
+      dorsalRamp: [630, 290],
+      pelvisPinRamp: [770, 870],
+      chest: { amp: 2.5, cx: 640, halfW: 250, envelope: { rise: [290, 430], fall: [505, 630] } },
       plateau: {
-        sample: { x: 455, y: 495 },
-        x: { rise: [343, 388], fall: [500, 545] },
-        y: { rise: [367, 412], fall: [580, 625] },
+        sample: { x: 440, y: 500 },
+        x: { rise: [360, 405], fall: [510, 555] },
+        y: { rise: [420, 460], fall: [585, 625] },
       },
     },
-    neck: { xBase: 465, xHead: 305, liftBase: 5.5, liftHead: 4.5, rotPerHeadDeg: 0.45, rotPerBreath: -0.9 },
+    neck: { xBase: 460, xHead: 270, liftBase: 5.5, liftHead: 4.5, rotPerHeadDeg: 0.45, rotPerBreath: -0.9 },
     head: { dxPerDeg: -0.5, dyPerDegUp: -0.12, dyPerDegDown: -0.3 },
     legs: {
-      farThighAmp: -4.2,
-      farShankAmp: 6,
-      nearThighAmp: 4.6,
-      nearShankAmp: 6.5,
+      farThighAmp: -4.8,
+      farShankAmp: 4.5,
+      nearThighAmp: 5.4,
+      nearShankAmp: 7,
       nearShiftForward: [0, -4.8],
       nearShiftBackward: [7.2, 2],
     },
     arms: { breathRot: -1.0 },
-    pelvis: { settleAmp: 1.2, rotAmp: 1.2, xRamp: [700, 820], yPinRamp: [560, 660] },
+    pelvis: { settleAmp: 1.2, rotAmp: 1.2, xRamp: [840, 960], yPinRamp: [460, 505] },
     tail: {
-      ramp: [870, 1500],
+      ramp: [1080, 1530],
       swayRot: 5,
       strideRot: 2.4,
       breathRot: -0.7,
       shiftX: -4,
       shiftY: 2,
-      legFollow: { xFade: [900, 970], yRamp: [545, 610], dx: -8, dy: 4 },
+      legFollow: { xFade: [1060, 1120], yRamp: [440, 500], dx: -8, dy: 4 },
     },
   },
 };
@@ -173,77 +184,84 @@ export const TREX_RIG_DEF: SpeciesRigDef = {
 export const ALLOSAURUS_RIG_DEF: SpeciesRigDef = {
   speciesId: 'allosaurus',
   label: 'Allosaurus',
-  packPath: 'rigs/allosaurus-r0-v1',
+  packPath: 'rigs/allosaurus-r0-v2',
   masterFile: 'allosaurus-master-clean.png',
   seed: 20260720,
-  // Verified full range (2026-07-21 seam rounds): crease-following cut edges
-  // plus 28-44 px leg rims hold ±1 — enclosed-hole scan is flat across the
-  // whole sweep. The trex's ±0.6 cap was the pack, not the approach.
+  // Trial at full range: the v2 cut keeps every rule that verified ±1 on
+  // allosaurus-r0-v1 (crease edges, deep leg rims); the seam rounds confirm.
   strideRange: { min: -1, max: 1 },
+  // Jaw seam rounds (2026-07-21): clenching is fully backed (the jaw tucks
+  // under the cheek with correct tooth occlusion) but opening past the
+  // painted gap cannot be — the head is top of the z-stack, so nothing can
+  // fill the strip the jaw vacates. Neutral IS the open pose.
+  jawRange: { min: -8, max: 0 },
   pivots: {
-    torso: { x: 680, y: 470 },
-    pelvis: { x: 780, y: 400 },
-    tail: { x: 940, y: 400 },
-    neck: { x: 400, y: 415 },
-    head: { x: 250, y: 295 },
-    jaw: { x: 248, y: 350 },
-    farHip: { x: 870, y: 490 },
-    // Centered on the visible thigh/shank seam so the knee counter-rotation
-    // diverges least along the cut (round-2 finding: the far leg is the
-    // bottom of the z-stack, so a knee gap has nothing behind it to show).
-    farKnee: { x: 852, y: 592 },
-    nearHip: { x: 750, y: 480 },
-    nearKnee: { x: 735, y: 615 },
-    farShoulder: { x: 430, y: 465 },
-    nearShoulder: { x: 470, y: 465 },
+    torso: { x: 660, y: 470 },
+    pelvis: { x: 1000, y: 390 },
+    tail: { x: 1160, y: 420 },
+    neck: { x: 430, y: 420 },
+    head: { x: 240, y: 300 },
+    jaw: { x: 238, y: 352 },
+    farHip: { x: 905, y: 435 },
+    // Knee pivots sit on the visible thigh/shank seam so counter-rotation
+    // diverges least along the cut (IR1 finding: the far leg is the bottom
+    // of the z-stack, so a knee gap has nothing behind it to show).
+    farKnee: { x: 900, y: 598 },
+    nearHip: { x: 800, y: 460 },
+    nearKnee: { x: 790, y: 640 },
+    farShoulder: { x: 455, y: 505 },
+    nearShoulder: { x: 495, y: 495 },
   },
   layerBounds: {
-    'far-hind-shank-foot': { x: 796, y: 561, width: 154, height: 234 },
-    'far-hind-thigh': { x: 796, y: 429, width: 152, height: 192 },
-    'near-hind-shank-foot': { x: 606, y: 579, width: 173, height: 222 },
-    'near-hind-thigh': { x: 620, y: 421, width: 258, height: 202 },
-    'far-forearm': { x: 392, y: 434, width: 74, height: 242 },
-    'near-forearm': { x: 425, y: 434, width: 106, height: 264 },
-    tail: { x: 874, y: 326, width: 642, height: 175 },
-    pelvis: { x: 668, y: 295, width: 259, height: 212 },
-    torso: { x: 371, y: 274, width: 327, height: 311 },
-    neck: { x: 241, y: 236, width: 172, height: 251 },
-    'head-upper': { x: 52, y: 231, width: 222, height: 159 },
-    'jaw-lower': { x: 51, y: 344, width: 223, height: 63 },
+    'far-hind-shank-foot': { x: 825, y: 584, width: 149, height: 236 },
+    'far-hind-thigh': { x: 848, y: 384, width: 108, height: 112 },
+    'near-hind-shank-foot': { x: 614, y: 623, width: 184, height: 200 },
+    'near-hind-thigh': { x: 650, y: 380, width: 320, height: 285 },
+    'far-forearm': { x: 392, y: 506, width: 119, height: 184 },
+    'near-forearm': { x: 435, y: 476, width: 186, height: 236 },
+    tail: { x: 1146, y: 343, width: 370, height: 141 },
+    pelvis: { x: 858, y: 299, width: 314, height: 193 },
+    torso: { x: 400, y: 271, width: 520, height: 420 },
+    neck: { x: 226, y: 210, width: 246, height: 310 },
+    'jaw-lower': { x: 54, y: 314, width: 208, height: 105 },
+    'head-upper': { x: 39, y: 204, width: 233, height: 169 },
   },
   meshSpecs: SHARED_MESH_SPECS,
   deform: {
     torso: {
       liftAmp: 8,
-      dorsalRamp: [565, 295],
-      pelvisPinRamp: [610, 696],
-      chest: { amp: 2.2, cx: 655, halfW: 285, envelope: { rise: [285, 400], fall: [480, 585] } },
+      dorsalRamp: [580, 300],
+      pelvisPinRamp: [790, 900],
+      chest: { amp: 2.2, cx: 650, halfW: 260, envelope: { rise: [290, 400], fall: [500, 620] } },
       plateau: {
-        sample: { x: 470, y: 470 },
-        x: { rise: [355, 400], fall: [545, 590] },
-        y: { rise: [350, 395], fall: [590, 635] },
+        sample: { x: 480, y: 500 },
+        x: { rise: [420, 470], fall: [610, 660] },
+        y: { rise: [440, 490], fall: [640, 690] },
       },
     },
-    neck: { xBase: 405, xHead: 290, liftBase: 5, liftHead: 4, rotPerHeadDeg: 0.45, rotPerBreath: -0.9 },
+    neck: { xBase: 430, xHead: 285, liftBase: 5, liftHead: 4, rotPerHeadDeg: 0.45, rotPerBreath: -0.9 },
     head: { dxPerDeg: -0.5, dyPerDegUp: -0.12, dyPerDegDown: -0.3 },
     legs: {
-      farThighAmp: -4.6,
-      farShankAmp: 4,
-      nearThighAmp: 5.8,
+      // The v2 art tucks the far leg almost entirely behind the hip (204
+      // visible px of thigh), so its swing stays small — the stride read
+      // comes from the near leg and the tail.
+      farThighAmp: -2.6,
+      farShankAmp: 2.5,
+      nearThighAmp: 4.6,
       nearShankAmp: 8,
-      nearShiftForward: [2, -4.5],
+      nearShiftForward: [1.5, -3.6],
       nearShiftBackward: [8.4, 3],
     },
     arms: { breathRot: -1.0 },
-    pelvis: { settleAmp: 1.2, rotAmp: 1.2, xRamp: [740, 860], yPinRamp: [430, 500] },
+    pelvis: { settleAmp: 1.2, rotAmp: 1.2, xRamp: [900, 1030], yPinRamp: [400, 470] },
     tail: {
-      ramp: [960, 1480],
+      ramp: [1180, 1500],
       swayRot: 5,
       strideRot: 2.4,
       breathRot: -0.7,
       shiftX: -4,
       shiftY: 2,
-      legFollow: { xFade: [930, 990], yRamp: [415, 470], dx: -8, dy: 4 },
+      legFollow: { xFade: [1130, 1190], yRamp: [400, 460], dx: -8, dy: 4 },
     },
   },
 };

@@ -32,8 +32,11 @@ revision can absorb it.
   contract for the mouth: lower tooth row + interior floor belong to
   `jaw-lower`; upper tooth row + interior roof/shadow belong to
   `head-upper`; `head-upper`'s cheek overlap conceals the jaw's rear edge
-  through the full swing. Neutral pose = as-painted opening; the jaw range
-  then spans from pressed-shut (negative rotation) to wide (positive).
+  through the full swing. Neutral pose = as-painted opening, and it is also the
+  **widest** pose: the head tops the z-stack so nothing can back a reveal
+  beyond the painted gap — the jaw range spans pressed-shut (negative) to
+  the as-painted open (0). Paint the master's gap as wide as the species
+  should ever gape.
 
 ## 2. Hidden-overlap depth (bible: "seems sufficient for modest motion")
 
@@ -58,10 +61,21 @@ IR0 measured what "sufficient" means; these are now requirements:
   Keep the far-knee counter-rotation small (≈ 4°) and place the knee pivot
   on the visible thigh/shank seam so divergence is least along the cut.
 
-These rules are verified: `allosaurus-r0-v1` (crease-following cut edges,
-28-44 px leg rims) holds the **full ±1 stride** that `trex-r0-v1`'s straight
-cut edges forced down to ±0.6 — the enclosed-hole scan stays flat across the
-whole sweep.
+- **Limb polygons must contain the limb's full painted edge.** Any strip of
+  a limb's painted silhouette left to a static layer (remainder healing or a
+  polygon cutting inside the art) detaches as a floating chip the moment the
+  limb swings. Measure the painted edge from the master per row; don't
+  eyeball it. Ownership seams between thigh and shank sit ON the painted
+  knee crease (where the counter-rotation pivots), never below it.
+- **The jaw's concealed extension must not copy the tooth rows**
+  (`overlapExclude` in the segmentation; `tools/rig-pack` supports per-layer
+  no-grow polygons). Structured features ghost when revealed; plain hide and
+  mouth interior do not.
+
+These rules are verified on `trex-r0-v2` and `allosaurus-r0-v2`: both hold
+the **full ±1 stride** (the enclosed-hole scan is flat-or-decreasing across
+the whole pose matrix) plus a full jaw clench, from the same masters, cut
+entirely in-repo.
 
 ## 3. Machine-readable pack contract (bible: "manifest / index exists")
 

@@ -16,7 +16,7 @@ function staticParams(motion: Partial<IllustratedRigParams> = {}): IllustratedRi
 describe('parameter clamping', () => {
   it('clamps every motion axis into its documented range', () => {
     const clamped = clampRigParams(
-      staticParams({ headAngle: 999, jawAngle: -5, breath: 2, stride: -9, tailSway: 1.5 })
+      staticParams({ headAngle: 999, jawAngle: -99, breath: 2, stride: -9, tailSway: 1.5 })
     );
     expect(clamped.headAngle).toBe(MOTION_RANGES.headAngle.max);
     expect(clamped.jawAngle).toBe(MOTION_RANGES.jawAngle.min);
@@ -43,7 +43,7 @@ describe('parameter clamping', () => {
   });
 
   it('presets are all inside the clamp ranges (stress sits on the bounds)', () => {
-    for (const preset of Object.values(rigPresets(DEF.strideRange.max))) {
+    for (const preset of Object.values(rigPresets(DEF.strideRange.max, DEF.jawRange))) {
       const clamped = clampRigParams(staticParams(preset));
       expect(clamped.headAngle).toBe(preset.headAngle);
       expect(clamped.jawAngle).toBe(preset.jawAngle);
@@ -153,7 +153,7 @@ describe('pose geometry invariants', () => {
     const rest = restMeshPositions(DEF, 'neck');
     for (let i = 0; i < rest.length; i += 2) {
       const x = rest[i]!;
-      if (x > 305) continue; // only the rigid head-follow zone
+      if (x > DEF.deform.neck.xHead) continue; // only the rigid head-follow zone
       const expected = applyMat(head.matrix, { x, y: rest[i + 1]! });
       expect(neck.positions[i]).toBeCloseTo(expected.x, 6);
       expect(neck.positions[i + 1]).toBeCloseTo(expected.y, 6);
@@ -219,11 +219,30 @@ describe('allosaurus rig def', () => {
     }
   });
 
-  it('supports the full trial stride range while trex stays capped', () => {
+  it('clamps stride and jaw to each species def', () => {
     const wide = effectiveMotion(ADEF, staticParams({ stride: 1 }), { seed: ADEF.seed, timeMs: 0 });
-    expect(wide.stride).toBe(1);
-    const capped = effectiveMotion(DEF, staticParams({ stride: 1 }), { seed: SEED, timeMs: 0 });
-    expect(capped.stride).toBe(DEF.strideRange.max);
+    expect(wide.stride).toBe(ADEF.strideRange.max);
+    const clench = effectiveMotion(ADEF, staticParams({ jawAngle: -99 }), { seed: ADEF.seed, timeMs: 0 });
+    expect(clench.jawAngle).toBe(ADEF.jawRange.min);
+    const gape = effectiveMotion(DEF, staticParams({ jawAngle: 99 }), { seed: SEED, timeMs: 0 });
+    expect(gape.jawAngle).toBe(DEF.jawRange.max);
+  });
+
+  it('a clenching jaw lifts the chin toward the skull, deeper with more clench', () => {
+    const shut = evaluateRigPose(DEF, staticParams({ jawAngle: -3 }), { seed: SEED, timeMs: 0 });
+    const shutHard = evaluateRigPose(DEF, staticParams({ jawAngle: -8 }), { seed: SEED, timeMs: 0 });
+    const neutral = evaluateRigPose(DEF, staticParams({}), { seed: SEED, timeMs: 0 });
+    const chin = { x: 60, y: 400 };
+    const jawAt = (pose: typeof shut) => {
+      const layer = pose.layers['jaw-lower'];
+      if (layer.kind !== 'transform') throw new Error('jaw must be rigid');
+      return applyMat(layer.matrix, chin);
+    };
+    expect(jawAt(shut).y).toBeLessThan(jawAt(neutral).y);
+    expect(jawAt(shutHard).y).toBeLessThan(jawAt(shut).y);
+    // Opening past the painted pose is not backable by art: clamp holds at 0.
+    const wide = effectiveMotion(DEF, staticParams({ jawAngle: 99 }), { seed: SEED, timeMs: 0 });
+    expect(wide.jawAngle).toBe(0);
   });
 
   it('fixed-time allosaurus pose snapshot is stable', () => {
