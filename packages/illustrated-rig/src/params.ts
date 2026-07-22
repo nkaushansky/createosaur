@@ -8,11 +8,14 @@ import type { IllustratedRigParams, MotionParams, PatternType } from './types';
  */
 export const MOTION_RANGES = {
   headAngle: { min: -6, max: 8 },
-  jawAngle: { min: 0, max: 6 },
+  // Absolute jaw envelope in degrees around the as-painted neutral: negative
+  // clenches shut, positive would open wider (species defs currently cap at
+  // 0 — the painted pose is the widest backable open; see SpeciesRigDef).
+  jawAngle: { min: -10, max: 6 },
   breath: { min: 0, max: 1 },
   // The absolute stride envelope. Each species narrows it further via its
   // SpeciesRigDef.strideRange — how far that pack's hidden overlap stays
-  // seam-clean (trex-r0-v1 caps at ±0.6; see the def for why).
+  // seam-clean.
   stride: { min: -1, max: 1 },
   tailSway: { min: -1, max: 1 },
 } as const satisfies Record<keyof MotionParams, { min: number; max: number }>;
@@ -64,16 +67,19 @@ export type PresetName = (typeof PRESET_NAMES)[number];
 /**
  * The five review poses from the validated standalone prototype. `stress`
  * intentionally drives every axis to a bound — it is the seam test, not a
- * pose the idle loop ever reaches. Stride values scale to the species'
- * seam-clean range.
+ * pose the idle loop ever reaches. Stride and jaw values scale to the
+ * species' seam-clean ranges.
  */
-export function rigPresets(strideMax: number): Record<PresetName, MotionParams> {
+export function rigPresets(
+  strideMax: number,
+  jawRange: { min: number; max: number }
+): Record<PresetName, MotionParams> {
   const stridePose = Number((0.92 * strideMax).toFixed(2));
   return {
     neutral: { headAngle: 0, jawAngle: 0, breath: 0, stride: 0, tailSway: 0 },
-    inhale: { headAngle: 0.5, jawAngle: 0, breath: 1, stride: 0, tailSway: -0.08 },
-    lookUp: { headAngle: 6, jawAngle: 0.4, breath: 0.2, stride: 0, tailSway: -0.1 },
+    inhale: { headAngle: 0.5, jawAngle: jawRange.min, breath: 1, stride: 0, tailSway: -0.08 },
+    lookUp: { headAngle: 6, jawAngle: 0, breath: 0.2, stride: 0, tailSway: -0.1 },
     stride: { headAngle: -1.2, jawAngle: 0, breath: 0.35, stride: stridePose, tailSway: 0.55 },
-    stress: { headAngle: 7.5, jawAngle: 4.5, breath: 1, stride: strideMax, tailSway: 1 },
+    stress: { headAngle: 7.5, jawAngle: jawRange.max, breath: 1, stride: strideMax, tailSway: 1 },
   };
 }

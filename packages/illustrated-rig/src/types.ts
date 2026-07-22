@@ -25,7 +25,12 @@ export interface RectBounds {
   readonly height: number;
 }
 
-/** The twelve anatomical layers of the trex-r0-v1 pack, back to front. */
+/**
+ * The twelve anatomical layers of an r0 theropod pack, back to front. Since
+ * the v2 packs the jaw draws UNDER the head: the cheek conceals the jaw's
+ * hinge through its swing and the upper teeth occlude the lower row at full
+ * clench (open-mouth master spec, addendum §1).
+ */
 export const RIG_LAYER_IDS = [
   'far-hind-shank-foot',
   'far-hind-thigh',
@@ -37,8 +42,8 @@ export const RIG_LAYER_IDS = [
   'pelvis',
   'torso',
   'neck',
-  'head-upper',
   'jaw-lower',
+  'head-upper',
 ] as const;
 
 export type RigLayerId = (typeof RIG_LAYER_IDS)[number];

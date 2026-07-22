@@ -45,7 +45,33 @@ const result = await page.evaluate(async (seg) => {
     for (let i = 0; i < W * H; i++) if (owner[i] === li) visible[i] = 1;
     const ownDist = RP.bfsDistance(visible);
     const radius = seg.overlapRadius[id] ?? seg.overlapRadius.default;
-    const overlap = RP.computeOverlap(owner, alpha, li, radius, interiorDist, ownDist);
+    // Optional no-grow zones: concealed extension must never copy structured
+    // features (tooth rows) that would ghost when the covering layer departs.
+    let exclude = null;
+    const excludePolys = seg.overlapExclude?.[id];
+    if (excludePolys) {
+      exclude = new Uint8Array(W * H);
+      for (const poly of excludePolys) {
+        let ex0 = W, ex1 = 0, ey0 = H, ey1 = 0;
+        for (const [px, py] of poly) {
+          ex0 = Math.min(ex0, Math.floor(px)); ex1 = Math.max(ex1, Math.ceil(px));
+          ey0 = Math.min(ey0, Math.floor(py)); ey1 = Math.max(ey1, Math.ceil(py));
+        }
+        for (let y = Math.max(0, ey0); y <= Math.min(H - 1, ey1); y++) {
+          for (let x = Math.max(0, ex0); x <= Math.min(W - 1, ex1); x++) {
+            if (RP.pointInPolygon(x + 0.5, y + 0.5, poly)) exclude[y * W + x] = 1;
+          }
+        }
+      }
+    }
+    // Coverer-aware no-grow: a moving layer's rim under a STATIC layer slides
+    // out and dangles when the mover swings, while its rim under a co-moving
+    // layer (the knee) is what keeps joints closed — so exclusion is by the
+    // identity of the covering layer, not by canvas region.
+    let excludeOwners = null;
+    const underIds = seg.overlapExcludeUnder?.[id];
+    if (underIds) excludeOwners = new Set(underIds.map((uid) => ids.indexOf(uid)));
+    const overlap = RP.computeOverlap(owner, alpha, li, radius, interiorDist, ownDist, exclude, excludeOwners);
 
     // Build the layer image: visible pixels carry the master's soft alpha,
     // overlap pixels are fully opaque copies of the neighbours above.

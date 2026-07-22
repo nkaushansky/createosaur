@@ -192,6 +192,27 @@ the repo addendum: bottom-of-z-stack layers (far leg) cannot be backed by
 overlap, so knee counter-rotation must stay small and pivot on the visible
 thigh/shank seam.
 
+**Jaw articulation (owner decision 2026-07-21):** masters are now generated
+with a **partially open mouth** (addendum §1) so the jaw axis can really
+close — the rig clenches an open mouth into hidden overlap, but can never
+open a sealed one. **Shipped as `trex-r0-v2` / `allosaurus-r0-v2`:** both
+species re-mastered to the spec (owner-approved), cut in-repo with a
+per-tooth mouth boundary (upper fangs on the head, lower row + interior
+floor on the jaw, jaw drawn under the head for correct occlusion), and both
+verified at **full ±1 stride + full −8° clench** — neutral is the painted
+open pose, so `jawRange` is [−8, 0]. Velociraptor onward uses the spec from
+the first generation.
+
+**Known limitation (owner-reviewed 2026-07-21, deferred):** at stride
+extremes the hip/thigh piece boundaries read as visible seams — the legs
+move as rigid cutouts, so the join lines show where they rotate out of the
+body. The owner judged this non-critical: the walk motion is a rigging
+showcase, not the product's core loop (mixing creature parts is). The real
+fix is promoting the hip junction to weighted mesh deformation — the same
+technique that makes the neck bend read as smooth and continuous — i.e.
+skinned joint blending rather than deeper cut tuning, which hit diminishing
+returns. IR2-class work; revisit when joints become product-visible.
+
 ### IR2 — One rig per terrestrial archetype
 
 Theropod, sauropod, ceratopsian, armored and ornithopod exemplars, followed by

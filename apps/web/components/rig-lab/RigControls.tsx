@@ -32,6 +32,7 @@ interface Props {
   disabled: boolean;
   species: SpeciesId;
   strideRange: { min: number; max: number };
+  jawRange: { min: number; max: number };
   onSpecies: (species: SpeciesId) => void;
   onParams: (patch: Partial<IllustratedRigParams>) => void;
   onPreset: (name: PresetName) => void;
@@ -107,6 +108,7 @@ export function RigControls({
   disabled,
   species,
   strideRange,
+  jawRange,
   onSpecies,
   onParams,
   onPreset,
@@ -171,11 +173,11 @@ export function RigControls({
         />
         <MotionSlider
           id="rig-jaw"
-          label="Jaw angle"
+          label="Jaw (clench ↔ open)"
           unit="°"
           value={params.jawAngle}
-          min={MOTION_RANGES.jawAngle.min}
-          max={MOTION_RANGES.jawAngle.max}
+          min={jawRange.min}
+          max={jawRange.max}
           step={0.1}
           disabled={motionDisabled}
           onChange={(jawAngle) => onParams({ jawAngle })}

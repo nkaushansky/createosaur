@@ -48,7 +48,11 @@ export function effectiveMotion(
           stride: clamped.stride,
           tailSway: clamped.tailSway,
         };
-  return { ...motion, stride: clamp(motion.stride, def.strideRange.min, def.strideRange.max) };
+  return {
+    ...motion,
+    stride: clamp(motion.stride, def.strideRange.min, def.strideRange.max),
+    jawAngle: clamp(motion.jawAngle, def.jawRange.min, def.jawRange.max),
+  };
 }
 
 /**
@@ -235,7 +239,9 @@ export function evaluateRigPose(
   const motion = effectiveMotion(def, params, options);
 
   const headM = headMatrix(def, motion);
-  const jawM = compose(headM, rotateAboutDeg(def.pivots.jaw, motion.jawAngle));
+  // Positive jawAngle opens (chin drops), negative clenches — the hinge sits
+  // behind the mouth corner, so screen-clockwise rotation would lift the chin.
+  const jawM = compose(headM, rotateAboutDeg(def.pivots.jaw, -motion.jawAngle));
   const legs = legMatrices(def, motion);
   const arms = forearmMatrices(def, motion);
 

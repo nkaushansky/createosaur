@@ -40,9 +40,9 @@ const PACKS: {
   table: ReadonlyArray<readonly [string, string]>;
   def: SpeciesRigDef;
 }[] = [
-  { name: 'trex-r0-v1', path: TREX_R0_PACK_PATH, table: TREX_R0_ASSET_SHA256, def: TREX_RIG_DEF },
+  { name: 'trex-r0-v2', path: TREX_R0_PACK_PATH, table: TREX_R0_ASSET_SHA256, def: TREX_RIG_DEF },
   {
-    name: 'allosaurus-r0-v1',
+    name: 'allosaurus-r0-v2',
     path: ALLOSAURUS_R0_PACK_PATH,
     table: ALLOSAURUS_R0_ASSET_SHA256,
     def: ALLOSAURUS_RIG_DEF,
@@ -118,9 +118,9 @@ describe.each(PACKS)('$name pack integrity', ({ path, table, def }) => {
   });
 });
 
-describe('trex-r0-v1 pack specifics', () => {
+describe('trex-r0-v2 pack specifics', () => {
 
-  it('manifest.json validates as the twelve-layer trex-r0 rig', () => {
+  it('manifest.json validates as the twelve-layer trex-r0 rig (v2)', () => {
     const parsed: unknown = JSON.parse(readFileSync(join(packDir, 'manifest.json'), 'utf8'));
     const result = validateTrexR0Manifest(parsed);
     expect(result).toMatchObject({ ok: true });

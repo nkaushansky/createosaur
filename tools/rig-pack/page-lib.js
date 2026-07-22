@@ -211,9 +211,11 @@ window.RigPack = (() => {
    * owned by a layer ABOVE L in draw order, and safely interior to the
    * silhouette (so reassembled alpha stays exact).
    */
-  function computeOverlap(owner, alpha, layerIdx, radius, interiorDist, ownDist) {
+  function computeOverlap(owner, alpha, layerIdx, radius, interiorDist, ownDist, exclude, excludeOwners) {
     const overlap = new Uint8Array(W * H);
     for (let i = 0; i < W * H; i++) {
+      if (exclude && exclude[i] === 1) continue;
+      if (excludeOwners && excludeOwners.has(owner[i])) continue;
       if (owner[i] > layerIdx && ownDist[i] > 0 && ownDist[i] <= radius && interiorDist[i] >= 2) {
         overlap[i] = 1;
       }
