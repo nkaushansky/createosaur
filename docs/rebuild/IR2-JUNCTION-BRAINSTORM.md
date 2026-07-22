@@ -321,15 +321,28 @@ this T. rex against the existing master-cut Allosaurus would surface
 Allo-side holes misread as parts-first failures. Re-author Allosaurus
 parts-first before mixing.
 
-Next (ordered): (1) fix the doc/spec bugs — done here for jaw-rear;
-(2) settle the neutral-source fork — done, leans derive; (3) rewrite
-Template G → v2 with the change-list, re-probe T. rex, THEN Velociraptor
-after the per-archetype socket registry exists; (4) build the slicer and
-rig the painted pieces to produce the FIRST assembled composite (the
-artifact that actually tests failure-class elimination); (5) author the
-`pattern.ts` stage-space field + a value×pattern composite + one hybrid to
-close the paint half of D-023; (6) re-author Allosaurus parts-first, then
-close D-021/D-023 on assembled, painted, mixed evidence.
+**Owner decisions, 2026-07-22 (round 2):**
+- **Tighten the prompt before writing any code** (path #1) — get one cleanly
+  sliceable sheet, then build the slicer against good input. No slicer work
+  against the current defective sheets.
+- **Single closed torso-through-pelvis CORE**, not the 3-barrel split. The
+  torso/pelvis division was a cut artifact the master never had; merging it
+  removes the mid-flank seam and matches the painted flank. Theropod piece
+  list drops 10 → **9**: neck, core, upper head, lower jaw, near arm, far
+  arm, near hind leg, far hind leg, tail. Neck and tail stay separate (they
+  articulate); the pelvis's ~1° stride micro-rotation is the only sacrifice,
+  bakeable into the core mesh as a region weight if ever wanted.
+
+Next (ordered): (1) doc/spec bugs fixed (jaw-rear KEEP); (2) neutral-source
+fork settled — derive by desaturation; (3) **Template G v2 written**
+(single core, painted-generate + in-repo value derive, mouth/tail/identity
+locks, chroma-key bg, pattern → `pattern.ts`) — re-probe T. rex next, THEN
+Velociraptor after the per-archetype socket registry exists; (4) build the
+slicer and rig the painted pieces → FIRST assembled composite (the artifact
+that actually tests failure-class elimination); (5) author the `pattern.ts`
+stage-space field + a value×pattern composite + one hybrid to close the
+paint half of D-023; (6) re-author Allosaurus parts-first, then close
+D-021/D-023 on assembled, painted, mixed evidence.
 
 **Scheduling note:** IR1 species expansion stays paused until D-021
 resolves — mixing is the product's core loop (VISION), and every pack

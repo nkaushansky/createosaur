@@ -205,95 +205,126 @@ This is a production-art pipeline task, not just concept art.
 
 ---
 
-## Template G — Parts contact sheet (DRAFT — gated on D-021)
+## Template G — Parts contact sheet (v2 — architecture adopted, decision open)
 
-Status: **draft, not yet production**. This is the parts-first generation
-spec from `../IR2-JUNCTION-BRAINSTORM.md` (§2, §8). First use is the
-T. rex re-anchor probe (brainstorm §7.1, owner call 2026-07-22); it
-replaces Template C's cut-the-master extraction only if D-021 lands on
-parts-first. Visual reference for the
-concept — including what it gets wrong — is
-`reference-parts-sheet-trex-chatgpt.png` (see brainstorm §8 for the
-critique).
+Status: **v2, probe use** (`../IR2-JUNCTION-BRAINSTORM.md` §7 round-2 log,
+owner call 2026-07-22). Round-1/2 proved parts-first as the ARCHITECTURE;
+v2 folds in the panel's fixes so the next sheet is cleanly *sliceable*.
+Concept reference (and its flaws) is `reference-parts-sheet-trex-chatgpt.png`
+(critique in brainstorm §8); the two probe sheets are
+`probe-trex-parts-sheet-r1.png` (painted — baked the mouth shut) and
+`-r2-neutral.png` (redrew the tail straight). Do NOT close D-021/D-023 on a
+sheet alone — that happens on the assembled, mixed rig.
 
-**Thread hygiene:** attach ONLY the approved master. Never attach a
-previous parts sheet or any layout example — an image reference that
-already "answers" the request dominates the text and gets copied, its
-mistakes included. The layout knowledge lives in this template now. The
-piece manifest and the ban on extra rows exist for the same reason: the
-concept-reference sheet showed generators love inventing rows (eye
-insets, shadow studies, trait add-ons) and severing legs at the knee.
+**What changed from v1 (why each line exists):**
+- **Single closed torso-through-pelvis CORE** (owner call): the torso/pelvis
+  split was a cut artifact the master never had; merging it removes the
+  mid-flank seam. Nine pieces, not ten.
+- **Generate PAINTED, not neutral.** We derive value in-repo by desaturating
+  (proven: the blotches are hue-encoded, §7 log) and QA identity against the
+  master's colour/pattern. Runtime pattern comes from `pattern.ts`
+  procedurally — so the drift-prone whole-body pattern-overlay row is DROPPED.
+- **Mouth-open and tail-curvature are now hard, checked asks** — the exact
+  two defects that made r1 and r2 unsliceable.
+- **Identity lock** (teeth, tubercles, texture density) — round-2 found a
+  silent batch drift (banana teeth → croc pegs) a silhouette check misses.
+- **Chroma-key background** — pale stubs (lum 254–255) got eaten by a
+  luminance background key at the joints; a saturated background separates
+  them by hue.
+
+**Thread hygiene:** attach ONLY the approved master. Never attach a previous
+parts sheet or layout example — an image that already "answers" the request
+dominates the text and gets copied, mistakes included. WE author the
+machine-readable per-piece manifest (piece id, each end keep|crop, expected
+scale vs the true master, pose lock) in-repo; do not ask the generator for it.
 
 ```text
 Using the attached approved Createosaur [SPECIES NAME] master illustration
-as the exact identity, style, lighting and scale anchor, create a PARTS
-CONTACT SHEET of the same individual animal — every piece drawn separately,
-complete, and ready to be reassembled by overlapping at defined joint lines.
+as the exact identity, style, colour, pattern, lighting and scale anchor,
+create a PARTS CONTACT SHEET of the SAME INDIVIDUAL animal — every piece
+drawn separately and complete, ready to be reassembled by overlapping at
+defined joint lines. This is the same animal taken apart, NOT a redesign:
+match the master's exact teeth (large and blade-like — never shrunk or
+rounded), skull bumps/tubercles, skin texture density, colour and pattern.
 
-THE MOST IMPORTANT RULE, before anything else: each hind leg is ONE
-COMPLETE PIECE that INCLUDES ITS ENTIRE THIGH, from inside the hip socket
-down through the foot and claws. The thigh is never part of the torso or
-pelvis pieces. If a hind leg piece is missing its thigh, the sheet is
-wrong.
+TWO RULES THAT OVERRIDE EVERYTHING, check them before finishing:
+1. MOUTH STAYS OPEN exactly as the master — upper and lower tooth rows both
+   visible, the dark mouth interior painted on the UPPER HEAD piece so the
+   lower jaw hinges open in front of it. Never draw the mouth closed.
+2. Each hind leg is ONE COMPLETE PIECE INCLUDING ITS ENTIRE THIGH, from
+   inside the hip down through the foot and claws. The thigh is never part
+   of the body. A leg without its thigh means the sheet is wrong.
 
-The sheet contains EXACTLY TEN PIECES plus the anchor, and nothing else:
-neck, torso, pelvis, upper head, lower jaw, near arm, far arm, near hind
-leg, far hind leg, tail. Do NOT add any other rows or items — no eye or
-facial detail insets, no light/shadow study, no pattern overlay, no trait
-add-ons, no alternate poses, no assembled preview.
+The sheet contains EXACTLY NINE PIECES plus the anchor, and nothing else:
+neck, body core, upper head, lower jaw, near arm, far arm, near hind leg,
+far hind leg, tail. Do NOT add other rows or items — no eye/detail insets,
+no light-shadow study, no pattern overlay, no trait add-ons, no alternate
+poses, no assembled preview.
 
-One image, organized in rows on a plain light neutral background with a
-faint uniform registration grid. Same left-facing side profile, same
-lighting direction, and the SAME SCALE for every piece and the anchor row —
-no per-piece zoom anywhere on the sheet.
+BACKGROUND: a flat saturated CHROMA-KEY green (#00b140), edge to edge, behind
+everything — not paper, not gray. Over it a faint thin registration grid of
+uniform squares.
 
-ROW 1 — anchor: the approved master illustration, unchanged.
+SCALE: every piece AND the anchor at the exact same scale (same pixels per
+metre) — measure against the anchor, no per-piece zoom anywhere. Draw a short
+labelled scale bar beside the anchor.
 
-ROW 2 — body core, three pieces: neck, torso, pelvis. Each is COMPLETE and
-CLOSED: no holes, no openings, no missing regions where limbs or head
-attach. Paint plain believable hide across the shoulder and hip regions —
-limbs will sit on top of or behind these pieces, never inside them. Where
-these three pieces meet each other, give each a generous plain overlap
-margin continuing into its neighbor.
+ROW 1 — anchor: the approved master illustration, reproduced as exactly as
+you can, unchanged.
 
-ROW 3 — upper head and lower jaw as two separate labeled pieces (mouth
-interior painted on the head piece, [MOUTH POSE PER ADDENDUM §1]).
+ROW 2 — BODY CORE: ONE complete closed piece of hide running from the base
+of the neck to the root of the tail (torso and pelvis together, no seam
+between them). Plain believable hide across the shoulder, belly and hip —
+the arms, legs, tail and neck attach OVER or BEHIND this hide, never inside
+it. No holes, no openings. Leave a plain hide margin at the neck base and
+the tail root.
 
-ROW 4 — limbs, four separate labeled pieces, each complete and severed
-ONLY at its body socket: near arm and far arm (shoulder to claw tips),
-near hind leg and far hind leg (each with its full thigh, per the rule
-above). Far-side pieces get the same value treatment the master uses for
-its far side.
+ROW 3 — UPPER HEAD and LOWER JAW, two separate labelled pieces, mouth open
+per rule 1 (dark interior on the upper head).
 
-ROW 5 — tail, one complete piece severed at the tail-root socket.
+ROW 4 — LIMBS, four separate labelled pieces: near arm and far arm (shoulder
+to claw tips), near hind leg and far hind leg (each with its full thigh per
+rule 2). Draw the near and far piece of each pair IDENTICAL in value — do
+not darken the far one; depth shading is added later.
 
-SOCKET RULE, every severed piece: the piece ends at its named socket line
-[SOCKET TABLE PER ARCHETYPE FRAMING CONTRACT], then continues PAST that
-line with a plain smooth flesh stub at least [S] px long — no silhouette
-detail on the stub; it exists to be hidden under the adjoining piece when
-assembled. Severed edges are clean socket lines with stubs, never ragged
-tears and never painted-in shadow gaps.
+ROW 5 — TAIL: one complete piece from the tail root to the fine tip, drawn
+in the master's exact curvature and length — a thick curved taper, NOT
+straightened, NOT stretched into a thin needle.
 
-APPEARANCE: [IF D-023 / NEUTRAL-VALUE: every piece in neutral grayscale
-value — full form shading, scale texture, wrinkles, eyes/claws/teeth
-detail, but NO hue and NO pattern. Add one extra row: the species' signature
-pattern as a separate flat overlay layer on the master's silhouette.]
-[OTHERWISE: same palette and pattern treatment as the approved master on
-every piece.]
+SOCKET STUBS: every piece that attaches to another ends at its joint, then
+continues PAST the joint with a plain smooth flesh stub about a tenth of the
+piece's length — no scales or silhouette detail on the stub, it only exists
+to be hidden under the neighbouring piece. Mark the joint with a thin dotted
+line across the stub. Clean socket lines with stubs — never ragged tears,
+never painted-in shadow gaps, never holes.
 
-Label each piece in small plain text ABOVE it, never overlapping any
-artwork. Generous empty space between pieces — nothing touches or overlaps
-on the sheet. No decorative typography, no scene, no extra annotations.
-
-This is a production-art pipeline task: the pieces will be sliced from this
-sheet and rigged directly, so completeness, scale consistency and clean
-socket stubs matter more than composition.
+Label each piece in small plain text ABOVE it, never touching artwork.
+Generous empty space between pieces — nothing overlaps on the sheet. No
+decorative typography, no scenery, no extra annotations. Highest resolution
+you can.
 ```
 
-Follow-up prompt for corrections (keep the thread's context):
+Follow-up 1 — correct a single bad piece (same thread):
 
 ```text
-Regenerate only [PIECE NAME] on the same sheet conventions: same scale,
-same lighting, same style, severed at [SOCKET], with its plain tuck-under
-stub. Do not change any other piece.
+Regenerate only [PIECE NAME] on the same sheet conventions: same scale, same
+lighting, same style, mouth open / full thigh / tail curvature as applicable,
+severed at its joint with its plain dotted-line stub. Do not change any other
+piece.
 ```
+
+Follow-up 2 — the anchor drifted from the true master (same thread):
+
+```text
+Compare your ROW 1 anchor to the attached master: [SPECIFIC DRIFT, e.g. the
+teeth are too small and round, the skull has lost its bumps]. Redraw every
+piece to match the master exactly on that point. It is the same individual.
+```
+
+**In-repo, not in the prompt:** derive the neutral-value pieces by
+desaturating the sliced painted pieces and suppressing residual tonal
+mottle; author the runtime pattern as a `pattern.ts` stage-space field tuned
+to the master (the sheet carries no pattern layer); normalise every piece to
+the TRUE master (not the on-sheet anchor) with a proportion/silhouette gate
+that can reject-and-re-roll a single piece; keep the keep/crop table and
+per-piece expected scale in the manifest.
