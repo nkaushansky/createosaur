@@ -5,8 +5,10 @@ The first **parts-first** illustrated-rig pack: nine separately drawn pieces —
 `jaw-lower`, `near-arm`, `far-arm`, `near-leg`, `far-leg`, `tail` — assembled
 over the closed core, versus the twelve-layer master cut in `trex-r0-v2`.
 
-- **Source**: `docs/rebuild/asset-generation/probe-trex-parts-sheet-r4-neck-fixed.png`
-  (accepted round-4 Template G v2 sheet), sliced by `tools/sheet-slicer`.
+- **Source**: `docs/rebuild/asset-generation/probe-trex-parts-sheet-r5b-head-cover.png`
+  (round-5 head-cover sheet — a focused fixer round that gave the upper head a
+  generous rear-edge cover and fixed the flat round-4 neck), sliced by
+  `tools/sheet-slicer`.
 - **Identity truth**: the approved master (`../trex-r0-v2/debug/approved-master-original.png`),
   shipped here as `trex-pf-master.png` for the debug underlay. Per D-021 the
   master is the identity/QA reference, not the pixel source — acceptance is

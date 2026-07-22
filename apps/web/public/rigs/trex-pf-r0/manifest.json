@@ -2,16 +2,16 @@
   "rigId": "trex-pf-r0",
   "status": "parts-first assembly pack",
   "kind": "theropod-parts",
-  "source": "probe-trex-parts-sheet-r4-neck-fixed.png",
-  "sourcePolicy": "Pieces are segmented from the accepted round-4 parts contact sheet (chroma-key green), one per anatomical part, then normalized piece -> anchor -> true master and placed in stage space. The approved master is the identity/QA truth, not the pixel source.",
+  "source": "probe-trex-parts-sheet-r5b-head-cover.png",
+  "sourcePolicy": "Pieces are segmented from the round-5 head-cover parts sheet (chroma-key green) — a focused fixer round for the front third, replacing the round-4 flat neck / no-cover head. One piece per anatomical part, normalized piece -> anchor -> true master and placed in stage space. The approved master is the identity/QA truth, not the pixel source.",
   "canvas": {
     "width": 1536,
     "height": 1024
   },
   "backgroundSample": [
-    10,
-    176,
-    80
+    20,
+    179,
+    83
   ],
   "drawOrder": [
     "far-leg",
@@ -35,18 +35,18 @@
         0
       ],
       "bounds": {
-        "x": 487,
-        "y": 504,
-        "width": 238,
-        "height": 287
+        "x": 494,
+        "y": 520,
+        "width": 223,
+        "height": 270
       },
       "visibleBounds": {
-        "x": 487,
-        "y": 504,
-        "width": 238,
-        "height": 287
+        "x": 494,
+        "y": 520,
+        "width": 223,
+        "height": 270
       },
-      "visiblePixelCount": 29616,
+      "visiblePixelCount": 26097,
       "overlapPixelCount": 0,
       "patternMasks": {
         "solid": "pattern-masks/far-leg/solid.png",
@@ -64,18 +64,18 @@
         0
       ],
       "bounds": {
-        "x": 1003,
-        "y": 401,
-        "width": 518,
+        "x": 999,
+        "y": 403,
+        "width": 513,
         "height": 74
       },
       "visibleBounds": {
-        "x": 1003,
-        "y": 401,
-        "width": 518,
+        "x": 999,
+        "y": 403,
+        "width": 513,
         "height": 74
       },
-      "visiblePixelCount": 23726,
+      "visiblePixelCount": 23362,
       "overlapPixelCount": 0,
       "patternMasks": {
         "solid": "pattern-masks/tail/solid.png",
@@ -93,18 +93,18 @@
         0
       ],
       "bounds": {
-        "x": 404,
-        "y": 260,
-        "width": 688,
-        "height": 296
+        "x": 441,
+        "y": 270,
+        "width": 614,
+        "height": 276
       },
       "visibleBounds": {
-        "x": 404,
-        "y": 260,
-        "width": 688,
-        "height": 296
+        "x": 441,
+        "y": 270,
+        "width": 614,
+        "height": 276
       },
-      "visiblePixelCount": 167834,
+      "visiblePixelCount": 140394,
       "overlapPixelCount": 0,
       "patternMasks": {
         "solid": "pattern-masks/core/solid.png",
@@ -122,18 +122,18 @@
         0
       ],
       "bounds": {
-        "x": 381,
-        "y": 474,
-        "width": 69,
-        "height": 121
+        "x": 383,
+        "y": 475,
+        "width": 64,
+        "height": 113
       },
       "visibleBounds": {
-        "x": 381,
-        "y": 474,
-        "width": 69,
-        "height": 121
+        "x": 383,
+        "y": 475,
+        "width": 64,
+        "height": 113
       },
-      "visiblePixelCount": 3953,
+      "visiblePixelCount": 3394,
       "overlapPixelCount": 0,
       "patternMasks": {
         "solid": "pattern-masks/far-arm/solid.png",
@@ -151,18 +151,18 @@
         0
       ],
       "bounds": {
-        "x": 729,
-        "y": 501,
-        "width": 212,
-        "height": 294
+        "x": 737,
+        "y": 522,
+        "width": 196,
+        "height": 272
       },
       "visibleBounds": {
-        "x": 729,
-        "y": 501,
-        "width": 212,
-        "height": 294
+        "x": 737,
+        "y": 522,
+        "width": 196,
+        "height": 272
       },
-      "visiblePixelCount": 30226,
+      "visiblePixelCount": 25986,
       "overlapPixelCount": 0,
       "patternMasks": {
         "solid": "pattern-masks/near-leg/solid.png",
@@ -180,18 +180,18 @@
         0
       ],
       "bounds": {
-        "x": 410,
-        "y": 470,
-        "width": 76,
-        "height": 116
+        "x": 413,
+        "y": 471,
+        "width": 70,
+        "height": 108
       },
       "visibleBounds": {
-        "x": 410,
-        "y": 470,
-        "width": 76,
-        "height": 116
+        "x": 413,
+        "y": 471,
+        "width": 70,
+        "height": 108
       },
-      "visiblePixelCount": 4102,
+      "visiblePixelCount": 3494,
       "overlapPixelCount": 0,
       "patternMasks": {
         "solid": "pattern-masks/near-arm/solid.png",
@@ -209,18 +209,18 @@
         0
       ],
       "bounds": {
-        "x": 235,
-        "y": 271,
-        "width": 214,
-        "height": 174
+        "x": 271,
+        "y": 336,
+        "width": 184,
+        "height": 97
       },
       "visibleBounds": {
-        "x": 235,
-        "y": 271,
-        "width": 214,
-        "height": 174
+        "x": 271,
+        "y": 336,
+        "width": 184,
+        "height": 97
       },
-      "visiblePixelCount": 20738,
+      "visiblePixelCount": 13037,
       "overlapPixelCount": 0,
       "patternMasks": {
         "solid": "pattern-masks/neck/solid.png",
@@ -238,18 +238,18 @@
         0
       ],
       "bounds": {
-        "x": 54,
-        "y": 339,
-        "width": 216,
-        "height": 98
+        "x": 63,
+        "y": 342,
+        "width": 198,
+        "height": 92
       },
       "visibleBounds": {
-        "x": 54,
-        "y": 339,
-        "width": 216,
-        "height": 98
+        "x": 63,
+        "y": 342,
+        "width": 198,
+        "height": 92
       },
-      "visiblePixelCount": 12833,
+      "visiblePixelCount": 10972,
       "overlapPixelCount": 0,
       "patternMasks": {
         "solid": "pattern-masks/jaw-lower/solid.png",
@@ -267,18 +267,18 @@
         0
       ],
       "bounds": {
-        "x": 45,
-        "y": 233,
-        "width": 225,
-        "height": 134
+        "x": 37,
+        "y": 217,
+        "width": 304,
+        "height": 193
       },
       "visibleBounds": {
-        "x": 45,
-        "y": 233,
-        "width": 225,
-        "height": 134
+        "x": 37,
+        "y": 217,
+        "width": 304,
+        "height": 193
       },
-      "visiblePixelCount": 22090,
+      "visiblePixelCount": 46202,
       "overlapPixelCount": 0,
       "patternMasks": {
         "solid": "pattern-masks/head-upper/solid.png",

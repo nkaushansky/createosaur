@@ -464,6 +464,37 @@ remaining half of the close condition is a parts-first-vs-parts-first hybrid,
 which needs Allosaurus re-authored parts-first (out of scope for this build).
 Verify-loop screenshots + the numbers: `docs/rebuild/rig-lab/parts-first/`.
 
+### Fixer round — round-5 head-cover (2026-07-22, owner regen)
+
+The first assembled rig exposed a real defect the measurements missed: the
+front third read as a floating head over a pipe. Root cause was **sheet art**,
+not the slicer or rig — the single round-4 sheet crammed ten pieces and
+shortchanged the two junction-critical ones: the neck came back a flat tube
+(no nape-to-throat depth) and the round-4 "re-end the head at the collar" fix
+had stripped the head's rearward cheek/neck cover (the IR1 attachment contract
+— a head attaches by its rear-edge *cover*, not its pivot). Both are the
+hardest, most junction-sensitive pieces, and cramming is exactly where they got
+overlooked.
+
+The owner re-generated two focused variants: **sheet A** deepened the neck to a
+proper wedge; **sheet B** gave the upper head a large rearward cover over a
+moderate neck. Because parts-first places each piece piece → true master (never
+piece → piece) and both sheets carried the anchor at matching scale, the pieces
+were interchangeable across sheets (the slicer now supports per-piece `sheet`
+sourcing for exactly this). The **covering head alone carried the junction**, so
+`trex-pf-r0` re-slices from sheet B — a coherent, recognizable T. rex. Scan got
+*better* (98/95/100/99/60 — neutral→stride +2, stress below neutral); identity
+bbox aspect 2.556 vs 2.632 (Δ 2.9 % — looser than round-4's 0.2 %, but round-4
+scored well *while looking broken*: bbox aspect is necessary, not sufficient).
+
+**Standing authoring policy (owner call, folded into Template G):** author new
+species across **focused sheets** — a full master, then a head-assembly sheet
+(upper head with generous rear cover + jaw + neck), a body+limbs sheet, and
+per-archetype trait sheets — one image per group, each carrying the anchor +
+scale bar. One-page sheets overlook the junction-critical pieces; focused sheets
+don't. Multi-sheet is nearly free here because placement is per-part against the
+master, so sheets never have to agree with each other.
+
 ## 8. The reference sheet, critiqued (owner upload, 2026-07-22)
 
 `asset-generation/reference-parts-sheet-trex-chatgpt.png` — a ChatGPT

@@ -328,3 +328,32 @@ to the master (the sheet carries no pattern layer); normalise every piece to
 the TRUE master (not the on-sheet anchor) with a proportion/silhouette gate
 that can reject-and-re-roll a single piece; keep the keep/crop table and
 per-piece expected scale in the manifest.
+
+### Template G v3 — split across focused sheets (owner call, 2026-07-22)
+
+The trex-pf-r0 round-4 → round-5 fixer proved that one crammed page overlooks
+the junction-critical pieces: the neck came back a flat tube and the head lost
+its rearward cover, and the front third read as a floating head. Regenerating
+those pieces on their own, focused sheets fixed it immediately. So for every new
+species, author **one sheet per group**, each a separate Template G generation:
+
+1. **Full master** (Template B) — approved first; the identity/QA truth every
+   sheet is conditioned on.
+2. **Head-assembly sheet** — anchor + upper head (with a *generous rearward
+   cheek/neck cover* — this is the attachment contract, the piece round-4 got
+   wrong), lower jaw, neck (drawn in the assembled diagonal with real
+   nape-to-throat depth, not a flat tube). Mouth-open + cover contracts live
+   here.
+3. **Body + limbs sheet** — anchor + body core, both hind legs (full thighs),
+   both arms, tail.
+4. **Trait sheet(s)** as the archetype needs (frill/horns, plates/club, crest,
+   feather overlays).
+
+**Non-negotiable:** every sheet carries the **anchor (a reproduction of the
+master) + the 1-metre scale bar** on the same chroma-key background and the same
+Template A style block. That is what lets the slicer normalise each sheet
+independently to the same master scale — parts-first places each piece
+piece → true master, never piece → piece, so sheets never have to register with
+*each other*, only with the master. `tools/sheet-slicer` routes pieces to sheets
+via a per-piece `sheet` field (see its README). Regenerate one bad piece by
+re-rolling only its sheet; nothing downstream re-cuts.

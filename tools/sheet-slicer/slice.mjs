@@ -39,94 +39,111 @@ const page = await browser.newPage({ viewport: { width: 400, height: 300 } });
 await page.addScriptTag({ path: join(REPO, 'tools', 'rig-pack', 'page-lib.js') });
 page.setDefaultTimeout(300_000);
 
-const sheetB64 = readFileSync(sheetPath).toString('base64');
+// Every sheet the manifest references: the default (CLI) sheet plus any named
+// under `sheets` (resolved beside the default). Parts-first sources each piece
+// piece -> true master independently, so pieces may come from different sheets
+// (e.g. a head-assembly sheet + a body+limbs sheet) as long as every sheet
+// carries the anchor so scale normalizes. Each piece picks its sheet by name.
+const DEFAULT_SHEET = '__default';
+const sheetsB64 = { [DEFAULT_SHEET]: readFileSync(sheetPath).toString('base64') };
+for (const [name, file] of Object.entries(slice.sheets ?? {})) {
+  sheetsB64[name] = readFileSync(join(dirname(sheetPath), file)).toString('base64');
+}
 const masterB64 = readFileSync(masterPath).toString('base64');
 
-const result = await page.evaluate(async ({ sheetB64, masterB64, slice }) => {
+const result = await page.evaluate(async ({ sheetsB64, defaultSheet, masterB64, slice }) => {
   const CW = slice.canvas.width;
   const CH = slice.canvas.height;
 
-  // ---- load the sheet at native resolution ------------------------------
-  const sheet = new Image();
-  sheet.src = 'data:image/png;base64,' + sheetB64;
-  await sheet.decode();
-  const SW = sheet.naturalWidth;
-  const SH = sheet.naturalHeight;
-  const sc = document.createElement('canvas');
-  sc.width = SW;
-  sc.height = SH;
-  const sctx = sc.getContext('2d', { willReadFrequently: true });
-  sctx.drawImage(sheet, 0, 0);
-  const src = sctx.getImageData(0, 0, SW, SH).data;
+  // ---- chroma-key + connected components for one sheet ------------------
+  async function processSheet(b64) {
+    const sheet = new Image();
+    sheet.src = 'data:image/png;base64,' + b64;
+    await sheet.decode();
+    const SW = sheet.naturalWidth;
+    const SH = sheet.naturalHeight;
+    const sc = document.createElement('canvas');
+    sc.width = SW;
+    sc.height = SH;
+    const sctx = sc.getContext('2d', { willReadFrequently: true });
+    sctx.drawImage(sheet, 0, 0);
+    const src = sctx.getImageData(0, 0, SW, SH).data;
 
-  // ---- chroma key: flood green from the borders -------------------------
-  const bgc = [src[0], src[1], src[2]];
-  const greenness = (i) => src[4 * i + 1] - (src[4 * i] + src[4 * i + 2]) / 2;
-  const isBg = (i) => {
-    const distBg =
-      Math.abs(src[4 * i] - bgc[0]) + Math.abs(src[4 * i + 1] - bgc[1]) + Math.abs(src[4 * i + 2] - bgc[2]);
-    return distBg < 90 && greenness(i) > 25;
-  };
-  const bgMask = new Uint8Array(SW * SH);
-  const stack = [];
-  for (let x = 0; x < SW; x++) stack.push(x, (SH - 1) * SW + x);
-  for (let y = 0; y < SH; y++) stack.push(y * SW, y * SW + SW - 1);
-  while (stack.length) {
-    const i = stack.pop();
-    if (bgMask[i] || !isBg(i)) continue;
-    bgMask[i] = 1;
-    const x = i % SW;
-    if (x > 0) stack.push(i - 1);
-    if (x < SW - 1) stack.push(i + 1);
-    if (i >= SW) stack.push(i - SW);
-    if (i < SW * (SH - 1)) stack.push(i + SW);
-  }
-  // Soft-alpha: 0 on flooded green, a green-fringe-suppressing rim on pixels
-  // adjacent to flooded background, 255 on solid art.
-  const alpha = new Uint8Array(SW * SH);
-  const softRim = (i) => Math.round(255 * Math.max(0, Math.min(1, (100 - greenness(i)) / 60)));
-  for (let i = 0; i < SW * SH; i++) {
-    if (bgMask[i]) { alpha[i] = 0; continue; }
-    const x = i % SW;
-    let nearBg = false;
-    if (x > 0 && bgMask[i - 1]) nearBg = true;
-    if (x < SW - 1 && bgMask[i + 1]) nearBg = true;
-    if (i >= SW && bgMask[i - SW]) nearBg = true;
-    if (i < SW * (SH - 1) && bgMask[i + SW]) nearBg = true;
-    alpha[i] = nearBg ? softRim(i) : 255;
-  }
-
-  // ---- connected components over solid art ------------------------------
-  const solid = new Uint8Array(SW * SH);
-  for (let i = 0; i < SW * SH; i++) if (alpha[i] > 40) solid[i] = 1;
-  const label = new Int32Array(SW * SH).fill(-1);
-  const comps = [];
-  for (let s = 0; s < SW * SH; s++) {
-    if (solid[s] !== 1 || label[s] !== -1) continue;
-    const id = comps.length;
-    let minX = SW, minY = SH, maxX = -1, maxY = -1, area = 0, sumX = 0, sumY = 0;
-    const q = [s];
-    label[s] = id;
-    while (q.length) {
-      const i = q.pop();
+    // chroma key: flood green from the borders
+    const bgc = [src[0], src[1], src[2]];
+    const greenness = (i) => src[4 * i + 1] - (src[4 * i] + src[4 * i + 2]) / 2;
+    const isBg = (i) => {
+      const distBg =
+        Math.abs(src[4 * i] - bgc[0]) + Math.abs(src[4 * i + 1] - bgc[1]) + Math.abs(src[4 * i + 2] - bgc[2]);
+      return distBg < 90 && greenness(i) > 25;
+    };
+    const bgMask = new Uint8Array(SW * SH);
+    const stack = [];
+    for (let x = 0; x < SW; x++) stack.push(x, (SH - 1) * SW + x);
+    for (let y = 0; y < SH; y++) stack.push(y * SW, y * SW + SW - 1);
+    while (stack.length) {
+      const i = stack.pop();
+      if (bgMask[i] || !isBg(i)) continue;
+      bgMask[i] = 1;
       const x = i % SW;
-      const y = (i / SW) | 0;
-      area++; sumX += x; sumY += y;
-      if (x < minX) minX = x;
-      if (x > maxX) maxX = x;
-      if (y < minY) minY = y;
-      if (y > maxY) maxY = y;
-      if (x > 0 && solid[i - 1] && label[i - 1] === -1) { label[i - 1] = id; q.push(i - 1); }
-      if (x < SW - 1 && solid[i + 1] && label[i + 1] === -1) { label[i + 1] = id; q.push(i + 1); }
-      if (i >= SW && solid[i - SW] && label[i - SW] === -1) { label[i - SW] = id; q.push(i - SW); }
-      if (i < SW * (SH - 1) && solid[i + SW] && label[i + SW] === -1) { label[i + SW] = id; q.push(i + SW); }
+      if (x > 0) stack.push(i - 1);
+      if (x < SW - 1) stack.push(i + 1);
+      if (i >= SW) stack.push(i - SW);
+      if (i < SW * (SH - 1)) stack.push(i + SW);
     }
-    comps.push({ id, area, minX, minY, maxX, maxY, cx: sumX / area, cy: sumY / area });
-  }
-  const bigComps = comps.filter((c) => c.area > 800);
+    // Soft-alpha: 0 on flooded green, a green-fringe-suppressing rim on pixels
+    // adjacent to flooded background, 255 on solid art.
+    const alpha = new Uint8Array(SW * SH);
+    const softRim = (i) => Math.round(255 * Math.max(0, Math.min(1, (100 - greenness(i)) / 60)));
+    for (let i = 0; i < SW * SH; i++) {
+      if (bgMask[i]) { alpha[i] = 0; continue; }
+      const x = i % SW;
+      let nearBg = false;
+      if (x > 0 && bgMask[i - 1]) nearBg = true;
+      if (x < SW - 1 && bgMask[i + 1]) nearBg = true;
+      if (i >= SW && bgMask[i - SW]) nearBg = true;
+      if (i < SW * (SH - 1) && bgMask[i + SW]) nearBg = true;
+      alpha[i] = nearBg ? softRim(i) : 255;
+    }
 
-  // ---- extract one piece's cropped RGBA canvas --------------------------
+    // connected components over solid art
+    const solid = new Uint8Array(SW * SH);
+    for (let i = 0; i < SW * SH; i++) if (alpha[i] > 40) solid[i] = 1;
+    const label = new Int32Array(SW * SH).fill(-1);
+    const comps = [];
+    for (let s = 0; s < SW * SH; s++) {
+      if (solid[s] !== 1 || label[s] !== -1) continue;
+      const id = comps.length;
+      let minX = SW, minY = SH, maxX = -1, maxY = -1, area = 0, sumX = 0, sumY = 0;
+      const q = [s];
+      label[s] = id;
+      while (q.length) {
+        const i = q.pop();
+        const x = i % SW;
+        const y = (i / SW) | 0;
+        area++; sumX += x; sumY += y;
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+        if (x > 0 && solid[i - 1] && label[i - 1] === -1) { label[i - 1] = id; q.push(i - 1); }
+        if (x < SW - 1 && solid[i + 1] && label[i + 1] === -1) { label[i + 1] = id; q.push(i + 1); }
+        if (i >= SW && solid[i - SW] && label[i - SW] === -1) { label[i - SW] = id; q.push(i - SW); }
+        if (i < SW * (SH - 1) && solid[i + SW] && label[i + SW] === -1) { label[i + SW] = id; q.push(i + SW); }
+      }
+      comps.push({ id, area, minX, minY, maxX, maxY, cx: sumX / area, cy: sumY / area });
+    }
+    const bigComps = comps.filter((c) => c.area > 800);
+    return { SW, SH, src, alpha, label, bigComps, bg: bgc };
+  }
+
+  const processed = {};
+  for (const [name, b64] of Object.entries(sheetsB64)) processed[name] = await processSheet(b64);
+
+  // ---- extract one piece's cropped RGBA canvas from its sheet ------------
   function extractPiece(piece) {
+    const S = processed[piece.sheet ?? defaultSheet] ?? processed[defaultSheet];
+    const { SW, src, alpha, label, bigComps } = S;
     // Match the component whose centroid is nearest the expected point.
     let best = null;
     let bestD = Infinity;
@@ -318,10 +335,11 @@ const result = await page.evaluate(async ({ sheetB64, masterB64, slice }) => {
     holeMap.ctx.putImageData(hd, 0, 0);
   }
 
+  const primary = processed[defaultSheet];
   return {
-    SW,
-    SH,
-    bg: bgc,
+    SW: primary.SW,
+    SH: primary.SH,
+    bg: primary.bg,
     canvas: { width: CW, height: CH },
     layers: layers.map(({ piece, placed }) => ({
       id: piece.id,
@@ -338,7 +356,7 @@ const result = await page.evaluate(async ({ sheetB64, masterB64, slice }) => {
     overMasterDataUrl: overMaster.c.toDataURL('image/jpeg', 0.9),
     holeMapDataUrl: holeMap.c.toDataURL('image/png'),
   };
-}, { sheetB64, masterB64, slice });
+}, { sheetsB64, defaultSheet: DEFAULT_SHEET, masterB64, slice });
 
 await browser.close();
 

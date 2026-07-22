@@ -2,9 +2,21 @@
 
 Captured 2026-07-22 from the static export, Chromium, stage extracted at native
 1536×1024. The first **parts-first** creature: nine separately drawn pieces
-(`tools/sheet-slicer` sliced the accepted round-4 sheet) overlaid on a single
-closed core, versus `trex-r0-v2`'s twelve-layer master cut. Reproduce any state
-at `/rig-lab?species=trex-pf&t=2500` with the listed sliders (idle off).
+(`tools/sheet-slicer` sliced the **round-5 head-cover sheet**) overlaid on a
+single closed core, versus `trex-r0-v2`'s twelve-layer master cut. Reproduce any
+state at `/rig-lab?species=trex-pf&t=2500` with the listed sliders (idle off).
+
+> **Fixer round (round-5).** The round-4 sheet crammed all ten pieces on one
+> page and shortchanged the two junction-critical ones: the neck came back a
+> flat tube and the upper head lost its rearward cheek/neck cover, so the front
+> third read as a floating head over a pipe. Two focused re-gen passes fixed it
+> — sheet A deepened the neck, sheet B gave the head a generous rear-edge cover
+> (the IR1 attachment contract). Because parts-first places each piece
+> piece → true master (never piece → piece) and both sheets carried the anchor,
+> the pieces were interchangeable; the covering head (sheet B) alone carried the
+> junction, so `trex-pf-r0` ships from it. **Lesson, now standing policy:** author
+> future species across focused sheets (head-assembly / body+limbs / traits),
+> one image per group. The slicer supports per-piece `sheet` sourcing for it.
 
 ## States
 
@@ -29,36 +41,36 @@ background):
 
 | Config | neutral | inhale-clench | stride-fwd | stride-back | stress |
 |---|---|---|---|---|---|
-| **trex-parts-first** | 110 | 74 | 130 | 100 | 105 |
+| **trex-parts-first** | 98 | 95 | 100 | 99 | 60 |
 | pure-trex (master cut) | 476 | 152 | 268 | 274 | 269 |
-| pure-allosaurus | 209 | 61 | 99 | 100 | 112 |
 
-The parts-first counts are **flat across the pose sweep and below the master-cut
-baseline everywhere** — the closed core carries no limb holes, so motion opens
-essentially none (stride adds ~20 hairline slits at the whole-piece leg/core
-contact, well inside a stable band; stress sits at neutral). This is D-021's
-load-bearing claim measured on an assembled rig: what you see at neutral is what
-you get in motion.
+The parts-first counts are **flat across the pose sweep and far below the
+master-cut baseline everywhere** — the closed core carries no limb holes, so
+motion opens essentially none (neutral 98 → stride 100 is +2; stress sits
+*below* neutral). This is D-021's load-bearing claim measured on an assembled
+rig: what you see at neutral is what you get in motion.
 
 **Identity tolerance vs the TRUE approved master** (silhouette of the neutral
 assembly vs `trex-r0-v2/trex-master-clean.png`, both 1536×1024):
 
-- **bbox aspect 2.626 vs master 2.632 — Δ 0.2 %.** The assembled creature has the
-  master's proportions (better than the on-sheet anchor's 1.5 %).
-- bbox parts `45,233 1476×562` vs master `35,219 1495×568` — within ~1 % on every
-  edge.
-- silhouette IoU 0.70; the parts fill 80 % of the master outline and 15 % sit
+- **bbox aspect 2.556 vs master 2.632 — Δ 2.9 %.** bbox parts `37,217 1475×577`
+  vs master `35,219 1495×568` — within ~2 % on every edge. (Note the metric is
+  necessary but not sufficient: the *broken-looking* round-4 rig scored Δ 0.2 %
+  because its small head matched the bbox exactly — a coherent front third that
+  reads as a T. rex is worth a couple of points of bbox aspect.)
+- silhouette IoU 0.67; the parts fill 76 % of the master outline and 15 % sit
   just outside it — the residual is independent per-part palette/edge drift (the
-  ~14 % batch drift the probe logged) plus a slightly thinner, shorter tail, not
-  a proportion or placement error. Contour tolerance replaces byte-equality per
-  the D-021 reframe.
+  ~14 % batch drift the probe logged), the larger covering head sitting slightly
+  proud of the master head, and a marginally shorter tail. Contour tolerance
+  replaces byte-equality per the D-021 reframe.
 
 ## What stays open
 
-The junctions carry honest parts-first characteristics the A/B makes visible: a
-faint throat sliver where the tube neck meets the head, near-vertical core-edge
-seams (the closed core adds intra-body seams the master never had), and a
-lighter/warmer palette than the master. These are exactly the D-021/D-023 items
-the probe exists to surface — they close on the mixed, painted, re-authored
+With the round-5 head-cover fix the front third reads as a coherent T. rex; the
+junctions now carry only faint parts-first characteristics the A/B makes
+visible: a thin lighter band where the neck base meets the core front,
+near-vertical core-edge seams (the closed core adds intra-body seams the master
+never had), and a lighter/warmer palette than the master. These are exactly the
+D-021/D-023 items the probe exists to surface — they close on the mixed, painted, re-authored
 evidence, not on this single assembled rig. Existing packs, goldens, `/lab` and
 the genome are untouched.

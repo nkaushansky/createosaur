@@ -48,3 +48,30 @@ tolerance against the true master, not byte reassembly.
   neighbour that backs it (jaw rear under the head, tail root under the core).
   Parts draw OVER the closed core, so the core backs every limb joint — most
   stubs can be cropped without opening a gap.
+
+## Multi-sheet sourcing (per-piece `sheet`)
+
+Because placement is **piece → true master**, never piece → piece, pieces may
+come from different authored sheets. The slice manifest may declare extra
+sheets and route any piece to one:
+
+```jsonc
+{
+  "sheets": { "head": "probe-trex-head-assembly.png" },   // resolved beside the CLI sheet
+  "pieces": [
+    { "id": "head-upper", "sheet": "head", ... },          // from the head sheet
+    { "id": "core", ... }                                   // from the default (CLI) sheet
+  ]
+}
+```
+
+The CLI sheet is the default; a piece with no `sheet` uses it. The only
+requirement is that **every sheet carries the anchor + scale bar** so each is
+normalized to the same master scale (the reason a neck from one sheet and a
+head from another assemble cleanly — both are pinned to the master, not to each
+other). This is the recommended authoring path for new species: a **full master**,
+then a focused **head-assembly** sheet (upper head with generous rear cover,
+jaw, neck), a **body+limbs** sheet, and per-archetype **trait** sheets — one
+image per group so ChatGPT never overlooks the junction-critical pieces by
+cramming everything onto one page (the round-4 → round-5 lesson). The first
+`trex-pf-r0` used a single round-5 sheet; the capability is here for the next.
