@@ -203,6 +203,16 @@ verified at **full ±1 stride + full −8° clench** — neutral is the painted
 open pose, so `jawRange` is [−8, 0]. Velociraptor onward uses the spec from
 the first generation.
 
+**Known limitation (owner-reviewed 2026-07-21, deferred):** at stride
+extremes the hip/thigh piece boundaries read as visible seams — the legs
+move as rigid cutouts, so the join lines show where they rotate out of the
+body. The owner judged this non-critical: the walk motion is a rigging
+showcase, not the product's core loop (mixing creature parts is). The real
+fix is promoting the hip junction to weighted mesh deformation — the same
+technique that makes the neck bend read as smooth and continuous — i.e.
+skinned joint blending rather than deeper cut tuning, which hit diminishing
+returns. IR2-class work; revisit when joints become product-visible.
+
 ### IR2 — One rig per terrestrial archetype
 
 Theropod, sauropod, ceratopsian, armored and ornithopod exemplars, followed by
