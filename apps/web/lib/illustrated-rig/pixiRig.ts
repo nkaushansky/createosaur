@@ -127,12 +127,29 @@ function writeMeshPositions(geometry: MeshGeometry, positions: number[]): void {
   buffer.update();
 }
 
+export interface PixiRigOptions {
+  /** The base def: idle seed, debug pivots fallback and stage identity. */
+  def: SpeciesRigDef;
+  initialInputs: RigInputs;
+  /** Pose supplier override — the hybrid evaluator plugs in here. Defaults to
+   * the single-species evaluateRigPose over `def`. */
+  evaluate?: (params: IllustratedRigParams, options: { seed: number; timeMs: number }) => EvaluatedRigPose;
+  /** Debug-overlay pivot supplier matching `evaluate` (aligned donor pivots
+   * for hybrids). Defaults to posedPivots over `def`. */
+  posedPivots?: (pose: EvaluatedRigPose) => Record<string, { x: number; y: number }>;
+  /** Accessible name for the canvas; defaults to the species phrasing. */
+  ariaLabel?: string;
+}
+
 export async function createPixiRig(
   host: HTMLElement,
   assets: LoadedRigAssets,
-  options: { def: SpeciesRigDef; initialInputs: RigInputs }
+  options: PixiRigOptions
 ): Promise<RigHandle> {
   const def = options.def;
+  const evaluate =
+    options.evaluate ?? ((params, opts) => evaluateRigPose(def, params, opts));
+  const resolvePivots = options.posedPivots ?? ((pose: EvaluatedRigPose) => posedPivots(def, pose));
   const app = new Application();
   await app.init({
     width: CANVAS_W,
@@ -155,7 +172,7 @@ export async function createPixiRig(
   app.canvas.setAttribute('role', 'img');
   app.canvas.setAttribute(
     'aria-label',
-    `Illustrated ${def.label} rig — experimental authored-artwork renderer`
+    options.ariaLabel ?? `Illustrated ${def.label} rig — experimental authored-artwork renderer`
   );
   host.appendChild(app.canvas);
 
@@ -186,7 +203,9 @@ export async function createPixiRig(
     let patternGeometry: MeshGeometry | undefined;
 
     if ((MESH_LAYER_IDS as readonly string[]).includes(layer.id)) {
-      const built = buildMeshLayer(def, layer, texture);
+      // Geometry and pattern UVs live in the SOURCE pack's space — a donor
+      // layer's positions land in base space via the evaluated pose alone.
+      const built = buildMeshLayer(layer.def, layer, texture);
       layerGeometry = built.layerGeometry;
       patternGeometry = built.patternGeometry;
       group.addChild(built.mesh);
@@ -260,7 +279,7 @@ export async function createPixiRig(
       wireframe.stroke({ width: 1, color: colors[id], alpha: 0.85 });
     }
     // Pivots at their posed positions.
-    const pivots = posedPivots(def, pose);
+    const pivots = resolvePivots(pose);
     for (const [name, point] of Object.entries(pivots)) {
       wireframe.moveTo(point.x - 7, point.y).lineTo(point.x + 7, point.y);
       wireframe.moveTo(point.x, point.y - 7).lineTo(point.x, point.y + 7);
@@ -304,7 +323,7 @@ export async function createPixiRig(
     const started = performance.now();
     const timeMs = inputs.freezeTimeMs ?? performance.now() - clockStart;
     lastTimeMs = timeMs;
-    const pose = evaluateRigPose(def, inputs.params, { seed: def.seed, timeMs });
+    const pose = evaluate(inputs.params, { seed: def.seed, timeMs });
     lastPose = pose;
     applyPose(pose);
     app.render();

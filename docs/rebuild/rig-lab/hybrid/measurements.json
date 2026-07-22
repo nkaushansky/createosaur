@@ -1,0 +1,58 @@
+{
+  "scan": {
+    "solid": 128,
+    "hole": 8,
+    "flank": 12
+  },
+  "results": {
+    "pure-trex": {
+      "neutral": 476,
+      "inhale-clench": 152,
+      "stride-fwd": 268,
+      "stride-back": 274,
+      "stress": 269
+    },
+    "pure-allosaurus": {
+      "neutral": 209,
+      "inhale-clench": 61,
+      "stride-fwd": 99,
+      "stride-back": 100,
+      "stress": 112
+    },
+    "allo-head-on-trex": {
+      "neutral": 206,
+      "inhale-clench": 47,
+      "stride-fwd": 87,
+      "stride-back": 93,
+      "stress": 93
+    },
+    "rex-head-on-allo": {
+      "neutral": 480,
+      "inhale-clench": 150,
+      "stride-fwd": 300,
+      "stride-back": 301,
+      "stress": 309
+    },
+    "trex-legs-on-allo": {
+      "neutral": 368,
+      "inhale-clench": 214,
+      "stride-fwd": 112,
+      "stride-back": 119,
+      "stress": 125
+    },
+    "allo-tail-on-trex": {
+      "neutral": 484,
+      "inhale-clench": 160,
+      "stride-fwd": 276,
+      "stride-back": 282,
+      "stress": 277
+    },
+    "full-swap": {
+      "neutral": 315,
+      "inhale-clench": 101,
+      "stride-fwd": 211,
+      "stride-back": 212,
+      "stress": 171
+    }
+  }
+}

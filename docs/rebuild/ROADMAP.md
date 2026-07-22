@@ -213,10 +213,38 @@ technique that makes the neck bend read as smooth and continuous — i.e.
 skinned joint blending rather than deeper cut tuning, which hit diminishing
 returns. IR2-class work; revisit when joints become product-visible.
 
+**Hybrid mixing PoC (2026-07-22):** cross-pack part swapping is live at
+`/rig-lab` ("Hybrid mix (PoC)" in the rig picker; deep link
+`?mix=body:trex,head:allosaurus`). One shared mechanism over the twelve
+layer slots: part groups (body = torso/neck/pelvis + motion program + seed;
+head, arms, legs, tail swappable) carried between packs by pure-translation
+anchors — head by *cover* (donor rear edge on base rear edge, so the base
+neck's cut stays concealed; pivot alignment left a paper gap), arms by
+shoulders, legs by hip-x + **ground-contact-y** (the packs stand ~35 px
+apart; feet must plant), tail by root pivot. Donor parts keep their own
+pivots and seam-tuned amplitudes; the base body's fields drive them
+(`evaluateHybridRigPose` in `packages/illustrated-rig`; a pure config is
+bit-identical to the species evaluator). The enclosed-hole scan — now
+committed as `tools/rig-scan/` — shows every mix flat across the pose
+sweep: cross-pack junctions are static, nothing opens with motion. Review
+matrix + measurements + findings: `docs/rebuild/rig-lab/hybrid/`. Key
+limits for IR2 (attachment rules): packs donate only what their master
+painted (the mostly-occluded Allosaurus far leg cannot fill the T. rex's
+far-leg opening), slim donors leave base-opening slivers (Allosaurus tail
+on T. rex pelvis), and junction palette steps argue for harmonized masters.
+
 ### IR2 — One rig per terrestrial archetype
 
 Theropod, sauropod, ceratopsian, armored and ornithopod exemplars, followed by
 cross-archetype attachment and dominant-body rules.
+
+**Pre-design on the record (2026-07-22):** `IR2-JUNCTION-BRAINSTORM.md` —
+how to recover v2's morph-smoothness at part junctions (parts-first
+contact-sheet generation, neutral-value skin + runtime global paint,
+standardized sockets, two-level scale policy) with a cheap-first experiment
+sequence. Decisions D-021…D-023. **IR1 species expansion is paused until
+D-021 (junction architecture) resolves** — every pack generated under the
+current cut multiplies rework, and mixing is the core loop.
 
 Do not schedule IR1 or IR2 as active work until IR0 passes.
 

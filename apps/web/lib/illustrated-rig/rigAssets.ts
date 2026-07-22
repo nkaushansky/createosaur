@@ -1,10 +1,16 @@
 import {
   MASKED_PATTERN_TYPES,
+  RIG_LAYER_IDS,
+  SPECIES_RIG_DEFS,
+  formatHybridConfig,
+  layerSourceSpecies,
   validateTrexR0Manifest,
+  type HybridRigConfig,
   type MaskedPatternType,
   type RigLayerId,
   type RigManifest,
   type RigManifestLayer,
+  type SpeciesId,
   type SpeciesRigDef,
 } from '@createosaur/illustrated-rig';
 
@@ -18,6 +24,21 @@ import {
  * canvas) so the loading/error path is testable and the Pixi bootstrap stays
  * a pure consumer.
  */
+
+/** What the stage is asked to show: one pack, or a cross-pack hybrid mix. */
+export type RigSource =
+  | { kind: 'species'; species: SpeciesId }
+  | { kind: 'hybrid'; config: HybridRigConfig };
+
+/** The def that anchors a source: the species itself, or the hybrid's body. */
+export function sourceBaseDef(source: RigSource): SpeciesRigDef {
+  return SPECIES_RIG_DEFS[source.kind === 'species' ? source.species : source.config.body];
+}
+
+/** Stable identity string — the stage rebuilds when this changes. */
+export function sourceKey(source: RigSource): string {
+  return source.kind === 'species' ? `species:${source.species}` : `hybrid:${formatHybridConfig(source.config)}`;
+}
 
 export class RigAssetError extends Error {
   /** The pack-relative path that failed, for the visible error state. */
@@ -53,6 +74,9 @@ export interface PreparedMask {
 export interface LoadedRigLayer {
   spec: RigManifestLayer;
   id: RigLayerId;
+  /** The species def whose pack this layer came from — mesh geometry and
+   * pattern UVs must be built in the SOURCE pack's space, never the base's. */
+  def: SpeciesRigDef;
   bitmap: ImageBitmap;
   masks: Record<MaskedPatternType, PreparedMask>;
 }
@@ -126,33 +150,39 @@ export function packUrl(def: SpeciesRigDef): string {
   return `${DEPLOY_PREFIX}/${def.packPath}`;
 }
 
-/**
- * Fetch, validate and prepare a species' whole pack. Progress is reported per
- * fetched file; any failure carries the exact pack-relative path.
- */
-export async function loadRigAssets(
-  def: SpeciesRigDef,
-  onProgress?: (progress: LoadProgress) => void
-): Promise<LoadedRigAssets> {
-  const baseUrl = packUrl(def);
-  onProgress?.({ step: 'manifest', loaded: 0, total: 1 });
-  const { blob: manifestBlob, bytes: manifestBytes } = await fetchBytes(baseUrl, 'manifest.json');
+async function fetchManifest(def: SpeciesRigDef): Promise<{ manifest: RigManifest; bytes: number }> {
+  const { blob, bytes } = await fetchBytes(packUrl(def), 'manifest.json');
   let parsed: unknown;
   try {
-    parsed = JSON.parse(await manifestBlob.text());
+    parsed = JSON.parse(await blob.text());
   } catch {
-    throw new RigAssetError('manifest.json', 'not valid JSON');
+    throw new RigAssetError(`${def.packPath}/manifest.json`, 'not valid JSON');
   }
   const validation = validateTrexR0Manifest(parsed);
   if (!validation.ok) {
-    throw new RigAssetError('manifest.json', 'failed validation', validation.errors);
+    throw new RigAssetError(`${def.packPath}/manifest.json`, 'failed validation', validation.errors);
   }
-  const manifest = validation.manifest;
+  return { manifest: validation.manifest, bytes };
+}
 
-  const maskPaths = manifest.layers.flatMap((layer) =>
-    MASKED_PATTERN_TYPES.map((kind) => ({ layer, kind, path: layer.patternMasks[kind] }))
-  );
-  const total = manifest.layers.length + maskPaths.length + 2;
+/** One layer slot's fetch plan: which pack supplies this slot's art. */
+interface LayerPlan {
+  def: SpeciesRigDef;
+  spec: RigManifestLayer;
+}
+
+/**
+ * Fetch and prepare the twelve layer slots per plan, plus the base pack's
+ * master and overlap map (the debug underlays always show the base species).
+ */
+async function loadPlannedAssets(
+  baseDef: SpeciesRigDef,
+  baseManifest: RigManifest,
+  plans: LayerPlan[],
+  manifestBytes: number,
+  onProgress?: (progress: LoadProgress) => void
+): Promise<LoadedRigAssets> {
+  const total = plans.length * (1 + MASKED_PATTERN_TYPES.length) + 2;
   let loaded = 0;
   let totalBytes = manifestBytes;
   const tick = (bytes: number): void => {
@@ -165,27 +195,32 @@ export async function loadRigAssets(
   const preparedMasks = new Map<string, Partial<Record<MaskedPatternType, PreparedMask>>>();
 
   await Promise.all([
-    ...manifest.layers.map(async (layer) => {
-      const { bitmap, bytes } = await fetchBitmap(baseUrl, layer.source);
-      layerBitmaps.set(layer.id, bitmap);
+    ...plans.map(async ({ def, spec }) => {
+      const { bitmap, bytes } = await fetchBitmap(packUrl(def), spec.source);
+      layerBitmaps.set(spec.id, bitmap);
       tick(bytes);
     }),
-    ...maskPaths.map(async ({ layer, kind, path }) => {
-      const { bitmap, bytes } = await fetchBitmap(baseUrl, path);
-      const prepared = prepareMask(bitmap, layer);
-      const forLayer = preparedMasks.get(layer.id) ?? {};
-      forLayer[kind] = prepared;
-      preparedMasks.set(layer.id, forLayer);
-      tick(bytes);
-    }),
+    ...plans.flatMap(({ def, spec }) =>
+      MASKED_PATTERN_TYPES.map(async (kind) => {
+        const { bitmap, bytes } = await fetchBitmap(packUrl(def), spec.patternMasks[kind]);
+        const prepared = prepareMask(bitmap, spec);
+        const forLayer = preparedMasks.get(spec.id) ?? {};
+        forLayer[kind] = prepared;
+        preparedMasks.set(spec.id, forLayer);
+        tick(bytes);
+      })
+    ),
   ]);
 
-  const { bitmap: master, bytes: masterBytes } = await fetchBitmap(baseUrl, def.masterFile);
+  const { bitmap: master, bytes: masterBytes } = await fetchBitmap(packUrl(baseDef), baseDef.masterFile);
   tick(masterBytes);
-  const { bitmap: overlapMap, bytes: overlapBytes } = await fetchBitmap(baseUrl, 'debug/hidden-overlap-map.png');
+  const { bitmap: overlapMap, bytes: overlapBytes } = await fetchBitmap(
+    packUrl(baseDef),
+    'debug/hidden-overlap-map.png'
+  );
   tick(overlapBytes);
 
-  const layers: LoadedRigLayer[] = manifest.layers.map((spec) => {
+  const layers: LoadedRigLayer[] = plans.map(({ def, spec }) => {
     const bitmap = layerBitmaps.get(spec.id);
     const masks = preparedMasks.get(spec.id);
     if (!bitmap) throw new RigAssetError(spec.source, 'layer bitmap missing after load');
@@ -195,10 +230,62 @@ export async function loadRigAssets(
     return {
       spec,
       id: spec.id as RigLayerId,
+      def,
       bitmap,
       masks: masks as Record<MaskedPatternType, PreparedMask>,
     };
   });
 
-  return { manifest, layers, master, overlapMap, totalBytes };
+  return { manifest: baseManifest, layers, master, overlapMap, totalBytes };
+}
+
+/**
+ * Fetch, validate and prepare a species' whole pack. Progress is reported per
+ * fetched file; any failure carries the exact pack-relative path.
+ */
+export async function loadRigAssets(
+  def: SpeciesRigDef,
+  onProgress?: (progress: LoadProgress) => void
+): Promise<LoadedRigAssets> {
+  onProgress?.({ step: 'manifest', loaded: 0, total: 1 });
+  const { manifest, bytes } = await fetchManifest(def);
+  const plans = manifest.layers.map((spec) => ({ def, spec }));
+  return loadPlannedAssets(def, manifest, plans, bytes, onProgress);
+}
+
+/**
+ * Fetch and prepare a hybrid mix: each of the twelve slots comes from its
+ * config-selected pack, in the shared theropod draw order; the master and
+ * overlap debug underlays come from the base (body) pack. The payload is the
+ * same 50 files as a single pack — just drawn from two of them.
+ */
+export async function loadHybridRigAssets(
+  config: HybridRigConfig,
+  onProgress?: (progress: LoadProgress) => void
+): Promise<LoadedRigAssets> {
+  const speciesIds = [...new Set(Object.values(config))] as SpeciesId[];
+  onProgress?.({ step: 'manifest', loaded: 0, total: speciesIds.length });
+  const manifests = new Map<SpeciesId, RigManifest>();
+  let manifestBytes = 0;
+  await Promise.all(
+    speciesIds.map(async (species, index) => {
+      const { manifest, bytes } = await fetchManifest(SPECIES_RIG_DEFS[species]);
+      manifests.set(species, manifest);
+      manifestBytes += bytes;
+      onProgress?.({ step: 'manifest', loaded: index + 1, total: speciesIds.length });
+    })
+  );
+
+  const baseDef = SPECIES_RIG_DEFS[config.body];
+  const baseManifest = manifests.get(config.body)!;
+  const plans: LayerPlan[] = RIG_LAYER_IDS.map((id) => {
+    const species = layerSourceSpecies(config, id);
+    const manifest = manifests.get(species)!;
+    const spec = manifest.layers.find((layer) => layer.id === id);
+    if (!spec) {
+      throw new RigAssetError(`${SPECIES_RIG_DEFS[species].packPath}/manifest.json`, `layer ${id} missing`);
+    }
+    return { def: SPECIES_RIG_DEFS[species], spec };
+  });
+  return loadPlannedAssets(baseDef, baseManifest, plans, manifestBytes, onProgress);
 }

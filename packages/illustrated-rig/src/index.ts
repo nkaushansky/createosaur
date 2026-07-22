@@ -50,6 +50,25 @@ export {
 } from './params';
 export { idleMotion, idlePhases, type IdlePhases } from './idle';
 export { effectiveMotion, evaluateRigPose, posedPivots } from './pose';
+export {
+  PART_GROUPS,
+  PART_GROUP_LAYERS,
+  combineHybridRanges,
+  evaluateHybridRigPose,
+  formatHybridConfig,
+  hybridEffectiveMotion,
+  hybridLabel,
+  hybridMotionRanges,
+  hybridPartOffsets,
+  hybridPosedPivots,
+  hybridSeed,
+  layerSourceSpecies,
+  parseHybridConfig,
+  pureConfig,
+  type HybridPartOffsets,
+  type HybridRigConfig,
+  type PartGroup,
+} from './hybrid';
 export { MASKED_PATTERN_TYPES, hexColorToInt, isMaskedPattern, patternPixel, type MaskedPatternType } from './pattern';
 export {
   ALLOSAURUS_R0_ASSET_SHA256,

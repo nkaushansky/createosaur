@@ -115,7 +115,46 @@ render** only: D-020 supersedes D-019's procedural-only constraint, but the
 M5 AI-portrait finishing layer remains in the roadmap as the optional
 finish. The bible's statement is about the live loop, not about M5.
 
-## 7. Division of labor per species (summary — revised 2026-07-21)
+## 7. Hybrid part donation (IR1 PoC findings, 2026-07-22)
+
+The bible does not yet cover cross-pack mixing; the `/rig-lab` hybrid PoC
+measured what the shared framing contract (§1) buys and what future packs
+must add if their parts are meant to donate well. Mechanism recap: part
+groups swap between packs by pure translation (head anchored by rear-edge
+cover, arms by shoulder pivots, legs by hip-x + foot-contact-y, tail by
+root pivot); donor parts keep their own pivots and amplitudes; the base
+body's deformation fields drive everything. Verified: no mix opens
+motion-driven seams (enclosed-hole scan flat across the pose sweep — the
+scan tool is committed at `tools/rig-scan/`).
+
+Rules and consequences for pack production:
+
+- **A pack donates only what its master painted.** Parts that are mostly
+  occluded in the master (the allosaurus far leg: 204 visible px) cannot
+  fill another body's opening for that part. If a species' parts should be
+  donor-grade, frame the master so each donatable part's silhouette is
+  substantially unoccluded — or accept that the part is body-only.
+- **The head's attachment contract is its rear-edge cover**, not its pivot:
+  the donor head-upper must conceal the host neck's front cut edge as
+  deeply as the host's own head did. Keep painting heads with generous
+  rearward cheek/neck-shadow coverage; that margin is what makes head swaps
+  seamless. (Head pivots sit at different depths inside different skulls —
+  anchoring on them tears the junction.)
+- **Ground contact is the leg anchor.** Species stand at different heights
+  inside the shared band (§1: trex feet ~784/788, allosaurus ~820/823), so
+  donated legs plant on the host's contact line and the thigh root rides
+  up/down under the body. Keep §1's ground band tight; every extra px of
+  stance spread becomes haunch-junction slack in hybrids.
+- **Junction palette steps are visible** even when geometry is clean: the
+  two masters' hide palettes and texture densities differ. Template A/B
+  should pin a shared palette family + texture density for packs intended
+  to interbreed.
+- **Hole backing is IR2**: where a donor part is smaller than the host
+  composite's opening (slim tail on a broad pelvis), only dominant-body
+  rules or dedicated junction cover slices can close the sliver — no
+  transform can.
+
+## 8. Division of labor per species (summary — revised 2026-07-21)
 
 The bible's Stages 2–4 originally assigned extraction to the ChatGPT image
 workflow. Practice showed the exact-source properties (zero-error

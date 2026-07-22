@@ -1,9 +1,19 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import type { IllustratedRigParams, SpeciesRigDef } from '@createosaur/illustrated-rig';
-import type { LoadProgress } from '@/lib/illustrated-rig/rigAssets';
-import type { RigDebugFlags, RigHandle } from '@/lib/illustrated-rig/pixiRig';
+import {
+  evaluateHybridRigPose,
+  hybridLabel,
+  hybridPosedPivots,
+  type IllustratedRigParams,
+} from '@createosaur/illustrated-rig';
+import {
+  sourceBaseDef,
+  sourceKey,
+  type LoadProgress,
+  type RigSource,
+} from '@/lib/illustrated-rig/rigAssets';
+import type { PixiRigOptions, RigDebugFlags, RigHandle } from '@/lib/illustrated-rig/pixiRig';
 
 /**
  * Mounts the Pixi rig into a plain div. Pixi and the asset pipeline are
@@ -41,7 +51,7 @@ declare global {
 
 interface Props {
   inputs: RigStageInputs;
-  def: SpeciesRigDef;
+  source: RigSource;
   onPhase: (phase: RigPhase) => void;
   /** Called with the live rig handle once ready (for freeze-in-place snapshots). */
   onHandle: (handle: RigHandle | null) => void;
@@ -49,11 +59,13 @@ interface Props {
   attempt: number;
 }
 
-export function IllustratedRigStage({ inputs, def, onPhase, onHandle, attempt }: Props) {
+export function IllustratedRigStage({ inputs, source, onPhase, onHandle, attempt }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<RigHandle | null>(null);
   const inputsRef = useRef(inputs);
   inputsRef.current = inputs;
+  const sourceRef = useRef(source);
+  sourceRef.current = source;
 
   // Build once per attempt; feed input changes through the handle.
   useEffect(() => {
@@ -62,15 +74,17 @@ export function IllustratedRigStage({ inputs, def, onPhase, onHandle, attempt }:
     let cancelled = false;
     let handle: RigHandle | null = null;
     const startedAt = performance.now();
+    const buildSource = sourceRef.current;
 
     (async () => {
       onPhase({ state: 'loading', message: 'Loading manifest…' });
-      const [{ loadRigAssets, RigAssetError }, { createPixiRig }] = await Promise.all([
-        import('@/lib/illustrated-rig/rigAssets'),
-        import('@/lib/illustrated-rig/pixiRig'),
-      ]);
+      const [{ loadRigAssets, loadHybridRigAssets, RigAssetError }, { createPixiRig }] =
+        await Promise.all([
+          import('@/lib/illustrated-rig/rigAssets'),
+          import('@/lib/illustrated-rig/pixiRig'),
+        ]);
       try {
-        const assets = await loadRigAssets(def, (progress: LoadProgress) => {
+        const onProgress = (progress: LoadProgress): void => {
           if (cancelled) return;
           onPhase({
             state: 'loading',
@@ -79,11 +93,25 @@ export function IllustratedRigStage({ inputs, def, onPhase, onHandle, attempt }:
                 ? 'Loading manifest…'
                 : `Loading artwork (${progress.loaded}/${progress.total})…`,
           });
-        });
+        };
+        const def = sourceBaseDef(buildSource);
+        const assets =
+          buildSource.kind === 'hybrid'
+            ? await loadHybridRigAssets(buildSource.config, onProgress)
+            : await loadRigAssets(def, onProgress);
         if (cancelled) return;
+        const hybridOptions: Partial<PixiRigOptions> =
+          buildSource.kind === 'hybrid'
+            ? {
+                evaluate: (params, opts) => evaluateHybridRigPose(buildSource.config, params, opts),
+                posedPivots: (pose) => hybridPosedPivots(buildSource.config, pose),
+                ariaLabel: `Illustrated hybrid rig — ${hybridLabel(buildSource.config)} (experimental part mixing)`,
+              }
+            : {};
         handle = await createPixiRig(host, assets, {
           def,
           initialInputs: inputsRef.current,
+          ...hybridOptions,
         });
         if (cancelled) {
           handle.destroy();
@@ -121,8 +149,8 @@ export function IllustratedRigStage({ inputs, def, onPhase, onHandle, attempt }:
       handleRef.current = null;
       handle?.destroy();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- build once per attempt/species; live inputs flow via the effect below
-  }, [attempt, def.speciesId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- build once per attempt/source; live inputs flow via the effect below
+  }, [attempt, sourceKey(source)]);
 
   useEffect(() => {
     handleRef.current?.setInputs(inputs);

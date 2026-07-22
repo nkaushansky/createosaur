@@ -2,13 +2,18 @@
 
 import {
   MOTION_RANGES,
+  PART_GROUPS,
   PRESET_NAMES,
   SPECIES_RIG_DEFS,
+  pureConfig,
+  type HybridRigConfig,
   type IllustratedRigParams,
+  type PartGroup,
   type PatternType,
   type PresetName,
   type SpeciesId,
 } from '@createosaur/illustrated-rig';
+import type { RigSource } from '@/lib/illustrated-rig/rigAssets';
 import type { RigDebugFlags } from '@/lib/illustrated-rig/pixiRig';
 
 const PRESET_LABELS: Record<PresetName, string> = {
@@ -17,6 +22,31 @@ const PRESET_LABELS: Record<PresetName, string> = {
   lookUp: 'Look Up',
   stride: 'Stride',
   stress: 'Stress Test',
+};
+
+/** Entering hybrid mode starts at this PoC's marquee mix. */
+const MARQUEE_MIX: HybridRigConfig = { ...pureConfig('trex'), head: 'allosaurus' };
+
+const MIX_PRESETS: { id: string; label: string; config: HybridRigConfig }[] = [
+  { id: 'allo-head', label: 'Allosaurus head on T. rex', config: MARQUEE_MIX },
+  {
+    id: 'rex-head',
+    label: 'T. rex head on Allosaurus',
+    config: { ...pureConfig('allosaurus'), head: 'trex' },
+  },
+  {
+    id: 'full-swap',
+    label: 'Every part swapped',
+    config: { body: 'trex', head: 'allosaurus', arms: 'allosaurus', legs: 'allosaurus', tail: 'allosaurus' },
+  },
+];
+
+const GROUP_LABELS: Record<PartGroup, string> = {
+  body: 'Body (torso · neck · pelvis)',
+  head: 'Head & jaw',
+  arms: 'Arms',
+  legs: 'Legs',
+  tail: 'Tail',
 };
 
 const PATTERN_OPTIONS: { value: PatternType; label: string }[] = [
@@ -30,10 +60,10 @@ interface Props {
   params: IllustratedRigParams;
   debug: RigDebugFlags;
   disabled: boolean;
-  species: SpeciesId;
+  source: RigSource;
   strideRange: { min: number; max: number };
   jawRange: { min: number; max: number };
-  onSpecies: (species: SpeciesId) => void;
+  onSource: (source: RigSource) => void;
   onParams: (patch: Partial<IllustratedRigParams>) => void;
   onPreset: (name: PresetName) => void;
   onDebug: (patch: Partial<RigDebugFlags>) => void;
@@ -106,15 +136,22 @@ export function RigControls({
   params,
   debug,
   disabled,
-  species,
+  source,
   strideRange,
   jawRange,
-  onSpecies,
+  onSource,
   onParams,
   onPreset,
   onDebug,
 }: Props) {
   const motionDisabled = disabled || params.autoIdle;
+  const config = source.kind === 'hybrid' ? source.config : null;
+
+  const setGroup = (group: PartGroup, species: SpeciesId): void => {
+    if (!config) return;
+    onSource({ kind: 'hybrid', config: { ...config, [group]: species } });
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <section className="card-panel p-4">
@@ -125,16 +162,68 @@ export function RigControls({
         <select
           id="rig-species"
           className="select-input mt-1"
-          value={species}
+          value={source.kind === 'hybrid' ? 'hybrid' : source.species}
           disabled={disabled}
-          onChange={(e) => onSpecies(e.target.value as SpeciesId)}
+          onChange={(e) =>
+            onSource(
+              e.target.value === 'hybrid'
+                ? { kind: 'hybrid', config: MARQUEE_MIX }
+                : { kind: 'species', species: e.target.value as SpeciesId }
+            )
+          }
         >
           {Object.values(SPECIES_RIG_DEFS).map((def) => (
             <option key={def.speciesId} value={def.speciesId}>
               {def.label}
             </option>
           ))}
+          <option value="hybrid">Hybrid mix (PoC)</option>
         </select>
+
+        {config ? (
+          <div className="mt-3" data-testid="rig-mix-panel">
+            {PART_GROUPS.map((group) => (
+              <div className="mt-2" key={group}>
+                <label htmlFor={`rig-mix-${group}`} className="text-sm">
+                  {GROUP_LABELS[group]}
+                </label>
+                <select
+                  id={`rig-mix-${group}`}
+                  className="select-input mt-1"
+                  value={config[group]}
+                  disabled={disabled}
+                  onChange={(e) => setGroup(group, e.target.value as SpeciesId)}
+                >
+                  {Object.values(SPECIES_RIG_DEFS).map((def) => (
+                    <option key={def.speciesId} value={def.speciesId}>
+                      {def.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ))}
+            <div className="mt-3 flex flex-wrap gap-2">
+              {MIX_PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  className="btn"
+                  data-testid={`rig-mix-preset-${preset.id}`}
+                  disabled={disabled}
+                  onClick={() => onSource({ kind: 'hybrid', config: preset.config })}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs" style={{ color: 'var(--muted)' }}>
+              Parts swap by the packs&apos; shared-stage anchors — the body supplies the motion,
+              donor parts keep their own joints, and feet stay planted on the body&apos;s ground
+              line. Where a donor part is smaller than the opening the body leaves for it, the
+              paper shows through: that gap is the finding, not a rendering bug.
+            </p>
+          </div>
+        ) : null}
       </section>
 
       <section className="card-panel p-4">
