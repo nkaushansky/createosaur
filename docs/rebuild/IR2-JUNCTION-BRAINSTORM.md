@@ -395,10 +395,32 @@ assembly rest mesh (banana-warp) is existing tech. Only a gross
 silhouette mismatch at the nape/throat lines would force a fixer round;
 that call needs the file.
 
-**File still pending**: both v2-era sheets arrived inline-only (nothing
-on disk). This round's sheet is the slicing candidate, so the actual PNG
-is now required — for the scale-measurement pass (r2 lesson: eyeballs
-miss 1.5× drift), the archive, and as the slicer's input artifact.
+**File received** (owner committed it to `main` directly; archived on the
+working branch as `asset-generation/probe-trex-parts-sheet-r4-neck-fixed.png`)
+and the **measurement pass ran** (`probe-r4-scale-measurements.json`,
+zero-mean matched filter vs the on-sheet anchor, stubs color-stripped):
+
+- **Chroma-key segmentation worked exactly as designed**: one background
+  key yields the anchor + all ten pieces + the scale bar as clean
+  components, labels filtered by size. The slicer's hardest problem is
+  pre-solved by the background choice.
+- **Per-piece scale is a near-uniform ~1.4×** of the on-sheet anchor
+  (head 1.43, jaw 1.33, near/far legs 1.43/1.33, core 1.43; arms noisier
+  at ~1.5–1.7 — tiny kernels). This is the GOOD failure mode: one
+  normalization per piece, no r2-style mutual inconsistency.
+- **Tail** ~1.5–1.8× (unconstrained match false-peaked; constrained match
+  0.45–0.55 biased low by partial anchor-tail visibility) — a touch
+  longer-drawn than the body cluster but the SHAPE is right this time
+  (thick curved taper). Normalize at slice; no reject.
+- **Neck confirmed laid-flat**: best match at **−50°** rotation
+  (robust across the top-5 candidates). Assembly rotation + the neck
+  layer's mesh pre-bend handle it; per-piece rotation joins the slicer
+  manifest. No regeneration needed.
+- **The anchor is proportionally honest vs the TRUE master**: creature
+  bbox aspect 2.67 vs 2.63 (≤1.5%). Absolute normalization at slice time
+  goes piece → anchor → true master.
+
+**Verdict: sheet ACCEPTED for slicing — the slicer build is GO.**
 
 **Scheduling note:** IR1 species expansion stays paused until D-021
 resolves — mixing is the product's core loop (VISION), and every pack
