@@ -344,6 +344,38 @@ stage-space field + a value×pattern composite + one hybrid to close the
 paint half of D-023; (6) re-author Allosaurus parts-first, then close
 D-021/D-023 on assembled, painted, mixed evidence.
 
+### Probe log — round 3 (2026-07-22, Template G v2 sheet, visual review)
+
+First sheet generated under Template G v2 (single core, chroma-key,
+mouth/tail locks). Owner shared it inline; the file itself is pending
+re-attachment (measurements + archive land then). Visual verdict:
+**best sheet yet — both prior killers fixed, one new defect.**
+
+Landed: mouth OPEN with dark interior on the upper head and a separate
+toothed lower jaw (the r1 killer, fixed); both hind legs complete with
+full thighs; the **single closed torso-through-pelvis core** exactly as
+specced (stubs both ends, no holes, no mid-flank seam); tail as a thick
+curved taper (the r2 killer, fixed); chroma-key green background with
+faint grid AND a labelled 1-metre scale bar; near/far limb pairs at
+identical value; no invented rows; teeth back to large/blade-like (the
+identity lock language appears to have worked).
+
+Defect: **the NECK piece is missing** — eight pieces, not nine. The
+generator fused the neck into the UPPER HEAD (a wedge of neck flesh
+behind the skull ending in a shoulder stub). This matters because the
+neck is the rig's bending mesh layer; a fused head+neck either loses the
+neck bend or forces an in-repo cut with no painted hide under the cheek —
+the exact cut-against-nothing problem parts-first exists to avoid. Fix:
+one fixer round (add NECK as its own piece with stubs past both ends;
+re-end the UPPER HEAD at the collar behind the cheek).
+
+Observations, not defects: the arm stubs came back as small ball joints
+(grey spheres) rather than flesh cylinders — hidden when assembled, and
+the ball-and-socket read is on-brand; keep/crop direction on the core is
+front=KEEP (hidden under neck), rear=CROP (core draws over the tail
+root). Scale looks proportionate by eye but is unverified — the r2
+lesson is that eyeballs miss 1.5× drift; measure on the file.
+
 **Scheduling note:** IR1 species expansion stays paused until D-021
 resolves — mixing is the product's core loop (VISION), and every pack
 generated under the current cut multiplies rework.
