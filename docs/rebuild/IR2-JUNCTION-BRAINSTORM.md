@@ -174,12 +174,15 @@ grid present.
 Findings for the slicer and for sheet spec v2:
 
 1. **Stubs are directional and the sheet's are uniform.** A stub is only
-   hidden if its piece draws UNDER the neighbor. Under-side ends (limb
-   shoulder/hip stubs, tail root, pelvis front, torso front) keep their
-   stubs as articulation margin; top-side ends (head rear, jaw rear, neck
-   rear, torso rear) would show their pale caps over the neighbor — the
-   slicer CROPS those at the dotted socket line, which the sheet
-   conveniently marks. Mechanical rule, no regeneration needed.
+   hidden if its piece draws UNDER the neighbor. KEEP the stub (articulation
+   margin) where the piece tucks under: limb shoulder/hip stubs, tail root,
+   pelvis front, torso front — and the **jaw rear**, which tucks under the
+   head cheek (ADDENDUM §1 mouth contract). CROP at the dotted socket line
+   where the piece's pale cap would show over its neighbor: head rear, neck
+   rear, torso rear. This keep/crop table is NOT derivable from pixels
+   (every cap looks identical) — it ships as external per-piece metadata.
+   (Round-1 wording erroneously listed jaw-rear as CROP; corrected here to
+   reconcile BRAINSTORM §7 with ADDENDUM §1.)
 2. **Scale drift is the open QA item** — piece-vs-anchor proportions must
    be measured at slicing (per-piece normalize if small, piece-fixer
    regeneration if large). Eyeball says close but not exact.
@@ -191,12 +194,146 @@ Findings for the slicer and for sheet spec v2:
    expected; identity QA is the tolerance comparison against the true
    approved master per §2's reframe.
 
-Next: neutral-value variant in the same thread (D-023 evidence), then
-build the sheet slicer and rig the painted pieces.
+### Probe log — round 2 (2026-07-22, neutral-value sheet + evaluation panel)
 
-**Scheduling note:** IR1 species expansion is paused until D-021 resolves —
-mixing is the product's core loop (VISION), and every pack generated under
-the current cut multiplies rework.
+`asset-generation/probe-trex-parts-sheet-r2-neutral.png` — the same-thread
+neutral variant. A five-lens adversarial evaluation panel (registration,
+identity, slicing, cross-species, product) read both sheets + the true
+master and reached **adopt-parts-first as the ARCHITECTURE (high
+confidence), but keep D-021 and D-023 OPEN** — commit to the direction,
+close the decisions only on assembled + mixed evidence.
+
+**Proven where it had to be (the architecture bet):**
+- Body core is genuinely CLOSED on both sheets — torso/neck/pelvis are
+  continuous hide with stub caps, zero limb holes (slicing lens measured
+  zero enclosed holes > 120 px). This is D-021's load-bearing claim.
+- Both hind legs carry their full thigh; tail is complete root-to-tip. The
+  occluded-far-leg / slim-tail donation limits are gone by construction.
+- Cross-part coherence — parts-first's #1 honest risk (§2) — did NOT
+  materialize on the painted sheet: one light, one palette, matched texture
+  density; left/right pairs measure scale-matched (hind legs 203/204 px,
+  arms 96/96 px).
+- Neutral-value authoring is real, not a flat desaturate: r2 chroma ~2 vs
+  ~41 painted, blotches moved off the value into the row-6 overlay, form
+  shading / AO / scales / eyes / teeth / claws retained.
+
+**Why the decisions stay open (what the pixels also showed):**
+- **Nothing mixing-critical is demonstrated.** No assembled rig, no
+  value×pattern composite, no hybrid. All three failure classes (§1) are
+  addressed *by construction on separated ingredients* — plausible, not
+  proven. §3's "pattern continuity as seam-stitcher" is entirely untested.
+- **Neither sheet is cleanly sliceable end-to-end, and they break
+  differently.** r1 (painted) silently re-rendered the mouth nearly CLOSED
+  and baked a closed mandible into the UPPER-HEAD piece → head/jaw cannot
+  be sliced to the ADDENDUM §1 open-mouth contract. r2 (neutral) got the
+  mouth right but drifted badly geometrically: its own head ~1.6× and tail
+  ~1.53× its anchor, and the **tail is redrawn straight and stringy**
+  (~0.76 of body length vs the master's ~0.51 thick curved taper) —
+  unsalvageable by any single scale factor. The best-case calibration
+  animal, drawn with a master in hand, still flipped the most swap-critical
+  pose on one pass and mangled the tail on the other.
+- **The two sheets are NOT registered** — independent re-illustrations
+  (cross-sheet piece-width ratios 0.59–1.44). Any pipeline that slices
+  neutral for geometry and borrows painted for pattern is dead on arrival.
+- **Batch identity drift from the TRUE master:** teeth softened from banana
+  teeth to small croc pegs, reduced skull tubercles, warmer/less-dense
+  texture — uniform (the on-sheet anchor drifted identically, and the two
+  anchors disagree ~14 % in height) but real and off-model. §2's proposed
+  silhouette/contour QA is BLIND to it. Normalize and QA against the true
+  approved master, never the on-sheet re-render.
+- **D-023 is HALF-proven.** Value half: yes. Paint half: no. The row-6
+  pattern overlay is a whole-body master-pose raster WITH its own baked
+  form shading — multiplied over value pieces it double-shades and
+  misregisters on any posed/exploded/hybrid part. It proves the pattern
+  *design* and separability, not a runtime asset. Runtime pattern must
+  become a `pattern.ts` stage-space field or per-part flat-pigment masks.
+- **D-021 geometry alone does not kill failure class 3** (paint
+  discontinuity): a full-thigh painted leg still overlaps a painted pelvis,
+  so two baked palettes meet at the haunch. Only the D-023 neutral +
+  global-paint path removes it — **D-021 and D-023 are coupled** for a
+  complete fix.
+- **Cross-species is unmeasured**, and the frozen "exactly 10 pieces, no
+  invented rows" rule will actively BLOCK what quadrupeds (4 distinct
+  legs), sauropods (segment-chain neck/tail) and ceratopsians
+  (frill/horns/beak) need. Feathers break the value+pattern-over-hide and
+  gape-and-teeth mouth semantics outright. T. rex validated the
+  architecture, NOT Template G as a cross-species generator.
+
+**In-repo desaturate test (settles the derive-vs-regenerate fork, cheaply,
+this session).** The panel split on whether to source the neutral pass by
+desaturating the painted pieces (geometry-identical, free) or by fresh
+value-only generation (the painted blotches might carry enough luminance to
+survive desaturation and violate D-023). Direct test on the r1 painted
+torso hide (`asset-generation/probe-r1-torso-desaturate-test.png` (painted top, luminance-desaturated bottom)): Rec.601 luminance
+desaturation removes MOST of the discrete blotch pattern — the blotches are
+predominantly **hue-encoded** (painted chroma ~40; after desaturation the
+blotch-scale luminance contrast drops to ~9, mostly reading as form-shading
+and scale relief, not discrete pattern). **Leans DERIVE:** desaturate the
+painted pieces for geometry-identical value, then suppress the residual
+low-frequency tonal mottle so a runtime pattern multiply is the sole
+pigment source. (Directional finding — one piece, one luma weighting;
+confirm across all pieces at slice time.)
+
+**Sheet-spec v2 change-list** (from the panel; the biggest few need owner
+buy-in before Template G is rewritten):
+- FREEZE what worked: closed core, thigh-belongs-to-leg, complete tail,
+  directional stubs + dotted sockets, labeled pieces + same-scale anchor,
+  no invented rows *for theropods*.
+- **Chroma-key background** (saturated green/magenta), not warm paper —
+  the pale tuck stubs (lum 254–255) get eaten by a luminance background key
+  at exactly the load-bearing joints; hue-keying fixes it. Highest-leverage
+  single change.
+- **Two-color reserved stub tints** (one for KEEP, one for CROP) so the
+  directional table is machine-readable off the sheet.
+- **Machine-readable per-piece manifest** shipped with the sheet: piece id,
+  each end keep|crop, expected scale vs true master, pose lock, sheet light
+  vector. (Fixes jaw-rear = KEEP.)
+- **Enforced registration**: readable numbered grid or corner fiducials +
+  scale bar; per-piece expected dimensions in grid units, verified at
+  slice (r2 free-scaled every piece even with a faint grid present).
+- **Per-piece proportion + pose + curvature spec** from the species DB
+  (tail length fraction, drawn in master curvature) — blocks the r2 tail.
+- **Identity-fidelity gate** beyond silhouette (teeth shape/size, tubercle
+  density, texture density) against a reference crop of the TRUE master.
+- **Pattern deliverable → per-part flat-pigment masks or a `pattern.ts`
+  field spec** (no baked shading); demote any whole-body overlay to
+  "reference only". Add a hue/palette proof so the paint half is testable.
+- **Per-archetype socket/piece registry + material-class parameter**
+  (scaled hide / feathers / keratin / frill) before any non-theropod — the
+  fixed 10-piece list is theropod-only.
+- **Reconsider the 3-barrel core**: it adds two intra-body seams the master
+  never had (neck–torso, torso–pelvis); trivially hidden on a bulky
+  theropod, maybe not on slender/columnar archetypes.
+
+**Slicer requirements** (priority order): normalize each piece to the TRUE
+master with a hard proportion/silhouette gate that can REJECT+re-roll a
+single piece (not just scale it); do NOT slice r1 head/jaw as-is
+(regenerate to the open-mouth cut or borrow r2's head first); carry the
+keep/crop table externally; matte off the dotted socket line, never a
+background key on the pale stubs; handle r2's full-width section rules that
+bridge pieces (key wide-thin strictly to avoid deleting the legitimately
+wide-thin tail); treat painted and neutral passes as independent; runtime
+pattern from `pattern.ts`, never the overlay raster; runtime far-side dim;
+keep a feature mask for teeth/claws/eyes out of the global multiply.
+
+**The mixing re-test is only valid parts-first-vs-parts-first** — testing
+this T. rex against the existing master-cut Allosaurus would surface
+Allo-side holes misread as parts-first failures. Re-author Allosaurus
+parts-first before mixing.
+
+Next (ordered): (1) fix the doc/spec bugs — done here for jaw-rear;
+(2) settle the neutral-source fork — done, leans derive; (3) rewrite
+Template G → v2 with the change-list, re-probe T. rex, THEN Velociraptor
+after the per-archetype socket registry exists; (4) build the slicer and
+rig the painted pieces to produce the FIRST assembled composite (the
+artifact that actually tests failure-class elimination); (5) author the
+`pattern.ts` stage-space field + a value×pattern composite + one hybrid to
+close the paint half of D-023; (6) re-author Allosaurus parts-first, then
+close D-021/D-023 on assembled, painted, mixed evidence.
+
+**Scheduling note:** IR1 species expansion stays paused until D-021
+resolves — mixing is the product's core loop (VISION), and every pack
+generated under the current cut multiplies rework.
 
 ## 8. The reference sheet, critiqued (owner upload, 2026-07-22)
 
