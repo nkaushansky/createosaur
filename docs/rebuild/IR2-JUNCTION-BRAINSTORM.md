@@ -376,6 +376,30 @@ front=KEEP (hidden under neck), rear=CROP (core draws over the tail
 root). Scale looks proportionate by eye but is unverified — the r2
 lesson is that eyeballs miss 1.5× drift; measure on the file.
 
+### Probe log — round 4 (2026-07-22, neck fixer, visual review)
+
+The single-piece fixer worked as designed: the sheet now carries the
+**complete nine-piece manifest** (NECK added with stubs + dotted lines at
+both ends; UPPER HEAD re-ended at the collar behind the cheek), and the
+"do not change any other piece" discipline held — core, jaw, limbs and
+tail read unchanged from round 3. Same-individual coherence held through
+the fix (palette/texture of the new neck matches).
+
+One flag, measurement-gated: **the neck appears drawn laid-flat
+horizontal** (wide/short tube, folds perpendicular to a horizontal axis,
+narrow head-end / wide base-end) rather than in the anchor's steep
+assembled diagonal. Likely workable without regeneration: assembly can
+rotate the slice (per-piece rotation joins the manifest), and the neck is
+the rig's mesh-bending layer anyway — a modest pre-bend baked into the
+assembly rest mesh (banana-warp) is existing tech. Only a gross
+silhouette mismatch at the nape/throat lines would force a fixer round;
+that call needs the file.
+
+**File still pending**: both v2-era sheets arrived inline-only (nothing
+on disk). This round's sheet is the slicing candidate, so the actual PNG
+is now required — for the scale-measurement pass (r2 lesson: eyeballs
+miss 1.5× drift), the archive, and as the slicer's input artifact.
+
 **Scheduling note:** IR1 species expansion stays paused until D-021
 resolves — mixing is the product's core loop (VISION), and every pack
 generated under the current cut multiplies rework.
