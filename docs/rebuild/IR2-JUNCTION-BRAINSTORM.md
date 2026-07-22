@@ -160,6 +160,40 @@ Retired: the seal-openings retrofit (parts-first makes the closed body
 native; nothing left to validate on old art) and the standalone
 desaturate-and-tint pass (folded into 1's neutral-value variant).
 
+### Probe log — round 1 (2026-07-22, painted sheet)
+
+`asset-generation/probe-trex-parts-sheet-r1.png`. The Template G asks all
+landed: exactly ten labeled pieces plus the anchor, no invented rows; the
+torso/neck/pelvis are complete CLOSED shapes (no limb holes — plain hide
+across the shoulder and hip regions); both hind legs carry their full
+thighs from inside the hip socket; two separately labeled arms; jaw
+separated with the mouth interior on the head piece; every severed piece
+ends in a plain pale stub with a dotted socket line; faint registration
+grid present.
+
+Findings for the slicer and for sheet spec v2:
+
+1. **Stubs are directional and the sheet's are uniform.** A stub is only
+   hidden if its piece draws UNDER the neighbor. Under-side ends (limb
+   shoulder/hip stubs, tail root, pelvis front, torso front) keep their
+   stubs as articulation margin; top-side ends (head rear, jaw rear, neck
+   rear, torso rear) would show their pale caps over the neighbor — the
+   slicer CROPS those at the dotted socket line, which the sheet
+   conveniently marks. Mechanical rule, no regeneration needed.
+2. **Scale drift is the open QA item** — piece-vs-anchor proportions must
+   be measured at slicing (per-piece normalize if small, piece-fixer
+   regeneration if large). Eyeball says close but not exact.
+3. **Far-side pieces came back at near-side value** (no baked shadow
+   dimming). Arguably better than asked: identical near/far art plus a
+   runtime far-side dim halves future part authoring — candidate spec
+   change for Template G v2.
+4. **The anchor row is a re-render of the approved master, not a copy** —
+   expected; identity QA is the tolerance comparison against the true
+   approved master per §2's reframe.
+
+Next: neutral-value variant in the same thread (D-023 evidence), then
+build the sheet slicer and rig the painted pieces.
+
 **Scheduling note:** IR1 species expansion is paused until D-021 resolves —
 mixing is the product's core loop (VISION), and every pack generated under
 the current cut multiplies rework.
