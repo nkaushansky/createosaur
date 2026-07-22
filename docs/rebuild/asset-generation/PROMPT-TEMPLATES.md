@@ -216,31 +216,53 @@ concept — including what it gets wrong — is
 `reference-parts-sheet-trex-chatgpt.png` (see brainstorm §8 for the
 critique).
 
+**Thread hygiene:** attach ONLY the approved master. Never attach a
+previous parts sheet or any layout example — an image reference that
+already "answers" the request dominates the text and gets copied, its
+mistakes included. The layout knowledge lives in this template now. The
+piece manifest and the ban on extra rows exist for the same reason: the
+concept-reference sheet showed generators love inventing rows (eye
+insets, shadow studies, trait add-ons) and severing legs at the knee.
+
 ```text
 Using the attached approved Createosaur [SPECIES NAME] master illustration
 as the exact identity, style, lighting and scale anchor, create a PARTS
 CONTACT SHEET of the same individual animal — every piece drawn separately,
 complete, and ready to be reassembled by overlapping at defined joint lines.
 
+THE MOST IMPORTANT RULE, before anything else: each hind leg is ONE
+COMPLETE PIECE that INCLUDES ITS ENTIRE THIGH, from inside the hip socket
+down through the foot and claws. The thigh is never part of the torso or
+pelvis pieces. If a hind leg piece is missing its thigh, the sheet is
+wrong.
+
+The sheet contains EXACTLY TEN PIECES plus the anchor, and nothing else:
+neck, torso, pelvis, upper head, lower jaw, near arm, far arm, near hind
+leg, far hind leg, tail. Do NOT add any other rows or items — no eye or
+facial detail insets, no light/shadow study, no pattern overlay, no trait
+add-ons, no alternate poses, no assembled preview.
+
 One image, organized in rows on a plain light neutral background with a
 faint uniform registration grid. Same left-facing side profile, same
 lighting direction, and the SAME SCALE for every piece and the anchor row —
-no per-piece zoom.
+no per-piece zoom anywhere on the sheet.
 
 ROW 1 — anchor: the approved master illustration, unchanged.
 
 ROW 2 — body core, three pieces: neck, torso, pelvis. Each is COMPLETE and
 CLOSED: no holes, no openings, no missing regions where limbs or head
 attach. Paint plain believable hide across the shoulder and hip regions —
-limbs will sit on top of or behind these pieces, never inside them.
+limbs will sit on top of or behind these pieces, never inside them. Where
+these three pieces meet each other, give each a generous plain overlap
+margin continuing into its neighbor.
 
-ROW 3 — head upper and lower jaw as two separate pieces (mouth interior
-painted on the head piece, [MOUTH POSE PER ADDENDUM §1]).
+ROW 3 — upper head and lower jaw as two separate labeled pieces (mouth
+interior painted on the head piece, [MOUTH POSE PER ADDENDUM §1]).
 
-ROW 4 — limbs, each a complete single piece severed ONLY at its body
-socket: near foreleg, far foreleg, near hind leg INCLUDING THE FULL THIGH,
-far hind leg INCLUDING THE FULL THIGH. The thigh belongs to the leg, not to
-the body. Far-side pieces get the same value treatment the master uses for
+ROW 4 — limbs, four separate labeled pieces, each complete and severed
+ONLY at its body socket: near arm and far arm (shoulder to claw tips),
+near hind leg and far hind leg (each with its full thigh, per the rule
+above). Far-side pieces get the same value treatment the master uses for
 its far side.
 
 ROW 5 — tail, one complete piece severed at the tail-root socket.
