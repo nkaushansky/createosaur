@@ -20,12 +20,29 @@ export {
 } from './affine';
 export {
   manifestLayer,
+  validatePartsManifest,
   validateRigManifest,
   validateTrexR0Manifest,
   type ManifestValidation,
   type RigManifest,
   type RigManifestLayer,
 } from './manifest';
+export {
+  PARTS_LAYER_IDS,
+  PARTS_MESH_LAYER_IDS,
+  evaluatePartsRigPose,
+  partsEffectiveMotion,
+  partsMeshIndices,
+  partsPosedPivots,
+  restPartsMesh,
+  type EvaluatedPartsPose,
+  type PartsDeformDef,
+  type PartsLayerId,
+  type PartsMeshLayerId,
+  type PartsPivotId,
+  type PartsRigDef,
+} from './parts';
+export { PARTS_RIG_DEFS, TREX_PF_RIG_DEF } from './parts-defs';
 export {
   ALLOSAURUS_RIG_DEF,
   RIG_STAGE,

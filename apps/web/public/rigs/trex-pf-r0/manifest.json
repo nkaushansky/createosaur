@@ -1,0 +1,307 @@
+{
+  "rigId": "trex-pf-r0",
+  "status": "parts-first assembly pack",
+  "kind": "theropod-parts",
+  "source": "probe-trex-parts-sheet-r4-neck-fixed.png",
+  "sourcePolicy": "Pieces are segmented from the accepted round-4 parts contact sheet (chroma-key green), one per anatomical part, then normalized piece -> anchor -> true master and placed in stage space. The approved master is the identity/QA truth, not the pixel source.",
+  "canvas": {
+    "width": 1536,
+    "height": 1024
+  },
+  "backgroundSample": [
+    10,
+    176,
+    80
+  ],
+  "drawOrder": [
+    "far-leg",
+    "tail",
+    "core",
+    "far-arm",
+    "near-leg",
+    "near-arm",
+    "neck",
+    "jaw-lower",
+    "head-upper"
+  ],
+  "layers": [
+    {
+      "id": "far-leg",
+      "z": 0,
+      "mesh": false,
+      "source": "layers/00-far-leg.png",
+      "fullCanvasOrigin": [
+        0,
+        0
+      ],
+      "bounds": {
+        "x": 487,
+        "y": 504,
+        "width": 238,
+        "height": 287
+      },
+      "visibleBounds": {
+        "x": 487,
+        "y": 504,
+        "width": 238,
+        "height": 287
+      },
+      "visiblePixelCount": 29616,
+      "overlapPixelCount": 0,
+      "patternMasks": {
+        "solid": "pattern-masks/far-leg/solid.png",
+        "mottle": "pattern-masks/far-leg/mottle.png",
+        "bands": "pattern-masks/far-leg/bands.png"
+      }
+    },
+    {
+      "id": "tail",
+      "z": 1,
+      "mesh": true,
+      "source": "layers/01-tail.png",
+      "fullCanvasOrigin": [
+        0,
+        0
+      ],
+      "bounds": {
+        "x": 1003,
+        "y": 401,
+        "width": 518,
+        "height": 74
+      },
+      "visibleBounds": {
+        "x": 1003,
+        "y": 401,
+        "width": 518,
+        "height": 74
+      },
+      "visiblePixelCount": 23726,
+      "overlapPixelCount": 0,
+      "patternMasks": {
+        "solid": "pattern-masks/tail/solid.png",
+        "mottle": "pattern-masks/tail/mottle.png",
+        "bands": "pattern-masks/tail/bands.png"
+      }
+    },
+    {
+      "id": "core",
+      "z": 2,
+      "mesh": true,
+      "source": "layers/02-core.png",
+      "fullCanvasOrigin": [
+        0,
+        0
+      ],
+      "bounds": {
+        "x": 404,
+        "y": 260,
+        "width": 688,
+        "height": 296
+      },
+      "visibleBounds": {
+        "x": 404,
+        "y": 260,
+        "width": 688,
+        "height": 296
+      },
+      "visiblePixelCount": 167834,
+      "overlapPixelCount": 0,
+      "patternMasks": {
+        "solid": "pattern-masks/core/solid.png",
+        "mottle": "pattern-masks/core/mottle.png",
+        "bands": "pattern-masks/core/bands.png"
+      }
+    },
+    {
+      "id": "far-arm",
+      "z": 3,
+      "mesh": false,
+      "source": "layers/03-far-arm.png",
+      "fullCanvasOrigin": [
+        0,
+        0
+      ],
+      "bounds": {
+        "x": 381,
+        "y": 474,
+        "width": 69,
+        "height": 121
+      },
+      "visibleBounds": {
+        "x": 381,
+        "y": 474,
+        "width": 69,
+        "height": 121
+      },
+      "visiblePixelCount": 3953,
+      "overlapPixelCount": 0,
+      "patternMasks": {
+        "solid": "pattern-masks/far-arm/solid.png",
+        "mottle": "pattern-masks/far-arm/mottle.png",
+        "bands": "pattern-masks/far-arm/bands.png"
+      }
+    },
+    {
+      "id": "near-leg",
+      "z": 4,
+      "mesh": false,
+      "source": "layers/04-near-leg.png",
+      "fullCanvasOrigin": [
+        0,
+        0
+      ],
+      "bounds": {
+        "x": 729,
+        "y": 501,
+        "width": 212,
+        "height": 294
+      },
+      "visibleBounds": {
+        "x": 729,
+        "y": 501,
+        "width": 212,
+        "height": 294
+      },
+      "visiblePixelCount": 30226,
+      "overlapPixelCount": 0,
+      "patternMasks": {
+        "solid": "pattern-masks/near-leg/solid.png",
+        "mottle": "pattern-masks/near-leg/mottle.png",
+        "bands": "pattern-masks/near-leg/bands.png"
+      }
+    },
+    {
+      "id": "near-arm",
+      "z": 5,
+      "mesh": false,
+      "source": "layers/05-near-arm.png",
+      "fullCanvasOrigin": [
+        0,
+        0
+      ],
+      "bounds": {
+        "x": 410,
+        "y": 470,
+        "width": 76,
+        "height": 116
+      },
+      "visibleBounds": {
+        "x": 410,
+        "y": 470,
+        "width": 76,
+        "height": 116
+      },
+      "visiblePixelCount": 4102,
+      "overlapPixelCount": 0,
+      "patternMasks": {
+        "solid": "pattern-masks/near-arm/solid.png",
+        "mottle": "pattern-masks/near-arm/mottle.png",
+        "bands": "pattern-masks/near-arm/bands.png"
+      }
+    },
+    {
+      "id": "neck",
+      "z": 6,
+      "mesh": true,
+      "source": "layers/06-neck.png",
+      "fullCanvasOrigin": [
+        0,
+        0
+      ],
+      "bounds": {
+        "x": 235,
+        "y": 271,
+        "width": 214,
+        "height": 174
+      },
+      "visibleBounds": {
+        "x": 235,
+        "y": 271,
+        "width": 214,
+        "height": 174
+      },
+      "visiblePixelCount": 20738,
+      "overlapPixelCount": 0,
+      "patternMasks": {
+        "solid": "pattern-masks/neck/solid.png",
+        "mottle": "pattern-masks/neck/mottle.png",
+        "bands": "pattern-masks/neck/bands.png"
+      }
+    },
+    {
+      "id": "jaw-lower",
+      "z": 7,
+      "mesh": false,
+      "source": "layers/07-jaw-lower.png",
+      "fullCanvasOrigin": [
+        0,
+        0
+      ],
+      "bounds": {
+        "x": 54,
+        "y": 339,
+        "width": 216,
+        "height": 98
+      },
+      "visibleBounds": {
+        "x": 54,
+        "y": 339,
+        "width": 216,
+        "height": 98
+      },
+      "visiblePixelCount": 12833,
+      "overlapPixelCount": 0,
+      "patternMasks": {
+        "solid": "pattern-masks/jaw-lower/solid.png",
+        "mottle": "pattern-masks/jaw-lower/mottle.png",
+        "bands": "pattern-masks/jaw-lower/bands.png"
+      }
+    },
+    {
+      "id": "head-upper",
+      "z": 8,
+      "mesh": false,
+      "source": "layers/08-head-upper.png",
+      "fullCanvasOrigin": [
+        0,
+        0
+      ],
+      "bounds": {
+        "x": 45,
+        "y": 233,
+        "width": 225,
+        "height": 134
+      },
+      "visibleBounds": {
+        "x": 45,
+        "y": 233,
+        "width": 225,
+        "height": 134
+      },
+      "visiblePixelCount": 22090,
+      "overlapPixelCount": 0,
+      "patternMasks": {
+        "solid": "pattern-masks/head-upper/solid.png",
+        "mottle": "pattern-masks/head-upper/mottle.png",
+        "bands": "pattern-masks/head-upper/bands.png"
+      }
+    }
+  ],
+  "patterns": {
+    "seed": 20260722,
+    "types": [
+      "solid",
+      "mottle",
+      "bands"
+    ],
+    "coordinatePolicy": "Shared stage-aligned procedural fields (tools/rig-pack page-lib), exported per layer so each mask moves with its part."
+  },
+  "verification": {
+    "note": "Parts-first packs QA against the TRUE approved master by silhouette/identity tolerance, not byte reassembly (D-021)."
+  },
+  "limitations": [
+    "Assembled from the round-4 parts sheet; the master is the identity truth, not the pixel source.",
+    "Painted first rig; value/ carries the desaturated variant for the D-023 runtime-paint work.",
+    "Closed-core architecture: parts draw OVER the core; no hidden-overlap backing is cut."
+  ]
+}

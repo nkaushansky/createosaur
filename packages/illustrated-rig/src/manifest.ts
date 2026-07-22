@@ -192,6 +192,38 @@ export function validateTrexR0Manifest(data: unknown): ManifestValidation {
   return base;
 }
 
+/**
+ * Parts-first packs ship nine pieces (not the twelve-layer cut) over a single
+ * closed core. Structure is validated by validateRigManifest; this adds the
+ * exact parts-first layer-id / draw-order check.
+ */
+const PARTS_LAYER_ORDER = [
+  'far-leg',
+  'tail',
+  'core',
+  'far-arm',
+  'near-leg',
+  'near-arm',
+  'neck',
+  'jaw-lower',
+  'head-upper',
+] as const;
+
+export function validatePartsManifest(data: unknown): ManifestValidation {
+  const base = validateRigManifest(data);
+  if (!base.ok) return base;
+  const ids = base.manifest.layers.map((l) => l.id);
+  if (ids.length !== PARTS_LAYER_ORDER.length || PARTS_LAYER_ORDER.some((id, i) => ids[i] !== id)) {
+    return {
+      ok: false,
+      errors: [
+        `layers: expected the nine parts-first layer ids in pack order (${PARTS_LAYER_ORDER.join(', ')}); got (${ids.join(', ')})`,
+      ],
+    };
+  }
+  return base;
+}
+
 /** Typed accessor once validated: layer by id. */
 export function manifestLayer(manifest: RigManifest, id: RigLayerId): RigManifestLayer {
   const layer = manifest.layers.find((l) => l.id === id);

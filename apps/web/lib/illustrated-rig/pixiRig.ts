@@ -11,31 +11,28 @@ import {
   Texture,
 } from 'pixi.js';
 import {
-  MESH_LAYER_IDS,
   RIG_STAGE,
-  evaluateRigPose,
   hexColorToInt,
   isMaskedPattern,
   meshIndices,
-  posedPivots,
-  restMeshPositions,
-  type EvaluatedRigPose,
   type IllustratedRigParams,
+  type LayerPose,
   type MaskedPatternType,
-  type MeshLayerId,
-  type RigLayerId,
-  type SpeciesRigDef,
+  type MotionParams,
 } from '@createosaur/illustrated-rig';
 import type { LoadedRigAssets, LoadedRigLayer } from './rigAssets';
 
 /**
  * The Pixi v8 scene for the illustrated rig. This module owns every browser/
  * GPU concern; all pose math comes ready-made from @createosaur/illustrated-rig
- * so a frame here is just "apply numbers, render".
+ * so a frame here is just "apply numbers, render". It is rig-kind agnostic: the
+ * twelve-layer cut, a hybrid mix, and the parts-first assembly all plug in the
+ * same way — an evaluate() that returns per-layer poses, and layers that carry
+ * their own precomputed mesh rest (so no species def is needed here).
  *
  * Scene shape (back to front): approved-master underlay → hidden-overlap map
- * (a hole detector: it glows through any seam the rig opens) → the twelve
- * layer groups in pack draw order → mesh/pivot debug overlay.
+ * (a hole detector: it glows through any seam the rig opens) → the layer groups
+ * in pack draw order → mesh/pivot debug overlay.
  *
  * Pattern overlays live INSIDE their layer's group (sprite for rigid layers,
  * a geometry-sharing second mesh for deformed ones), so masks always move
@@ -63,6 +60,12 @@ export interface RigMetrics {
   frameSamples: number;
 }
 
+/** The shape every rig-kind's evaluator returns — a pose over string layer ids. */
+export interface RigPose {
+  effective: MotionParams;
+  layers: Record<string, LayerPose>;
+}
+
 export interface RigHandle {
   setInputs(inputs: RigInputs): void;
   /** Serialized current pose (transforms + vertices) for tests and debugging. */
@@ -78,7 +81,7 @@ export interface RigHandle {
 }
 
 interface LayerNode {
-  id: RigLayerId;
+  id: string;
   group: Container;
   pattern: Sprite | Mesh;
   maskTextures: Record<MaskedPatternType, Texture>;
@@ -89,14 +92,15 @@ interface LayerNode {
 const CANVAS_W = RIG_STAGE.width;
 const CANVAS_H = RIG_STAGE.height;
 
-function buildMeshLayer(def: SpeciesRigDef, layer: LoadedRigLayer, texture: Texture): {
+const MESH_DEBUG_COLORS = [0x1e88e5, 0x43a047, 0xfb8c00, 0x8e24aa, 0x00acc1, 0xd81b60];
+
+function buildMeshLayer(layer: LoadedRigLayer, texture: Texture): {
   mesh: Mesh;
   layerGeometry: MeshGeometry;
   patternGeometry: MeshGeometry;
 } {
-  const id = layer.id as MeshLayerId;
-  const spec = def.meshSpecs[id];
-  const rest = restMeshPositions(def, id);
+  const rest = layer.mesh!.rest;
+  const spec = layer.mesh!.spec;
   const b = layer.spec.bounds;
 
   const positions = new Float32Array(rest);
@@ -128,17 +132,17 @@ function writeMeshPositions(geometry: MeshGeometry, positions: number[]): void {
 }
 
 export interface PixiRigOptions {
-  /** The base def: idle seed, debug pivots fallback and stage identity. */
-  def: SpeciesRigDef;
+  /** Idle seed and stage identity for this rig. */
+  seed: number;
+  /** Accessible name for the canvas. */
+  ariaLabel: string;
+  /** Pivot ids to label in the debug overlay. */
+  pivotNames: string[];
   initialInputs: RigInputs;
-  /** Pose supplier override — the hybrid evaluator plugs in here. Defaults to
-   * the single-species evaluateRigPose over `def`. */
-  evaluate?: (params: IllustratedRigParams, options: { seed: number; timeMs: number }) => EvaluatedRigPose;
-  /** Debug-overlay pivot supplier matching `evaluate` (aligned donor pivots
-   * for hybrids). Defaults to posedPivots over `def`. */
-  posedPivots?: (pose: EvaluatedRigPose) => Record<string, { x: number; y: number }>;
-  /** Accessible name for the canvas; defaults to the species phrasing. */
-  ariaLabel?: string;
+  /** Pose supplier — the single/hybrid/parts evaluator plugs in here. */
+  evaluate: (params: IllustratedRigParams, options: { seed: number; timeMs: number }) => RigPose;
+  /** Debug-overlay pivot supplier matching `evaluate`. */
+  resolvePivots: (pose: RigPose) => Record<string, { x: number; y: number }>;
 }
 
 export async function createPixiRig(
@@ -146,10 +150,8 @@ export async function createPixiRig(
   assets: LoadedRigAssets,
   options: PixiRigOptions
 ): Promise<RigHandle> {
-  const def = options.def;
-  const evaluate =
-    options.evaluate ?? ((params, opts) => evaluateRigPose(def, params, opts));
-  const resolvePivots = options.posedPivots ?? ((pose: EvaluatedRigPose) => posedPivots(def, pose));
+  const { seed, evaluate } = options;
+  const resolvePivots = options.resolvePivots;
   const app = new Application();
   await app.init({
     width: CANVAS_W,
@@ -170,10 +172,7 @@ export async function createPixiRig(
   app.canvas.style.height = 'auto';
   app.canvas.style.display = 'block';
   app.canvas.setAttribute('role', 'img');
-  app.canvas.setAttribute(
-    'aria-label',
-    options.ariaLabel ?? `Illustrated ${def.label} rig — experimental authored-artwork renderer`
-  );
+  app.canvas.setAttribute('aria-label', options.ariaLabel);
   host.appendChild(app.canvas);
 
   // --- static scene ---------------------------------------------------------
@@ -202,10 +201,10 @@ export async function createPixiRig(
     let layerGeometry: MeshGeometry | undefined;
     let patternGeometry: MeshGeometry | undefined;
 
-    if ((MESH_LAYER_IDS as readonly string[]).includes(layer.id)) {
+    if (layer.mesh) {
       // Geometry and pattern UVs live in the SOURCE pack's space — a donor
       // layer's positions land in base space via the evaluated pose alone.
-      const built = buildMeshLayer(layer.def, layer, texture);
+      const built = buildMeshLayer(layer, texture);
       layerGeometry = built.layerGeometry;
       patternGeometry = built.patternGeometry;
       group.addChild(built.mesh);
@@ -227,7 +226,7 @@ export async function createPixiRig(
   const wireframe = new Graphics();
   debugLayer.addChild(wireframe);
   const pivotLabels = new Map<string, Text>();
-  for (const name of Object.keys(def.pivots)) {
+  for (const name of options.pivotNames) {
     const label = new Text({
       text: name,
       style: { fontSize: 13, fill: 0xc2185b, fontFamily: 'ui-monospace, monospace' },
@@ -240,7 +239,7 @@ export async function createPixiRig(
 
   // --- frame application ----------------------------------------------------
   let inputs: RigInputs = options.initialInputs;
-  let lastPose: EvaluatedRigPose | null = null;
+  let lastPose: RigPose | null = null;
   let lastTimeMs = 0;
   let destroyed = false;
   let rafId: number | null = null;
@@ -249,18 +248,14 @@ export async function createPixiRig(
 
   const scratchMatrix = new Matrix();
 
-  function drawDebug(pose: EvaluatedRigPose): void {
+  function drawDebug(pose: RigPose): void {
     wireframe.clear();
-    // Mesh wireframes, one accent color per deformed layer.
-    const colors: Record<MeshLayerId, number> = {
-      torso: 0x1e88e5,
-      neck: 0x43a047,
-      pelvis: 0xfb8c00,
-      tail: 0x8e24aa,
-    };
-    for (const id of MESH_LAYER_IDS) {
-      const layerPose = pose.layers[id];
+    // Mesh wireframes, one accent color per deformed layer (by draw order).
+    let colorIndex = 0;
+    for (const layerPose of Object.values(pose.layers)) {
       if (layerPose.kind !== 'mesh') continue;
+      const color = MESH_DEBUG_COLORS[colorIndex % MESH_DEBUG_COLORS.length]!;
+      colorIndex += 1;
       const { columns, rows } = layerPose.grid;
       const p = layerPose.positions;
       const stride = columns + 1;
@@ -276,7 +271,7 @@ export async function createPixiRig(
           }
         }
       }
-      wireframe.stroke({ width: 1, color: colors[id], alpha: 0.85 });
+      wireframe.stroke({ width: 1, color, alpha: 0.85 });
     }
     // Pivots at their posed positions.
     const pivots = resolvePivots(pose);
@@ -289,9 +284,10 @@ export async function createPixiRig(
     wireframe.stroke({ width: 2, color: 0xc2185b, alpha: 0.9 });
   }
 
-  function applyPose(pose: EvaluatedRigPose): void {
+  function applyPose(pose: RigPose): void {
     for (const node of nodes) {
       const layerPose = pose.layers[node.id];
+      if (!layerPose) continue;
       if (layerPose.kind === 'transform') {
         const [a, b, c, d, tx, ty] = layerPose.matrix;
         scratchMatrix.set(a, b, c, d, tx, ty);
@@ -323,7 +319,7 @@ export async function createPixiRig(
     const started = performance.now();
     const timeMs = inputs.freezeTimeMs ?? performance.now() - clockStart;
     lastTimeMs = timeMs;
-    const pose = evaluate(inputs.params, { seed: def.seed, timeMs });
+    const pose = evaluate(inputs.params, { seed, timeMs });
     lastPose = pose;
     applyPose(pose);
     app.render();

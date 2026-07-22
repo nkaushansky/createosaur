@@ -31,6 +31,7 @@ const { values: args } = parseArgs({
 const CONFIGS = [
   ['pure-trex', 'species=trex'],
   ['pure-allosaurus', 'species=allosaurus'],
+  ['trex-parts-first', 'species=trex-pf'],
   ['allo-head-on-trex', 'mix=body:trex,head:allosaurus'],
   ['rex-head-on-allo', 'mix=body:allosaurus,head:trex'],
   ['trex-legs-on-allo', 'mix=body:allosaurus,legs:trex'],

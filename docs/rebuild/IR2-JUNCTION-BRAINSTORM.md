@@ -426,6 +426,44 @@ zero-mean matched filter vs the on-sheet anchor, stubs color-stripped):
 resolves — mixing is the product's core loop (VISION), and every pack
 generated under the current cut multiplies rework.
 
+### Slicer build — first assembled parts-first rig (2026-07-22)
+
+`tools/sheet-slicer` built (measure → author slice manifest → slice) and the
+accepted round-4 sheet became `trex-pf-r0`: nine pieces (`neck`, single closed
+`core`, `head-upper`, `jaw-lower`, `near/far-arm`, `near/far-leg`, `tail`)
+placed piece → anchor → true master in the 1536×1024 stage, drawn OVER the
+closed core (new z-contract: limbs/tail/neck/head above the core). It idles in
+`/rig-lab?species=trex-pf` beside `trex-r0-v2` through the full motion envelope
+(breath, head/jaw, stride, tail sway), reusing the pose model (breathing dorsal
+field, neck bend handing off to a rigid skull, contact legs, pinned-root tail)
+adapted to the parts geometry — legs are whole bricks pivoting at the hip (no
+knee), the pelvis micro-rotation is folded into the core mesh.
+
+What the assembled artifact shows (the thing that actually tests failure-class
+elimination, §1):
+- **Class 1 (uncovered opening) and the closed-body claim: proven.** The core
+  is a single closed shape; every limb attaches over it with the core backing
+  the joint. The enclosed-hole scan is **flat across the pose sweep and below
+  the master-cut baseline in every pose** (110/74/130/100/105 vs pure-trex
+  476/152/268/274/269) — motion opens essentially no holes.
+- **Identity by contour, not bytes (the §2 reframe): passes.** Assembled bbox
+  aspect 2.626 vs the true master 2.632 (Δ 0.2 %), bbox within ~1 % per edge.
+  Silhouette IoU 0.70; the residual is per-part palette/edge drift and a
+  thinner/shorter tail, not misplacement.
+- **Class 3 (paint discontinuity): visible, as predicted — D-021⇄D-023 coupled.**
+  Junctions carry a faint throat sliver, near-vertical core-edge seams (the
+  closed core adds intra-body seams the master never had), and a warmer palette
+  than the master. The painted first rig does not remove paint discontinuity;
+  the value/ variant is stored for the D-023 runtime-global-paint path.
+- **Pattern continuity as seam-stitcher (§3): observable.** The procedural
+  bands field runs continuously body → tail across the piece boundaries.
+
+Stored for the next steps: a desaturated `value/` layer per piece (D-023),
+procedural `pattern.ts`-style masks (no baked overlay). D-021 stays OPEN — the
+remaining half of the close condition is a parts-first-vs-parts-first hybrid,
+which needs Allosaurus re-authored parts-first (out of scope for this build).
+Verify-loop screenshots + the numbers: `docs/rebuild/rig-lab/parts-first/`.
+
 ## 8. The reference sheet, critiqued (owner upload, 2026-07-22)
 
 `asset-generation/reference-parts-sheet-trex-chatgpt.png` — a ChatGPT

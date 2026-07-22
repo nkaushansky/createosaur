@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   DEFAULT_RIG_PARAMS,
   SPECIES_RIG_DEFS,
+  TREX_PF_RIG_DEF,
   clampRigParams,
   hybridMotionRanges,
   parseHybridConfig,
@@ -11,7 +12,7 @@ import {
   type IllustratedRigParams,
   type PresetName,
 } from '@createosaur/illustrated-rig';
-import { sourceBaseDef, type RigSource } from '@/lib/illustrated-rig/rigAssets';
+import type { RigSource } from '@/lib/illustrated-rig/rigAssets';
 import type { RigDebugFlags, RigHandle } from '@/lib/illustrated-rig/pixiRig';
 import { IllustratedRigStage, type RigPhase } from './IllustratedRigStage';
 import { RigControls } from './RigControls';
@@ -46,6 +47,7 @@ function sourceFromLocation(): RigSource {
   const mix = parseHybridConfig(search.get('mix'));
   if (mix) return { kind: 'hybrid', config: mix };
   const species = search.get('species');
+  if (species === 'trex-pf') return { kind: 'parts', def: TREX_PF_RIG_DEF };
   return species !== null && species in SPECIES_RIG_DEFS
     ? { kind: 'species', species: species as keyof typeof SPECIES_RIG_DEFS }
     : { kind: 'species', species: 'trex' };
@@ -60,14 +62,12 @@ export function IllustratedRigLab() {
   const [phase, setPhase] = useState<RigPhase>({ state: 'loading', message: 'Preparing…' });
   const [attempt, setAttempt] = useState(0);
   const handleRef = useRef<RigHandle | null>(null);
-  const def = sourceBaseDef(source);
-  const ranges = useMemo(
-    () =>
-      source.kind === 'hybrid'
-        ? hybridMotionRanges(source.config)
-        : { strideRange: def.strideRange, jawRange: def.jawRange },
-    [source, def]
-  );
+  const ranges = useMemo(() => {
+    if (source.kind === 'hybrid') return hybridMotionRanges(source.config);
+    if (source.kind === 'parts') return { strideRange: source.def.strideRange, jawRange: source.def.jawRange };
+    const def = SPECIES_RIG_DEFS[source.species];
+    return { strideRange: def.strideRange, jawRange: def.jawRange };
+  }, [source]);
 
   useEffect(() => {
     setFreezeTimeMs(freezeTimeFromLocation());

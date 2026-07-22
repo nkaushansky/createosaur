@@ -1,0 +1,121 @@
+{
+  "rigId": "trex-pf-r0",
+  "kind": "theropod-parts",
+  "source": "probe-trex-parts-sheet-r4-neck-fixed.png",
+  "sourcePolicy": "Pieces are segmented from the accepted round-4 parts contact sheet (chroma-key green), one per anatomical part, then normalized piece -> anchor -> true master and placed in stage space. The approved master is the identity/QA truth, not the pixel source.",
+  "canvas": { "width": 1536, "height": 1024 },
+  "patternSeed": 20260722,
+  "groundY": 786,
+  "trueMaster": "rigs/trex-r0-v2/debug/approved-master-original.png",
+  "_notes": "keep|crop is expressed as per-edge crop fractions applied to the sheet-space piece BEFORE rotation (0 = keep the stub). scale is sheet->stage. anchor is a normalized point on the cropped piece bbox; dest is where that anchor lands in stage space. z is back-to-front draw order. Parts draw OVER the closed core.",
+  "pieces": [
+    {
+      "id": "far-leg",
+      "label": "FAR HIND LEG",
+      "z": 0,
+      "expectCentroid": { "x": 1097, "y": 786 },
+      "crop": { "top": 0.22 },
+      "scale": 1.85,
+      "rotate": 0,
+      "anchor": { "u": 0.5, "v": 0.97 },
+      "dest": { "x": 600, "y": 782 },
+      "mesh": false
+    },
+    {
+      "id": "tail",
+      "label": "TAIL",
+      "z": 1,
+      "expectCentroid": { "x": 649, "y": 980 },
+      "crop": {},
+      "scale": 0.78,
+      "rotate": 0,
+      "anchor": { "u": 0.06, "v": 0.42 },
+      "dest": { "x": 1034, "y": 432 },
+      "mesh": true
+    },
+    {
+      "id": "core",
+      "label": "BODY CORE",
+      "z": 2,
+      "expectCentroid": { "x": 718, "y": 456 },
+      "crop": { "right": 0.1, "left": 0.08 },
+      "scale": 1.72,
+      "rotate": 0,
+      "anchor": { "u": 0.5, "v": 0.5 },
+      "dest": { "x": 748, "y": 408 },
+      "mesh": true
+    },
+    {
+      "id": "far-arm",
+      "label": "FAR ARM",
+      "z": 3,
+      "expectCentroid": { "x": 503, "y": 759 },
+      "crop": { "top": 0.15 },
+      "scale": 1.15,
+      "rotate": 0,
+      "anchor": { "u": 0.5, "v": 0.1 },
+      "dest": { "x": 415, "y": 486 },
+      "mesh": false
+    },
+    {
+      "id": "near-leg",
+      "label": "NEAR HIND LEG",
+      "z": 4,
+      "expectCentroid": { "x": 842, "y": 782 },
+      "crop": { "top": 0.22 },
+      "scale": 1.85,
+      "rotate": 0,
+      "anchor": { "u": 0.5, "v": 0.97 },
+      "dest": { "x": 835, "y": 786 },
+      "mesh": false
+    },
+    {
+      "id": "near-arm",
+      "label": "NEAR ARM",
+      "z": 5,
+      "expectCentroid": { "x": 306, "y": 753 },
+      "crop": { "top": 0.15 },
+      "scale": 1.2,
+      "rotate": 0,
+      "anchor": { "u": 0.5, "v": 0.1 },
+      "dest": { "x": 448, "y": 482 },
+      "mesh": false
+    },
+    {
+      "id": "neck",
+      "label": "NECK",
+      "z": 6,
+      "expectCentroid": { "x": 248, "y": 451 },
+      "crop": { "right": 0.14, "left": 0.18 },
+      "scale": 1.16,
+      "rotate": -30,
+      "anchor": { "u": 0.5, "v": 0.5 },
+      "dest": { "x": 346, "y": 352 },
+      "mesh": true
+    },
+    {
+      "id": "jaw-lower",
+      "label": "LOWER JAW",
+      "z": 7,
+      "expectCentroid": { "x": 734, "y": 617 },
+      "crop": {},
+      "scale": 1.19,
+      "rotate": 0,
+      "anchor": { "u": 0.5, "v": 0.5 },
+      "dest": { "x": 162, "y": 388 },
+      "mesh": false
+    },
+    {
+      "id": "head-upper",
+      "label": "UPPER HEAD",
+      "z": 8,
+      "expectCentroid": { "x": 397, "y": 598 },
+      "crop": { "right": 0.16 },
+      "scale": 1.42,
+      "rotate": 0,
+      "anchor": { "u": 0.03, "v": 0.5 },
+      "dest": { "x": 52, "y": 300 },
+      "mesh": false
+    }
+  ]
+}

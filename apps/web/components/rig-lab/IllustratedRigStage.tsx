@@ -2,18 +2,18 @@
 
 import { useEffect, useRef } from 'react';
 import {
+  SPECIES_RIG_DEFS,
   evaluateHybridRigPose,
+  evaluatePartsRigPose,
+  evaluateRigPose,
   hybridLabel,
   hybridPosedPivots,
+  partsPosedPivots,
+  posedPivots,
   type IllustratedRigParams,
 } from '@createosaur/illustrated-rig';
-import {
-  sourceBaseDef,
-  sourceKey,
-  type LoadProgress,
-  type RigSource,
-} from '@/lib/illustrated-rig/rigAssets';
-import type { PixiRigOptions, RigDebugFlags, RigHandle } from '@/lib/illustrated-rig/pixiRig';
+import { sourceKey, type LoadProgress, type RigSource } from '@/lib/illustrated-rig/rigAssets';
+import type { PixiRigOptions, RigDebugFlags, RigHandle, RigPose } from '@/lib/illustrated-rig/pixiRig';
 
 /**
  * Mounts the Pixi rig into a plain div. Pixi and the asset pipeline are
@@ -59,6 +59,40 @@ interface Props {
   attempt: number;
 }
 
+/** The seed / labels / evaluators that make a source render — everything the
+ * Pixi rig needs beyond the fetched assets. Kept out of the effect so the rig
+ * kind is chosen in one place. */
+function buildRigOptions(source: RigSource): Omit<PixiRigOptions, 'initialInputs'> {
+  if (source.kind === 'parts') {
+    const def = source.def;
+    return {
+      seed: def.seed,
+      ariaLabel: `Illustrated ${def.label} rig — parts-first assembly (experimental, D-021 probe)`,
+      pivotNames: Object.keys(def.pivots),
+      evaluate: (params, opts): RigPose => evaluatePartsRigPose(def, params, opts),
+      resolvePivots: (pose) => partsPosedPivots(def, pose),
+    };
+  }
+  if (source.kind === 'hybrid') {
+    const base = SPECIES_RIG_DEFS[source.config.body];
+    return {
+      seed: base.seed,
+      ariaLabel: `Illustrated hybrid rig — ${hybridLabel(source.config)} (experimental part mixing)`,
+      pivotNames: Object.keys(base.pivots),
+      evaluate: (params, opts): RigPose => evaluateHybridRigPose(source.config, params, opts),
+      resolvePivots: (pose) => hybridPosedPivots(source.config, pose),
+    };
+  }
+  const def = SPECIES_RIG_DEFS[source.species];
+  return {
+    seed: def.seed,
+    ariaLabel: `Illustrated ${def.label} rig — experimental authored-artwork renderer`,
+    pivotNames: Object.keys(def.pivots),
+    evaluate: (params, opts): RigPose => evaluateRigPose(def, params, opts),
+    resolvePivots: (pose) => posedPivots(def, pose),
+  };
+}
+
 export function IllustratedRigStage({ inputs, source, onPhase, onHandle, attempt }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<RigHandle | null>(null);
@@ -78,11 +112,13 @@ export function IllustratedRigStage({ inputs, source, onPhase, onHandle, attempt
 
     (async () => {
       onPhase({ state: 'loading', message: 'Loading manifest…' });
-      const [{ loadRigAssets, loadHybridRigAssets, RigAssetError }, { createPixiRig }] =
-        await Promise.all([
-          import('@/lib/illustrated-rig/rigAssets'),
-          import('@/lib/illustrated-rig/pixiRig'),
-        ]);
+      const [
+        { loadRigAssets, loadHybridRigAssets, loadPartsRigAssets, RigAssetError },
+        { createPixiRig },
+      ] = await Promise.all([
+        import('@/lib/illustrated-rig/rigAssets'),
+        import('@/lib/illustrated-rig/pixiRig'),
+      ]);
       try {
         const onProgress = (progress: LoadProgress): void => {
           if (cancelled) return;
@@ -94,24 +130,16 @@ export function IllustratedRigStage({ inputs, source, onPhase, onHandle, attempt
                 : `Loading artwork (${progress.loaded}/${progress.total})…`,
           });
         };
-        const def = sourceBaseDef(buildSource);
         const assets =
-          buildSource.kind === 'hybrid'
-            ? await loadHybridRigAssets(buildSource.config, onProgress)
-            : await loadRigAssets(def, onProgress);
+          buildSource.kind === 'parts'
+            ? await loadPartsRigAssets(buildSource.def, onProgress)
+            : buildSource.kind === 'hybrid'
+              ? await loadHybridRigAssets(buildSource.config, onProgress)
+              : await loadRigAssets(SPECIES_RIG_DEFS[buildSource.species], onProgress);
         if (cancelled) return;
-        const hybridOptions: Partial<PixiRigOptions> =
-          buildSource.kind === 'hybrid'
-            ? {
-                evaluate: (params, opts) => evaluateHybridRigPose(buildSource.config, params, opts),
-                posedPivots: (pose) => hybridPosedPivots(buildSource.config, pose),
-                ariaLabel: `Illustrated hybrid rig — ${hybridLabel(buildSource.config)} (experimental part mixing)`,
-              }
-            : {};
         handle = await createPixiRig(host, assets, {
-          def,
+          ...buildRigOptions(buildSource),
           initialInputs: inputsRef.current,
-          ...hybridOptions,
         });
         if (cancelled) {
           handle.destroy();
