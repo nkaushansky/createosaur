@@ -52,6 +52,8 @@ export default tseslint.config(
         window: 'readonly',
         document: 'readonly',
         Image: 'readonly',
+        HTMLInputElement: 'readonly',
+        Event: 'readonly',
       },
     },
     rules: { 'no-console': 'off' },

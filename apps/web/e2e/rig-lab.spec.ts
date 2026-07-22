@@ -147,6 +147,73 @@ test('allosaurus deep link renders deterministically at a frozen clock', async (
   expect(await frameState(page)).toBe(first);
 });
 
+test('hybrid deep link mixes both packs and responds to controls', async ({ page }) => {
+  const failedAssets: string[] = [];
+  const rigRequests: string[] = [];
+  page.on('response', (response) => {
+    if (response.url().includes('/rigs/')) {
+      rigRequests.push(response.url());
+      if (response.status() >= 400) failedAssets.push(`${response.status()} ${response.url()}`);
+    }
+  });
+  const pageErrors = await openRigLab(page, '/rig-lab?mix=body:trex,head:allosaurus&t=0');
+
+  expect(failedAssets).toEqual([]);
+  expect(pageErrors).toEqual([]);
+  await expect(page.locator('canvas[role="img"]')).toHaveAttribute(
+    'aria-label',
+    /hybrid rig — Tyrannosaurus rex body · Allosaurus head/
+  );
+  // The mix really loads from BOTH packs: donor head art + base body art.
+  expect(rigRequests.some((url) => url.includes('allosaurus-r0-v2/layers/11-head-upper'))).toBe(true);
+  expect(rigRequests.some((url) => url.includes('trex-r0-v2/layers/08-torso'))).toBe(true);
+  expect(rigRequests.some((url) => url.includes('trex-r0-v2/layers/11-head-upper'))).toBe(false);
+
+  // The mix panel reflects the deep link and the pose responds to motion.
+  await expect(page.locator('#rig-species')).toHaveValue('hybrid');
+  await expect(page.locator('#rig-mix-head')).toHaveValue('allosaurus');
+  await expect(page.locator('#rig-mix-body')).toHaveValue('trex');
+  await page.getByTestId('rig-preset-neutral').click();
+  const before = await frameState(page);
+  await setRange(page, '#rig-head', 6);
+  await expect.poll(async () => (await frameState(page)) !== before).toBe(true);
+});
+
+test('hybrid deep link renders deterministically at a frozen clock', async ({ page }) => {
+  await openRigLab(page, '/rig-lab?mix=body:trex,head:allosaurus,tail:allosaurus&t=2500');
+  const first = await frameState(page);
+  await page.reload();
+  await expect(page.getByTestId('rig-stage')).toHaveAttribute('data-rig-state', 'ready', {
+    timeout: 30_000,
+  });
+  expect(await frameState(page)).toBe(first);
+});
+
+test('a malformed mix param falls back to the plain T. rex rig', async ({ page }) => {
+  await openRigLab(page, '/rig-lab?mix=head:stegosaurus&t=0');
+  await expect(page.locator('canvas[role="img"]')).toHaveAttribute(
+    'aria-label',
+    /Tyrannosaurus rex rig/
+  );
+  await expect(page.locator('#rig-species')).toHaveValue('trex');
+});
+
+test('switching a mix part reloads the rig with the new donor pack', async ({ page }) => {
+  await openRigLab(page, '/rig-lab?mix=body:trex,head:allosaurus&t=0');
+  const rigRequests: string[] = [];
+  page.on('request', (request) => {
+    if (request.url().includes('/rigs/')) rigRequests.push(request.url());
+  });
+  await page.selectOption('#rig-mix-legs', 'allosaurus');
+  await expect(page.getByTestId('rig-stage')).toHaveAttribute('data-rig-state', 'ready', {
+    timeout: 30_000,
+  });
+  expect(rigRequests.some((url) => url.includes('allosaurus-r0-v2/layers/03-near-hind-thigh'))).toBe(
+    true
+  );
+  await expect(page.locator('canvas[role="img"]')).toHaveAttribute('aria-label', /Allosaurus legs/);
+});
+
 test('reduced motion freezes the pose where it was', async ({ page }) => {
   // The only live-clock test: the rig renders every rAF, which saturates a
   // software-GL worker, and two projects can hit it concurrently. The freeze
@@ -176,4 +243,27 @@ test('screenshot artifacts for the visual verify loop', async ({ page }, testInf
 
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.screenshot({ path: testInfo.outputPath('rig-lab-dark.png'), fullPage: true });
+});
+
+test('hybrid screenshot artifacts for the visual verify loop', async ({ page }, testInfo) => {
+  await openRigLab(page, '/rig-lab?mix=body:trex,head:allosaurus&t=2500');
+  await page.screenshot({ path: testInfo.outputPath('hybrid-allo-head-idle.png'), fullPage: true });
+
+  await page.getByTestId('rig-preset-stride').click();
+  await page.waitForTimeout(150);
+  await page.screenshot({ path: testInfo.outputPath('hybrid-allo-head-stride.png'), fullPage: true });
+
+  await page.getByTestId('rig-mix-preset-rex-head').click();
+  await expect(page.getByTestId('rig-stage')).toHaveAttribute('data-rig-state', 'ready', {
+    timeout: 30_000,
+  });
+  await page.waitForTimeout(150);
+  await page.screenshot({ path: testInfo.outputPath('hybrid-rex-head-neutral.png'), fullPage: true });
+
+  await page.getByTestId('rig-mix-preset-full-swap').click();
+  await expect(page.getByTestId('rig-stage')).toHaveAttribute('data-rig-state', 'ready', {
+    timeout: 30_000,
+  });
+  await page.waitForTimeout(150);
+  await page.screenshot({ path: testInfo.outputPath('hybrid-full-swap-neutral.png'), fullPage: true });
 });

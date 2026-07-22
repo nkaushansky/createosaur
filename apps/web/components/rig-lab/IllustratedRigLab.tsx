@@ -5,11 +5,13 @@ import {
   DEFAULT_RIG_PARAMS,
   SPECIES_RIG_DEFS,
   clampRigParams,
+  hybridMotionRanges,
+  parseHybridConfig,
   rigPresets,
   type IllustratedRigParams,
   type PresetName,
-  type SpeciesId,
 } from '@createosaur/illustrated-rig';
+import { sourceBaseDef, type RigSource } from '@/lib/illustrated-rig/rigAssets';
 import type { RigDebugFlags, RigHandle } from '@/lib/illustrated-rig/pixiRig';
 import { IllustratedRigStage, type RigPhase } from './IllustratedRigStage';
 import { RigControls } from './RigControls';
@@ -18,7 +20,8 @@ import { RigControls } from './RigControls';
  * IR0/IR1 experiment shell — deliberately isolated from the lab store and
  * production components. Each species' variation seed is its pack's own
  * pattern seed, so a given species is one specific individual everywhere:
- * here, in unit snapshots, and in Playwright's frozen-time screenshots.
+ * here, in unit snapshots, and in Playwright's frozen-time screenshots. A
+ * hybrid inherits its body's seed — the mixed creature is one individual too.
  */
 const DEFAULT_DEBUG: RigDebugFlags = {
   masterUnderlay: false,
@@ -34,26 +37,41 @@ function freezeTimeFromLocation(): number | null {
   return Number.isFinite(value) && value >= 0 ? value : null;
 }
 
-/** Read the requested species (?species=allosaurus) once on the client. */
-function speciesFromLocation(): SpeciesId {
-  const raw = new URLSearchParams(window.location.search).get('species');
-  return raw !== null && raw in SPECIES_RIG_DEFS ? (raw as SpeciesId) : 'trex';
+/**
+ * Read the requested rig once on the client: ?mix=body:trex,head:allosaurus
+ * selects a hybrid; otherwise ?species=allosaurus selects a pack.
+ */
+function sourceFromLocation(): RigSource {
+  const search = new URLSearchParams(window.location.search);
+  const mix = parseHybridConfig(search.get('mix'));
+  if (mix) return { kind: 'hybrid', config: mix };
+  const species = search.get('species');
+  return species !== null && species in SPECIES_RIG_DEFS
+    ? { kind: 'species', species: species as keyof typeof SPECIES_RIG_DEFS }
+    : { kind: 'species', species: 'trex' };
 }
 
 export function IllustratedRigLab() {
   const [mounted, setMounted] = useState(false);
   const [freezeTimeMs, setFreezeTimeMs] = useState<number | null>(null);
-  const [species, setSpecies] = useState<SpeciesId>('trex');
+  const [source, setSource] = useState<RigSource>({ kind: 'species', species: 'trex' });
   const [params, setParams] = useState<IllustratedRigParams>(DEFAULT_RIG_PARAMS);
   const [debug, setDebug] = useState<RigDebugFlags>(DEFAULT_DEBUG);
   const [phase, setPhase] = useState<RigPhase>({ state: 'loading', message: 'Preparing…' });
   const [attempt, setAttempt] = useState(0);
   const handleRef = useRef<RigHandle | null>(null);
-  const def = SPECIES_RIG_DEFS[species];
+  const def = sourceBaseDef(source);
+  const ranges = useMemo(
+    () =>
+      source.kind === 'hybrid'
+        ? hybridMotionRanges(source.config)
+        : { strideRange: def.strideRange, jawRange: def.jawRange },
+    [source, def]
+  );
 
   useEffect(() => {
     setFreezeTimeMs(freezeTimeFromLocation());
-    setSpecies(speciesFromLocation());
+    setSource(sourceFromLocation());
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       setParams((current) => ({ ...current, autoIdle: false, reducedMotion: true }));
     }
@@ -80,15 +98,15 @@ export function IllustratedRigLab() {
 
   const applyPreset = useCallback(
     (name: PresetName) => {
-      const presets = rigPresets(def.strideRange.max, def.jawRange);
+      const presets = rigPresets(ranges.strideRange.max, ranges.jawRange);
       setParams((current) => clampRigParams({ ...current, ...presets[name], autoIdle: false }));
     },
-    [def.strideRange.max, def.jawRange]
+    [ranges]
   );
 
-  const switchSpecies = useCallback((next: SpeciesId) => {
-    setSpecies(next);
-    setPhase({ state: 'loading', message: 'Loading species…' });
+  const switchSource = useCallback((next: RigSource) => {
+    setSource(next);
+    setPhase({ state: 'loading', message: 'Loading rig…' });
     // Motion resets to a neutral static pose so the new rig loads predictably.
     setParams((current) =>
       clampRigParams({ ...current, headAngle: 0, jawAngle: 0, breath: 0, stride: 0, tailSway: 0 })
@@ -137,7 +155,7 @@ export function IllustratedRigLab() {
             {mounted ? (
               <IllustratedRigStage
                 inputs={stageInputs}
-                def={def}
+                source={source}
                 onPhase={setPhase}
                 onHandle={onHandle}
                 attempt={attempt}
@@ -190,10 +208,10 @@ export function IllustratedRigLab() {
             params={params}
             debug={debug}
             disabled={rigState !== 'ready'}
-            species={species}
-            strideRange={def.strideRange}
-            jawRange={def.jawRange}
-            onSpecies={switchSpecies}
+            source={source}
+            strideRange={ranges.strideRange}
+            jawRange={ranges.jawRange}
+            onSource={switchSource}
             onParams={patchParams}
             onPreset={applyPreset}
             onDebug={patchDebug}

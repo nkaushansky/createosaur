@@ -1,5 +1,8 @@
 # IR0 visual review matrix — Illustrated Rig R0 (`/rig-lab`)
 
+> IR1's hybrid mixing PoC has its own matrix, measurements and findings in
+> [`hybrid/`](hybrid/README.md).
+
 Captured 2026-07-19 from the static export (`npm run build` → `serve out`),
 Chromium, stage extracted at native resolution and scaled to 0.75 on the
 paper backdrop. Every state below is reproducible in the app: presets set the

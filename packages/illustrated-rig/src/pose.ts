@@ -31,28 +31,43 @@ function envelopeWeight(w: { rise: readonly [number, number]; fall: readonly [nu
   return ramp(w.rise[0], w.rise[1], v) * (1 - ramp(w.fall[0], w.fall[1], v));
 }
 
+/**
+ * The raw requested motion — live sliders, or the idle loop when it drives.
+ * Species/hybrid envelopes are applied on top by clampMotionToRanges.
+ */
+export function requestedMotion(params: IllustratedRigParams, options: PoseOptions): MotionParams {
+  const clamped = clampRigParams(params);
+  return !clamped.reducedMotion && clamped.autoIdle
+    ? idleMotion(options.seed, options.timeMs)
+    : {
+        headAngle: clamped.headAngle,
+        jawAngle: clamped.jawAngle,
+        breath: clamped.breath,
+        stride: clamped.stride,
+        tailSway: clamped.tailSway,
+      };
+}
+
+/** Clamp stride and jaw into a pack's seam-clean envelope. */
+export function clampMotionToRanges(
+  motion: MotionParams,
+  strideRange: { min: number; max: number },
+  jawRange: { min: number; max: number }
+): MotionParams {
+  return {
+    ...motion,
+    stride: clamp(motion.stride, strideRange.min, strideRange.max),
+    jawAngle: clamp(motion.jawAngle, jawRange.min, jawRange.max),
+  };
+}
+
 /** The motion values a pose is actually built from. */
 export function effectiveMotion(
   def: SpeciesRigDef,
   params: IllustratedRigParams,
   options: PoseOptions
 ): MotionParams {
-  const clamped = clampRigParams(params);
-  const motion =
-    !clamped.reducedMotion && clamped.autoIdle
-      ? idleMotion(options.seed, options.timeMs)
-      : {
-          headAngle: clamped.headAngle,
-          jawAngle: clamped.jawAngle,
-          breath: clamped.breath,
-          stride: clamped.stride,
-          tailSway: clamped.tailSway,
-        };
-  return {
-    ...motion,
-    stride: clamp(motion.stride, def.strideRange.min, def.strideRange.max),
-    jawAngle: clamp(motion.jawAngle, def.jawRange.min, def.jawRange.max),
-  };
+  return clampMotionToRanges(requestedMotion(params, options), def.strideRange, def.jawRange);
 }
 
 /**
@@ -98,7 +113,7 @@ function neckRotDeg(def: SpeciesRigDef, motion: MotionParams): number {
 }
 
 /** The rigid operation the neck applies at its head end — the head assembly's base. */
-function headBaseMatrix(def: SpeciesRigDef, motion: MotionParams): Mat2D {
+export function headBaseMatrix(def: SpeciesRigDef, motion: MotionParams): Mat2D {
   const n = def.deform.neck;
   return compose(
     translate(0, -motion.breath * (n.liftBase + n.liftHead)),
@@ -106,7 +121,7 @@ function headBaseMatrix(def: SpeciesRigDef, motion: MotionParams): Mat2D {
   );
 }
 
-function headMatrix(def: SpeciesRigDef, motion: MotionParams): Mat2D {
+export function headMatrix(def: SpeciesRigDef, motion: MotionParams): Mat2D {
   const h = def.deform.head;
   const headRot = motion.headAngle;
   const headDx = headRot * h.dxPerDeg;
@@ -118,7 +133,7 @@ function headMatrix(def: SpeciesRigDef, motion: MotionParams): Mat2D {
   );
 }
 
-function legMatrices(def: SpeciesRigDef, motion: MotionParams): {
+export function legMatrices(def: SpeciesRigDef, motion: MotionParams): {
   farThigh: Mat2D;
   farShank: Mat2D;
   nearThigh: Mat2D;
@@ -149,11 +164,20 @@ function legMatrices(def: SpeciesRigDef, motion: MotionParams): {
   };
 }
 
+/**
+ * The displacement of the chest's flattened arm-contact strip — the exact
+ * translation both arms must share so the flush arm/belly contact never
+ * shears (IR0 round-1 finding). Hybrid donor arms ride the base body's drift.
+ */
+export function chestDrift(def: SpeciesRigDef, motion: MotionParams): Point {
+  const sample = def.deform.torso.plateau.sample;
+  return torsoField(def, sample.x, sample.y, motion.breath);
+}
+
 function forearmMatrices(def: SpeciesRigDef, motion: MotionParams): { far: Mat2D; near: Mat2D } {
   // Both arms ride the chest's plateau displacement in unison, breath swing
   // only — any stride rotation tears the flush arm/belly contact.
-  const sample = def.deform.torso.plateau.sample;
-  const drift = torsoField(def, sample.x, sample.y, motion.breath);
+  const drift = chestDrift(def, motion);
   const rot = motion.breath * def.deform.arms.breathRot;
   return {
     far: compose(translate(drift.x, drift.y), rotateAboutDeg(def.pivots.farShoulder, rot)),
@@ -209,6 +233,15 @@ function pelvisMesh(def: SpeciesRigDef, motion: MotionParams): number[] {
 }
 
 function tailMesh(def: SpeciesRigDef, motion: MotionParams): number[] {
+  return tailMeshFrom(def, motion, restMeshPositions(def, 'tail'));
+}
+
+/**
+ * The tail deformation field applied to explicit rest vertices. The field is
+ * a function of stage position, so a donor tail translated into the base's
+ * stage space deforms under the base body's own pin ramps and leg-follow.
+ */
+export function tailMeshFrom(def: SpeciesRigDef, motion: MotionParams, rest: readonly number[]): number[] {
   const t = def.deform.tail;
   const tailRot = motion.tailSway * t.swayRot + motion.stride * t.strideRot + motion.breath * t.breathRot;
   const shiftX = motion.tailSway * t.shiftX;
@@ -217,7 +250,7 @@ function tailMesh(def: SpeciesRigDef, motion: MotionParams): number[] {
   // leg a little (weight-faded, like haunch flesh) — otherwise the leg pulls
   // away from the root's cut edge and leaves a slit.
   const legFollow = Math.max(0, motion.stride);
-  const positions = restMeshPositions(def, 'tail');
+  const positions = rest.slice();
   for (let i = 0; i < positions.length; i += 2) {
     const x = positions[i]!;
     const y = positions[i + 1]!;
@@ -237,7 +270,11 @@ export function evaluateRigPose(
   options: PoseOptions
 ): EvaluatedRigPose {
   const motion = effectiveMotion(def, params, options);
+  return { effective: motion, layers: poseLayers(def, motion) };
+}
 
+/** All twelve layer poses of one species for an already-resolved motion. */
+export function poseLayers(def: SpeciesRigDef, motion: MotionParams): Record<RigLayerId, LayerPose> {
   const headM = headMatrix(def, motion);
   // Positive jawAngle opens (chin drops), negative clenches — the hinge sits
   // behind the mouth corner, so screen-clockwise rotation would lift the chin.
@@ -260,7 +297,7 @@ export function evaluateRigPose(
     'jaw-lower': { kind: 'transform', matrix: jawM },
   };
 
-  return { effective: motion, layers };
+  return layers;
 }
 
 /** Where the debug overlay should draw each pivot for a given pose. */
