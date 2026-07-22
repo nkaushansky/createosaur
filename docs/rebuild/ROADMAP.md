@@ -238,6 +238,14 @@ on T. rex pelvis), and junction palette steps argue for harmonized masters.
 Theropod, sauropod, ceratopsian, armored and ornithopod exemplars, followed by
 cross-archetype attachment and dominant-body rules.
 
+**Pre-design on the record (2026-07-22):** `IR2-JUNCTION-BRAINSTORM.md` —
+how to recover v2's morph-smoothness at part junctions (parts-first
+contact-sheet generation, neutral-value skin + runtime global paint,
+standardized sockets, two-level scale policy) with a cheap-first experiment
+sequence. Decisions D-021…D-023. **IR1 species expansion is paused until
+D-021 (junction architecture) resolves** — every pack generated under the
+current cut multiplies rework, and mixing is the core loop.
+
 Do not schedule IR1 or IR2 as active work until IR0 passes.
 
 ## M2 — Share & remix (the growth loop)
