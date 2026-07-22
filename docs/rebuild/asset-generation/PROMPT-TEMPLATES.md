@@ -209,8 +209,9 @@ This is a production-art pipeline task, not just concept art.
 
 Status: **draft, not yet production**. This is the parts-first generation
 spec from `../IR2-JUNCTION-BRAINSTORM.md` (§2, §8). First use is the
-Velociraptor probe (brainstorm §7.3); it replaces Template C's cut-the-master
-extraction only if D-021 lands on parts-first. Visual reference for the
+T. rex re-anchor probe (brainstorm §7.1, owner call 2026-07-22); it
+replaces Template C's cut-the-master extraction only if D-021 lands on
+parts-first. Visual reference for the
 concept — including what it gets wrong — is
 `reference-parts-sheet-trex-chatgpt.png` (see brainstorm §8 for the
 critique).

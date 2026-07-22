@@ -139,20 +139,26 @@ Two levels, decided in the owner's words and formalized here:
    Uniform scale about the part's anchor; composes with the existing
    translation-anchor model (`scaleAbout` already exists in the affine kit).
 
-## 7. Experiment sequence (cheap first, each gates the next)
+## 7. Experiment sequence (revised 2026-07-22 — owner call: go straight to
+the probe)
 
-1. **Seal-the-openings**: inpaint one existing pack's body closed, flip
-   donor z-order, re-shoot the hybrid matrix. Validates overlay
-   architecture with zero new art. (~1 session)
-2. **Desaturate-and-tint**: value-ify existing masters at load; one global
-   hue/pattern pass over assembled hybrids. Measures how much unified paint
-   hides, before committing to neutral generation. (~1 session)
-3. **Parts-first probe**: generate ONE new species (Velociraptor is queued
-   anyway) as a neutral-value contact sheet against the approved-master
-   reference; slice, socket, assemble; compare against the trex/allo
-   quality bar and run the scan + matrix. This is the D-021 evidence.
-4. Only then: decide whether trex/allo get re-authored to the new spec or
-   adapted via the retrofit.
+1. **T. rex parts-first probe** (Template G): regenerate the calibration
+   species as a parts contact sheet against its approved master — painted
+   first (judged against the known bar, isolating the D-021 architecture
+   variable), then a neutral-value + pattern-overlay variant of the same
+   sheet in the same thread (the D-023 evidence). Slice, socket, assemble;
+   run the scan + matrix; re-test mixing against the existing Allosaurus
+   pack. T. rex over Velociraptor because it is the only species with an
+   approved master anchor, the only clean A/B against existing baselines,
+   and the reference animal every future thread anchors to.
+2. **Velociraptor as pack two** — the first cross-proportion test of the
+   socket contract (master approval can run in parallel with 1's rigging).
+3. Then: D-021/D-023 decisions; Allosaurus re-authored or retired to
+   the archive.
+
+Retired: the seal-openings retrofit (parts-first makes the closed body
+native; nothing left to validate on old art) and the standalone
+desaturate-and-tint pass (folded into 1's neutral-value variant).
 
 **Scheduling note:** IR1 species expansion is paused until D-021 resolves —
 mixing is the product's core loop (VISION), and every pack generated under
