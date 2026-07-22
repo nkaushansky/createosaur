@@ -158,7 +158,40 @@ Two levels, decided in the owner's words and formalized here:
 mixing is the product's core loop (VISION), and every pack generated under
 the current cut multiplies rework.
 
-## 8. Decisions opened
+## 8. The reference sheet, critiqued (owner upload, 2026-07-22)
+
+`asset-generation/reference-parts-sheet-trex-chatgpt.png` — a ChatGPT
+"2D rig prototype" parts sheet the owner received earlier — is the visual
+proof-of-concept for §2, and its flaws wrote most of Template G
+(`asset-generation/PROMPT-TEMPLATES.md`). Worth recording both halves:
+
+**What it gets right (keep):** the approved master on the sheet as the
+style/scale anchor row; both legs drawn complete (the far-leg donation
+problem gone by construction); jaw separated from head with the mouth
+interior painted; a light-shadow plane study and a separate whole-animal
+pattern overlay (the generator independently proposing the D-023
+value/pattern separation); trait add-ons (Triceratops horns/frill) as
+separate socketable pieces with a composite preview.
+
+**What it gets wrong (fix in the prompt):**
+
+1. **Severance in the wrong place** (owner's catch): the legs are cut
+   below the thigh — the thigh mass is baked into the torso/pelvis pieces,
+   so legs could only swap at the knee. Parts must sever at their sockets:
+   **the thigh belongs to the leg**, and the body core stays a complete
+   closed shape with plain hide where limbs attach.
+2. **Per-piece zoom drift**: the head and legs are drawn larger than the
+   master row. Slicing needs one uniform scale across the sheet (a
+   registration grid makes it verifiable).
+3. **Ragged tear edges instead of socket stubs**: pieces end in torn-flesh
+   edges with no overlap margin. Every severed piece needs a plain
+   tuck-under stub past the socket line — that margin is what lets joints
+   articulate without opening gaps.
+4. **Sockets are lines + stubs, never holes**: the fix for the current
+   architecture is not better-shaped openings — it is a body with no
+   openings at all, and parts that overlap it at agreed contours.
+
+## 9. Decisions opened
 
 | Row | Question |
 |---|---|

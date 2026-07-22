@@ -202,3 +202,75 @@ If requested later, generate a trait attachment pack.
 
 This is a production-art pipeline task, not just concept art.
 ```
+
+---
+
+## Template G — Parts contact sheet (DRAFT — gated on D-021)
+
+Status: **draft, not yet production**. This is the parts-first generation
+spec from `../IR2-JUNCTION-BRAINSTORM.md` (§2, §8). First use is the
+Velociraptor probe (brainstorm §7.3); it replaces Template C's cut-the-master
+extraction only if D-021 lands on parts-first. Visual reference for the
+concept — including what it gets wrong — is
+`reference-parts-sheet-trex-chatgpt.png` (see brainstorm §8 for the
+critique).
+
+```text
+Using the attached approved Createosaur [SPECIES NAME] master illustration
+as the exact identity, style, lighting and scale anchor, create a PARTS
+CONTACT SHEET of the same individual animal — every piece drawn separately,
+complete, and ready to be reassembled by overlapping at defined joint lines.
+
+One image, organized in rows on a plain light neutral background with a
+faint uniform registration grid. Same left-facing side profile, same
+lighting direction, and the SAME SCALE for every piece and the anchor row —
+no per-piece zoom.
+
+ROW 1 — anchor: the approved master illustration, unchanged.
+
+ROW 2 — body core, three pieces: neck, torso, pelvis. Each is COMPLETE and
+CLOSED: no holes, no openings, no missing regions where limbs or head
+attach. Paint plain believable hide across the shoulder and hip regions —
+limbs will sit on top of or behind these pieces, never inside them.
+
+ROW 3 — head upper and lower jaw as two separate pieces (mouth interior
+painted on the head piece, [MOUTH POSE PER ADDENDUM §1]).
+
+ROW 4 — limbs, each a complete single piece severed ONLY at its body
+socket: near foreleg, far foreleg, near hind leg INCLUDING THE FULL THIGH,
+far hind leg INCLUDING THE FULL THIGH. The thigh belongs to the leg, not to
+the body. Far-side pieces get the same value treatment the master uses for
+its far side.
+
+ROW 5 — tail, one complete piece severed at the tail-root socket.
+
+SOCKET RULE, every severed piece: the piece ends at its named socket line
+[SOCKET TABLE PER ARCHETYPE FRAMING CONTRACT], then continues PAST that
+line with a plain smooth flesh stub at least [S] px long — no silhouette
+detail on the stub; it exists to be hidden under the adjoining piece when
+assembled. Severed edges are clean socket lines with stubs, never ragged
+tears and never painted-in shadow gaps.
+
+APPEARANCE: [IF D-023 / NEUTRAL-VALUE: every piece in neutral grayscale
+value — full form shading, scale texture, wrinkles, eyes/claws/teeth
+detail, but NO hue and NO pattern. Add one extra row: the species' signature
+pattern as a separate flat overlay layer on the master's silhouette.]
+[OTHERWISE: same palette and pattern treatment as the approved master on
+every piece.]
+
+Label each piece in small plain text ABOVE it, never overlapping any
+artwork. Generous empty space between pieces — nothing touches or overlaps
+on the sheet. No decorative typography, no scene, no extra annotations.
+
+This is a production-art pipeline task: the pieces will be sliced from this
+sheet and rigged directly, so completeness, scale consistency and clean
+socket stubs matter more than composition.
+```
+
+Follow-up prompt for corrections (keep the thread's context):
+
+```text
+Regenerate only [PIECE NAME] on the same sheet conventions: same scale,
+same lighting, same style, severed at [SOCKET], with its plain tuck-under
+stub. Do not change any other piece.
+```
