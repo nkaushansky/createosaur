@@ -495,6 +495,36 @@ scale bar. One-page sheets overlook the junction-critical pieces; focused sheets
 don't. Multi-sheet is nearly free here because placement is per-part against the
 master, so sheets never have to agree with each other.
 
+### Multi-sheet splice — front third + tail actually connected (2026-07-22)
+
+Owner review of the first r5b rig caught what the metrics hadn't: it still read
+as a floating head over a pipe with a whip tail. Honest re-look confirmed three
+real defects (not "characteristics"): the r5b neck was a slim tube overlapping
+the core by ~14 px (hard seam, no bridge); the lower jaw's rear stub hung out
+exposed; the core was a hard-edged barrel; and the tail was drawn far too
+slender (root ~70 px vs the master's ~150) and just butted the core's flat rear.
+
+Fixed by exercising the new capabilities rather than a new sheet:
+- **Deep neck spliced from sheet A** via the slicer's per-piece `sheet` field —
+  the first real use of multi-sheet sourcing, and a direct validation of the
+  policy above: sheet A's neck and sheet B's body assemble cleanly because both
+  normalize to the same master, never to each other.
+- **Non-uniform tail scale** (`scale: {x, y}`) — the sheet tail is drawn too
+  slender, so a taller-than-wide scale gives a T. rex tail instead of a whip
+  without over-lengthening it off-canvas.
+- **Generous overlaps + stub crops** — the deep neck drapes over the core front
+  (hiding the barrel's flat front edge and bridging to the head), the jaw rear
+  stub is cropped, and the core rear stub is trimmed so the thick tail meets
+  hide. The result reads as one connected, recognizable T. rex, in neutral and
+  through the stride/breath sweep.
+
+Lesson for the pack spec: a slim neck and a slender tail are **sheet** defects
+the slicer can only partly rescue (rotation/scale/overlap); the deep neck and a
+tail drawn at true master thickness belong on the sheet. The identity metric
+also earned a caveat — the coherent rig scores a *looser* bbox aspect than the
+broken one, because a thick tail is shorter than a thin whip: aspect is
+necessary, never sufficient; the IoU/coverage and the eye decide.
+
 ## 8. The reference sheet, critiqued (owner upload, 2026-07-22)
 
 `asset-generation/reference-parts-sheet-trex-chatgpt.png` — a ChatGPT

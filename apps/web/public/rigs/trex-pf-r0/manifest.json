@@ -64,18 +64,18 @@
         0
       ],
       "bounds": {
-        "x": 999,
-        "y": 403,
-        "width": 513,
-        "height": 74
+        "x": 983,
+        "y": 378,
+        "width": 486,
+        "height": 124
       },
       "visibleBounds": {
-        "x": 999,
-        "y": 403,
-        "width": 513,
-        "height": 74
+        "x": 983,
+        "y": 378,
+        "width": 486,
+        "height": 124
       },
-      "visiblePixelCount": 23362,
+      "visiblePixelCount": 37133,
       "overlapPixelCount": 0,
       "patternMasks": {
         "solid": "pattern-masks/tail/solid.png",
@@ -93,18 +93,18 @@
         0
       ],
       "bounds": {
-        "x": 441,
+        "x": 430,
         "y": 270,
-        "width": 614,
+        "width": 636,
         "height": 276
       },
       "visibleBounds": {
-        "x": 441,
+        "x": 430,
         "y": 270,
-        "width": 614,
+        "width": 636,
         "height": 276
       },
-      "visiblePixelCount": 140394,
+      "visiblePixelCount": 144352,
       "overlapPixelCount": 0,
       "patternMasks": {
         "solid": "pattern-masks/core/solid.png",
@@ -209,18 +209,18 @@
         0
       ],
       "bounds": {
-        "x": 271,
-        "y": 336,
-        "width": 184,
-        "height": 97
+        "x": 228,
+        "y": 296,
+        "width": 299,
+        "height": 196
       },
       "visibleBounds": {
-        "x": 271,
-        "y": 336,
-        "width": 184,
-        "height": 97
+        "x": 228,
+        "y": 296,
+        "width": 299,
+        "height": 196
       },
-      "visiblePixelCount": 13037,
+      "visiblePixelCount": 36507,
       "overlapPixelCount": 0,
       "patternMasks": {
         "solid": "pattern-masks/neck/solid.png",
@@ -238,18 +238,18 @@
         0
       ],
       "bounds": {
-        "x": 63,
+        "x": 76,
         "y": 342,
-        "width": 198,
+        "width": 172,
         "height": 92
       },
       "visibleBounds": {
-        "x": 63,
+        "x": 76,
         "y": 342,
-        "width": 198,
+        "width": 172,
         "height": 92
       },
-      "visiblePixelCount": 10972,
+      "visiblePixelCount": 9368,
       "overlapPixelCount": 0,
       "patternMasks": {
         "solid": "pattern-masks/jaw-lower/solid.png",

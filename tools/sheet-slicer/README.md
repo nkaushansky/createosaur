@@ -73,5 +73,17 @@ other). This is the recommended authoring path for new species: a **full master*
 then a focused **head-assembly** sheet (upper head with generous rear cover,
 jaw, neck), a **body+limbs** sheet, and per-archetype **trait** sheets — one
 image per group so ChatGPT never overlooks the junction-critical pieces by
-cramming everything onto one page (the round-4 → round-5 lesson). The first
-`trex-pf-r0` used a single round-5 sheet; the capability is here for the next.
+cramming everything onto one page (the round-4 → round-5 lesson).
+
+`trex-pf-r0` is itself a multi-sheet example: the deep neck comes from
+`probe-trex-parts-sheet-r5a-neck-deep.png` and everything else from the r5b
+head-cover sheet, because the r5b neck was too slim to bridge the head to the
+body.
+
+### Non-uniform scale (`scale: {x, y}`)
+
+A piece's `scale` may be a number (uniform) or `{x, y}`. Use the object form
+when the sheet's proportions differ from the master — e.g. the T. rex tail is
+drawn far too slender, so `{x: 0.82, y: 1.4}` gives it a T. rex root thickness
+without lengthening it off-canvas. Prefer fixing gross proportion on the sheet;
+non-uniform scale stretches the scale texture and is a rescue, not a default.

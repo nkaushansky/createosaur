@@ -5,10 +5,14 @@ The first **parts-first** illustrated-rig pack: nine separately drawn pieces —
 `jaw-lower`, `near-arm`, `far-arm`, `near-leg`, `far-leg`, `tail` — assembled
 over the closed core, versus the twelve-layer master cut in `trex-r0-v2`.
 
-- **Source**: `docs/rebuild/asset-generation/probe-trex-parts-sheet-r5b-head-cover.png`
-  (round-5 head-cover sheet — a focused fixer round that gave the upper head a
-  generous rear-edge cover and fixed the flat round-4 neck), sliced by
-  `tools/sheet-slicer`.
+- **Source**: two focused round-5 sheets, sliced together via the slicer's
+  per-piece `sheet` sourcing — the **body, head, jaw, limbs, tail** from
+  `probe-trex-parts-sheet-r5b-head-cover.png` (head with a generous rear-edge
+  cover), and the **deep neck** from `probe-trex-parts-sheet-r5a-neck-deep.png`
+  (a proper nape-to-throat wedge). The single-sheet r5b neck was too slim to
+  bridge; splicing the deep neck across sheets — free because placement is
+  piece → true master — fixed the front third. The tail is non-uniformly scaled
+  taller so it reads as a T. rex tail, not a whip.
 - **Identity truth**: the approved master (`../trex-r0-v2/debug/approved-master-original.png`),
   shipped here as `trex-pf-master.png` for the debug underlay. Per D-021 the
   master is the identity/QA reference, not the pixel source — acceptance is

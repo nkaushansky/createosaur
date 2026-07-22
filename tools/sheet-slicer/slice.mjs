@@ -202,7 +202,11 @@ const result = await page.evaluate(async ({ sheetsB64, defaultSheet, masterB64, 
     lctx.save();
     lctx.translate(piece.dest.x, piece.dest.y);
     lctx.rotate((piece.rotate * Math.PI) / 180);
-    lctx.scale(piece.scale, piece.scale);
+    // scale is a uniform number, or {x, y} for a piece whose sheet proportions
+    // differ from the master (e.g. a tail drawn too slender needs a taller y).
+    const sx = typeof piece.scale === 'number' ? piece.scale : piece.scale.x;
+    const sy = typeof piece.scale === 'number' ? piece.scale : piece.scale.y;
+    lctx.scale(sx, sy);
     lctx.drawImage(pc, -anchorX, -anchorY);
     lctx.restore();
     const data = lctx.getImageData(0, 0, CW, CH);

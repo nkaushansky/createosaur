@@ -43,16 +43,21 @@
         "x": 605,
         "y": 907
       },
-      "crop": {},
-      "scale": 0.83,
+      "crop": {
+        "left": 0.04
+      },
+      "scale": {
+        "x": 0.82,
+        "y": 1.4
+      },
       "rotate": 0,
       "anchor": {
         "u": 0.06,
         "v": 0.42
       },
       "dest": {
-        "x": 1030,
-        "y": 434
+        "x": 1012,
+        "y": 430
       },
       "mesh": true
     },
@@ -65,8 +70,8 @@
         "y": 425
       },
       "crop": {
-        "right": 0.1,
-        "left": 0.11
+        "right": 0.09,
+        "left": 0.09
       },
       "scale": 1.72,
       "rotate": 0,
@@ -154,24 +159,25 @@
       "label": "NECK",
       "z": 6,
       "expectCentroid": {
-        "x": 429,
-        "y": 414
+        "x": 230,
+        "y": 409
       },
       "crop": {
-        "right": 0.22,
-        "left": 0.2
+        "right": 0.16,
+        "left": 0.24
       },
-      "scale": 1.18,
-      "rotate": -30,
+      "scale": 1.36,
+      "rotate": -38,
       "anchor": {
         "u": 0.5,
         "v": 0.5
       },
       "dest": {
-        "x": 362,
-        "y": 372
+        "x": 378,
+        "y": 366
       },
-      "mesh": true
+      "mesh": true,
+      "sheet": "neckA"
     },
     {
       "id": "jaw-lower",
@@ -181,7 +187,9 @@
         "x": 538,
         "y": 562
       },
-      "crop": {},
+      "crop": {
+        "right": 0.14
+      },
       "scale": 1.19,
       "rotate": 0,
       "anchor": {
@@ -217,5 +225,8 @@
       },
       "mesh": false
     }
-  ]
+  ],
+  "sheets": {
+    "neckA": "probe-trex-parts-sheet-r5a-neck-deep.png"
+  }
 }
