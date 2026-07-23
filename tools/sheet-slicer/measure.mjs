@@ -6,7 +6,7 @@
  *   node tools/sheet-slicer/measure.mjs <sheet.png> [outJson]
  *
  * This is a read-only analysis used to author the slice manifest — it writes
- * nothing into the pack. The numbers it prints seed trex-pf-r0.slice.json.
+ * nothing into the pack. The numbers it prints seed the pack's slice.json.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { chromium } from '@playwright/test';

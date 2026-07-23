@@ -1,20 +1,24 @@
-# sheet-slicer — parts-first pack pipeline
+# sheet-slicer — parts-sheet pack pipeline
 
-Assembles a **parts-first** illustrated-rig pack from an approved parts contact
-sheet (the D-021 architecture: nine separately drawn pieces overlaid on a single
-closed core, instead of the twelve-layer master cut in `tools/rig-pack`).
+Assembles an illustrated-rig pack of separately drawn pieces overlaid on a
+single closed core (nine pieces, vs the twelve-layer master cut in
+`tools/rig-pack`). Built for the D-021 parts-first probe (now CLOSED —
+verdict in `docs/rebuild/IR-LESSONS.md`); it carries forward unchanged as
+the **socket era's** cutter: Template S sheets are chroma-key green with the
+same anchor + scale-bar furniture, so the pipeline below applies as-is
+(socket-cut compliance checking is the one planned addition, plus keying the
+magenta guides).
 
 Chromium (via Playwright) is the raster engine, so there are no native image
 dependencies. The approved master stays the identity/QA truth — it is **not**
-the pixel source (D-021 reframe): the acceptance check is silhouette/identity
-tolerance against the true master, not byte reassembly.
+the pixel source: the acceptance check is silhouette/identity tolerance
+against the true master, not byte reassembly.
 
 ## Pipeline
 
-1. **Sheet** — an accepted chroma-key-green parts sheet under
-   `docs/rebuild/asset-generation/` (Template G v2: nine pieces + anchor + scale
-   bar, closed core, full-thigh legs, open mouth, socket stubs). Round-4:
-   `probe-trex-parts-sheet-r4-neck-fixed.png`.
+1. **Sheet** — a chroma-key-green parts sheet under
+   `docs/rebuild/asset-generation/` (now Template S: grayscale value parts
+   drawn onto a socket template; historically Template G painted sheets).
 2. **Measure** — `node tools/sheet-slicer/measure.mjs <sheet.png> [out.json]`
    chroma-keys the green, labels connected components, and prints each piece's
    bbox / centroid / stub extent. Read-only; it seeds the slice manifest.
@@ -31,9 +35,10 @@ tolerance against the true master, not byte reassembly.
    underlay, a red hole-detector `debug/hidden-overlap-map.png`, and
    `debug/reassembled-transparent.png` + `debug/identity-over-master.jpg` for the
    verify loop. `manifest.json` / `layer-index.csv` follow the pack contract.
-5. **Def + integrity** — mirror the manifest bounds into the `PartsRigDef`
-   (`packages/illustrated-rig/src/parts-defs.ts`); the web integrity test
-   (`apps/web/tests/rig-assets.test.ts`) enforces def ⇄ manifest agreement.
+5. **Def** — mirror the manifest bounds into the `PartsRigDef`
+   (`packages/illustrated-rig/src/parts-defs.ts`); socket-era packs re-add a
+   web integrity test enforcing def ⇄ manifest agreement (the probe pack's
+   test retired with the pack).
 
 ## Design notes
 
@@ -68,17 +73,11 @@ sheets and route any piece to one:
 The CLI sheet is the default; a piece with no `sheet` uses it. The only
 requirement is that **every sheet carries the anchor + scale bar** so each is
 normalized to the same master scale (the reason a neck from one sheet and a
-head from another assemble cleanly — both are pinned to the master, not to each
-other). This is the recommended authoring path for new species: a **full master**,
-then a focused **head-assembly** sheet (upper head with generous rear cover,
-jaw, neck), a **body+limbs** sheet, and per-archetype **trait** sheets — one
-image per group so ChatGPT never overlooks the junction-critical pieces by
-cramming everything onto one page (the round-4 → round-5 lesson).
-
-`trex-pf-r0` is itself a multi-sheet example: the deep neck comes from
-`probe-trex-parts-sheet-r5a-neck-deep.png` and everything else from the r5b
-head-cover sheet, because the r5b neck was too slim to bridge the head to the
-body.
+head from another assemble cleanly — both are pinned to the master, not to
+each other). Template S's per-species S-A (head assembly) + S-B (body &
+limbs) sheets are exactly this: the socket-era slice manifest routes the
+head trio to sheet A and everything else to sheet B. (Proven on the archived
+probe pack, whose deep neck was spliced in from a second sheet.)
 
 ### Non-uniform scale (`scale: {x, y}`)
 

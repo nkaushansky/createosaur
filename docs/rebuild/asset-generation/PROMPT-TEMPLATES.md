@@ -205,7 +205,12 @@ This is a production-art pipeline task, not just concept art.
 
 ---
 
-## Template G — Parts contact sheet (v2 — architecture adopted, decision open)
+## Template G — Parts contact sheet (v2 — SUPERSEDED by Template S)
+
+> **Superseded 2026-07-23** for all new species authoring by **Template S**
+> below (the D-024 socket-era contract; verdict in `../IR-LESSONS.md`:
+> independently generated *painted* parts assemble as a collage). Kept for
+> the probe record only — do not generate from this template.
 
 Status: **v2, probe use** (`../IR2-JUNCTION-BRAINSTORM.md` §7 round-2 log,
 owner call 2026-07-22). Round-1/2 proved parts-first as the ARCHITECTURE;
@@ -357,3 +362,141 @@ piece → true master, never piece → piece, so sheets never have to register w
 *each other*, only with the master. `tools/sheet-slicer` routes pieces to sheets
 via a per-piece `sheet` field (see its README). Regenerate one bad piece by
 re-rolling only its sheet; nothing downstream re-cuts.
+
+## Template S — Socket-era species authoring (D-024, ACTIVE)
+
+Status: **the authoring path for all new species** (owner call, 2026-07-23;
+contract + rationale in `../IR-LESSONS.md`). Three generations per species,
+in order, each a fresh ChatGPT image request:
+
+1. **S-M — grayscale value master.** The identity + register anchor. Owner
+   eyeballs it before the sheets are generated (this is also where the art
+   register gets judged — see the STYLE REGISTER line).
+2. **S-A — head-assembly sheet** onto `socket-template-a-v1.png`.
+3. **S-B — body & limbs sheet** onto `socket-template-b-biped-v1.png`
+   (bipeds) or `socket-template-b-quad-v1.png` (quadrupeds).
+
+Download each result full-size as PNG and drop it into
+`docs/rebuild/asset-generation/` named `<species>-value-master.png`,
+`<species>-sheet-a.png`, `<species>-sheet-b.png`. Claude slices, assembles,
+and puts the *hybrid* on screen for judgment. Compliance does not need to be
+pixel-perfect — the slicer measures the scale bar and snaps near-miss socket
+cuts; the template exists to prevent the *large* mismatches that read as
+gaps. Do not attach any painted master or older parts sheet to S-A/S-B —
+only the template + the approved S-M value master (color would leak back in,
+and old sheets get copied, mistakes included).
+
+### S-M — grayscale value master
+
+> Attach: the species' approved painted master if one exists (T. rex,
+> Allosaurus); otherwise nothing — the text carries the species.
+
+```text
+Create a GRAYSCALE VALUE master illustration of [SPECIES — e.g.
+"an adult Tyrannosaurus rex" / "an adult Triceratops horridus"] for a
+field-guide character sheet. If an image is attached, it is the exact
+identity reference: same individual, same proportions, same head details
+and skin texture — but rendered entirely in grayscale.
+
+STYLE REGISTER: clean stylized naturalism — crisp confident shapes, simple
+two-step shading plus soft ambient occlusion, scale/skin texture suggested
+rather than micro-rendered. Premium animated-series model sheet, not
+painterly realism and not a cartoon.
+
+HARD RULES, check each before finishing:
+1. ZERO color. Pure grayscale only — no tint, no sepia, no colored eye.
+2. One light: soft ambient with a faint upper-left key. NO cast shadows on
+   the ground, no rim light, no background scenery.
+3. Full standing side view FACING LEFT, neutral stance, all feet planted,
+   tail carried naturally. The whole animal fits with a small margin.
+4. Mouth PARTIALLY OPEN — both tooth rows / beak edges visible, dark mouth
+   interior visible (a closable jaw is cut from this later).
+5. Mid-gray body value overall: near-black only in the mouth interior,
+   pupil and claws; near-white only on teeth and top highlights.
+6. Background: flat saturated chroma-key green (#00ff00), edge to edge.
+```
+
+### S-A — head-assembly sheet
+
+> Attach: `socket-template-a-v1.png` + the approved `<species>-value-master.png`.
+
+```text
+The first attached image is a TEMPLATE with three labeled dashed cells and
+magenta socket-cut guides. The second is the approved grayscale value
+master — the exact identity reference. Fill the template's cells with the
+SAME INDIVIDUAL's parts, drawn separately: UPPER HEAD in the upper-left
+cell, LOWER JAW in the lower-left cell, NECK in the right cell.
+
+Keep the template exactly as given: same canvas size, green background,
+all magenta guides, the bottom strip (anchor, scale bar, value ramp) and
+the green cell borders stay untouched and uncovered. Draw INSIDE the
+cells; never let a part cross a cell border.
+
+RULES, check each before finishing:
+1. Grayscale value art only, matching the master's style, values and
+   details exactly (same teeth/beak, same head ornament, same texture).
+2. Each part ends FLUSH on its magenta cut line at exactly that cut's
+   size, with a simple straight cut end — no torn edges, no fade-outs.
+3. UPPER HEAD: skull only, no lower jaw, mouth interior painted dark so a
+   separate jaw can hinge over it. Behind its rear cut line, ADD a soft-
+   edged neck-cover flap extending rearward (it will overlap the neck).
+4. LOWER JAW: complete open-gape jaw; NOTHING extends past its root cut
+   (it tucks under the skull).
+5. NECK: one deep nape-to-throat wedge running between its two cut lines,
+   head end upper-left, body end lower-right — never a thin tube.
+6. All parts side view FACING LEFT, sized consistently with the master
+   (the template's scale bar equals the master's scale).
+```
+
+### S-B — body & limbs sheet
+
+> Attach: `socket-template-b-biped-v1.png` (theropods etc.) or
+> `socket-template-b-quad-v1.png` (ceratopsians, sauropods, armored) + the
+> approved `<species>-value-master.png`.
+
+```text
+The first attached image is a TEMPLATE with labeled dashed cells and
+magenta socket guides. The second is the approved grayscale value master —
+the exact identity reference. Fill the template's cells with the SAME
+INDIVIDUAL's parts, drawn separately: CORE, TAIL, both FORELIMBS, both
+LEGS, each in its labeled cell.
+
+Keep the template exactly as given: same canvas size, green background,
+all magenta guides, the bottom strip (anchor, scale bar, value ramp) and
+the green cell borders stay untouched and uncovered. Draw INSIDE the
+cells; never let a part cross a cell border.
+
+RULES, check each before finishing:
+1. Grayscale value art only, matching the master's style, values, texture.
+2. CORE: the torso through the pelvis as ONE completely CLOSED shape — no
+   neck, head, limbs or tail, and absolutely no holes or cut-outs. Where
+   parts will attach, shade smooth plain hide sized to the socket list
+   printed in the cell.
+3. Each limb is COMPLETE: the entire thigh/shoulder down through the foot
+   and claws, one piece. Each part ends flush at its magenta guide at
+   exactly that size.
+4. TAIL: complete root-to-tip, with a thick muscular root at the guide
+   size, tapering naturally.
+5. FAR-side limbs are whole parts too (slightly darker overall value than
+   the near limbs, as on the master).
+6. All parts side view FACING LEFT, sized consistently with the master.
+```
+
+### Species notes
+
+- **T. rex** (kill-test species 1, biped template): S-M attaches the
+  approved painted master (`apps/web/public/rigs/trex-r0-v2/debug/
+  approved-master-original.png`) so identity carries over exactly.
+- **Triceratops** (kill-test species 2, quad template): no painted master
+  exists — S-M works from text. The frill may extend past the head's rear
+  collar cut as a soft-edged cover flap (it is the natural neck-junction
+  cover, called out in `../IR-LESSONS.md`); the beak replaces tooth rules;
+  horns belong to the UPPER HEAD part.
+
+### What Claude verifies on every returned image (owner doesn't need to)
+
+Chroma ≤ ~5 outside the green/magenta (truly grayscale) · scale-bar length
+vs template (re-normalization factor) · each cut end within ~15 px of its
+guide (slicer snaps the rest; bigger misses → re-roll that sheet) · closed
+core (no interior transparency after keying) · style/value match to S-M by
+eye and value-histogram vs the ramp.

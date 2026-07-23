@@ -1,9 +1,9 @@
 # IR0 visual review matrix — Illustrated Rig R0 (`/rig-lab`)
 
 > IR1's hybrid mixing PoC has its own matrix, measurements and findings in
-> [`hybrid/`](hybrid/README.md). The first parts-first assembly (D-021
-> architecture probe — `trex-pf-r0`, nine pieces over a closed core) has its
-> own matrix and measurements in [`parts-first/`](parts-first/README.md).
+> [`hybrid/`](hybrid/README.md). The D-021 parts-first probe (`trex-pf-r0`)
+> is CLOSED and archived — verdict, measurements and the successor contract
+> live in [`../IR-LESSONS.md`](../IR-LESSONS.md) (D-024).
 
 Captured 2026-07-19 from the static export (`npm run build` → `serve out`),
 Chromium, stage extracted at native resolution and scaled to 0.75 on the

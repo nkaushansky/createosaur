@@ -25,8 +25,8 @@ import type { LoadedRigAssets, LoadedRigLayer } from './rigAssets';
 /**
  * The Pixi v8 scene for the illustrated rig. This module owns every browser/
  * GPU concern; all pose math comes ready-made from @createosaur/illustrated-rig
- * so a frame here is just "apply numbers, render". It is rig-kind agnostic: the
- * twelve-layer cut, a hybrid mix, and the parts-first assembly all plug in the
+ * so a frame here is just "apply numbers, render". It is rig-kind agnostic: a
+ * single-species cut and a hybrid mix (and any future rig kind) all plug in the
  * same way — an evaluate() that returns per-layer poses, and layers that carry
  * their own precomputed mesh rest (so no species def is needed here).
  *
@@ -139,7 +139,7 @@ export interface PixiRigOptions {
   /** Pivot ids to label in the debug overlay. */
   pivotNames: string[];
   initialInputs: RigInputs;
-  /** Pose supplier — the single/hybrid/parts evaluator plugs in here. */
+  /** Pose supplier — the single-species or hybrid evaluator plugs in here. */
   evaluate: (params: IllustratedRigParams, options: { seed: number; timeMs: number }) => RigPose;
   /** Debug-overlay pivot supplier matching `evaluate`. */
   resolvePivots: (pose: RigPose) => Record<string, { x: number; y: number }>;

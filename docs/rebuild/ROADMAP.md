@@ -246,7 +246,20 @@ sequence. Decisions D-021…D-023. **IR1 species expansion is paused until
 D-021 (junction architecture) resolves** — every pack generated under the
 current cut multiplies rework, and mixing is the core loop.
 
-Do not schedule IR1 or IR2 as active work until IR0 passes.
+**Probe phase CLOSED → socket era (owner call, 2026-07-23; D-024,
+`IR-LESSONS.md`).** The D-021 parts-first probe ran five sheet rounds and an
+assembled rig; verdict: independently generated *painted* parts assemble as
+a collage (baked light/palette + accidental junction geometry — structural,
+not tunable), while the closed-core z-contract, piece→master normalization
+and motion-stable junctions all PROVED out. The probe artifacts are archived
+out of the working tree; the goal is pinned as the Lego-style parts picker
+(Dream B — discrete parts + within-part morphs + runtime color/pattern;
+continuous cross-species raster morphing is explicitly dead). **IR2's entry
+gate is now the D-024 kill test:** T. rex + Triceratops authored to the
+socket contract (Template S: grayscale value + socket templates + one
+lighting contract + focused sheets), assembled, runtime-painted, and judged
+by the owner *as a cross-archetype hybrid* — before any scaling to the
+archetype exemplars.
 
 ## M2 — Share & remix (the growth loop)
 

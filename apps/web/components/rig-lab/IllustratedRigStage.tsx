@@ -4,11 +4,9 @@ import { useEffect, useRef } from 'react';
 import {
   SPECIES_RIG_DEFS,
   evaluateHybridRigPose,
-  evaluatePartsRigPose,
   evaluateRigPose,
   hybridLabel,
   hybridPosedPivots,
-  partsPosedPivots,
   posedPivots,
   type IllustratedRigParams,
 } from '@createosaur/illustrated-rig';
@@ -63,16 +61,6 @@ interface Props {
  * Pixi rig needs beyond the fetched assets. Kept out of the effect so the rig
  * kind is chosen in one place. */
 function buildRigOptions(source: RigSource): Omit<PixiRigOptions, 'initialInputs'> {
-  if (source.kind === 'parts') {
-    const def = source.def;
-    return {
-      seed: def.seed,
-      ariaLabel: `Illustrated ${def.label} rig — parts-first assembly (experimental, D-021 probe)`,
-      pivotNames: Object.keys(def.pivots),
-      evaluate: (params, opts): RigPose => evaluatePartsRigPose(def, params, opts),
-      resolvePivots: (pose) => partsPosedPivots(def, pose),
-    };
-  }
   if (source.kind === 'hybrid') {
     const base = SPECIES_RIG_DEFS[source.config.body];
     return {
@@ -113,7 +101,7 @@ export function IllustratedRigStage({ inputs, source, onPhase, onHandle, attempt
     (async () => {
       onPhase({ state: 'loading', message: 'Loading manifest…' });
       const [
-        { loadRigAssets, loadHybridRigAssets, loadPartsRigAssets, RigAssetError },
+        { loadRigAssets, loadHybridRigAssets, RigAssetError },
         { createPixiRig },
       ] = await Promise.all([
         import('@/lib/illustrated-rig/rigAssets'),
@@ -131,11 +119,9 @@ export function IllustratedRigStage({ inputs, source, onPhase, onHandle, attempt
           });
         };
         const assets =
-          buildSource.kind === 'parts'
-            ? await loadPartsRigAssets(buildSource.def, onProgress)
-            : buildSource.kind === 'hybrid'
-              ? await loadHybridRigAssets(buildSource.config, onProgress)
-              : await loadRigAssets(SPECIES_RIG_DEFS[buildSource.species], onProgress);
+          buildSource.kind === 'hybrid'
+            ? await loadHybridRigAssets(buildSource.config, onProgress)
+            : await loadRigAssets(SPECIES_RIG_DEFS[buildSource.species], onProgress);
         if (cancelled) return;
         handle = await createPixiRig(host, assets, {
           ...buildRigOptions(buildSource),

@@ -1,21 +1,16 @@
 import {
   MASKED_PATTERN_TYPES,
   MESH_LAYER_IDS,
-  PARTS_MESH_LAYER_IDS,
   RIG_LAYER_IDS,
   SPECIES_RIG_DEFS,
   formatHybridConfig,
   layerSourceSpecies,
   restMeshPositions,
-  restPartsMesh,
-  validatePartsManifest,
   validateTrexR0Manifest,
   type HybridRigConfig,
   type MaskedPatternType,
   type MeshGridSpec,
   type MeshLayerId,
-  type PartsMeshLayerId,
-  type PartsRigDef,
   type RigManifest,
   type RigManifestLayer,
   type SpeciesId,
@@ -34,18 +29,15 @@ import {
  * SOURCE pack space) so the Pixi layer never needs a species def.
  */
 
-/** What the stage is asked to show: one pack, a cross-pack hybrid, or the
- * parts-first assembly. */
+/** What the stage is asked to show: one pack or a cross-pack hybrid. */
 export type RigSource =
   | { kind: 'species'; species: SpeciesId }
-  | { kind: 'hybrid'; config: HybridRigConfig }
-  | { kind: 'parts'; def: PartsRigDef };
+  | { kind: 'hybrid'; config: HybridRigConfig };
 
 /** Stable identity string — the stage rebuilds when this changes. */
 export function sourceKey(source: RigSource): string {
   if (source.kind === 'species') return `species:${source.species}`;
-  if (source.kind === 'hybrid') return `hybrid:${formatHybridConfig(source.config)}`;
-  return `parts:${source.def.speciesId}`;
+  return `hybrid:${formatHybridConfig(source.config)}`;
 }
 
 export class RigAssetError extends Error {
@@ -322,23 +314,3 @@ export async function loadHybridRigAssets(
   return loadPlannedAssets({ packPath: baseDef.packPath, masterFile: baseDef.masterFile }, baseManifest, plans, manifestBytes, onProgress);
 }
 
-/**
- * Fetch and prepare the parts-first pack: nine pieces over a single closed
- * core, validated against the parts-first layer-id contract. Mesh rest for the
- * core/neck/tail comes from the parts def.
- */
-export async function loadPartsRigAssets(
-  def: PartsRigDef,
-  onProgress?: (progress: LoadProgress) => void
-): Promise<LoadedRigAssets> {
-  onProgress?.({ step: 'manifest', loaded: 0, total: 1 });
-  const { manifest, bytes } = await fetchManifest(def.packPath, validatePartsManifest);
-  const plans: LayerPlan[] = manifest.layers.map((spec) => ({
-    packPath: def.packPath,
-    spec,
-    mesh: (PARTS_MESH_LAYER_IDS as readonly string[]).includes(spec.id)
-      ? { rest: restPartsMesh(def, spec.id as PartsMeshLayerId), spec: def.meshSpecs[spec.id as PartsMeshLayerId] }
-      : undefined,
-  }));
-  return loadPlannedAssets({ packPath: def.packPath, masterFile: def.masterFile }, manifest, plans, bytes, onProgress);
-}
