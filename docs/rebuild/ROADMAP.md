@@ -140,137 +140,21 @@ budget test enforces §2's ≤300/≤180-element and no-`<filter>` rules in CI.
 Contact sheets: `docs/rebuild/style-bible/`. All 105 goldens regenerated in
 a dedicated commit.
 
-## Illustrated Renderer Track (IR0 / IR1 / IR2)
+## ~~Illustrated Renderer Track (IR0 / IR1 / IR2)~~ (CLOSED per D-025)
 
-A parallel renderer experiment recorded by D-020 (supersedes D-019's
-procedural-only restriction). This track is named IR0/IR1/IR2 so it does not
-collide with the product milestones M0/M1/M2. It runs beside the product
-milestones; the procedural SVG renderer stays the production path until the
-owner accepts the interactive result.
+A parallel live-render experiment (2026-07-18 → 2026-07-24, D-020…D-025):
+authored layered illustration rigs with deterministic deformation, developed
+through IR0 (single T. rex, owner-approved), IR1 (Allosaurus + hybrid part
+swapping), a parts-first generation probe, and a final socket-era contract
+whose first species assembled cleanly on one authoring round — and still
+read, correctly, as paper-cutout theater. **The track is closed**: assembled-
+cutout presentation is structural, not tunable; the realism payoff belongs
+to the committed creature's generated portrait (M5), and the live render is
+the procedural vector renderer, full stop.
 
-### IR0 — One playable illustrated T. rex
-
-- exact approved authored T. rex layer pack;
-- deterministic pose evaluator;
-- `/rig-lab` parallel route;
-- torso/neck mesh deformation;
-- head/jaw/limb transforms;
-- solid, mottle and band patterns;
-- fixed-time screenshots and debug overlays.
-
-**DoD:** the owner approves neutral, breathing, look, stride, stress and pattern
-states; no obvious seam openings at stated ranges; patterns stay registered;
-static export, typecheck, lint, unit, build and e2e pass; `/lab`,
-`packages/renderer`, genome schema and SVG goldens are unchanged.
-
-**Non-goals:** production cutover, hybrid anatomy, additional species, share
-rendering, genome integration, Triceratops traits.
-
-**Shipped (2026-07-20, PR #8):** owner approved the interactive result after
-real-device review and merged. Live at `/rig-lab` (unlinked, noindex).
-Notable scope note from the seam rounds: stride is capped at ±0.6 — the
-`trex-r0-v1` pack's seam-clean envelope; the pack-revision slice rules that
-restore full range are recorded in `docs/rebuild/rig-lab/README.md` and
-`docs/rebuild/asset-generation/REPO-ADDENDUM.md`.
-
-### IR1 — Theropod family
-
-T. rex, Allosaurus, Velociraptor and Spinosaurus using a shared theropod rig,
-after IR0 approval. Asset production follows
-`docs/rebuild/asset-generation/` (the owner-approved generation bible plus
-the repo addendum's technical contract).
-
-**In progress (2026-07-21):** the rig is species-parameterized — one shared
-pose evaluator reads a per-species `SpeciesRigDef` (pivots, deform constants,
-stride bound, pack identity), and the T. rex refactor is proven bit-identical
-by its unregenerated pose snapshot. Allosaurus is live at
-`/rig-lab?species=allosaurus` (owner-approved `allosaurus-r0-v1` cut, PR #10)
-and its seam rounds **verified the full ±1 stride range** — the enclosed-hole
-scan stays flat across the whole sweep, confirming IR0's cap was the trex
-pack's straight cut edges, not the approach. New-pack learning recorded in
-the repo addendum: bottom-of-z-stack layers (far leg) cannot be backed by
-overlap, so knee counter-rotation must stay small and pivot on the visible
-thigh/shank seam.
-
-**Jaw articulation (owner decision 2026-07-21):** masters are now generated
-with a **partially open mouth** (addendum §1) so the jaw axis can really
-close — the rig clenches an open mouth into hidden overlap, but can never
-open a sealed one. **Shipped as `trex-r0-v2` / `allosaurus-r0-v2`:** both
-species re-mastered to the spec (owner-approved), cut in-repo with a
-per-tooth mouth boundary (upper fangs on the head, lower row + interior
-floor on the jaw, jaw drawn under the head for correct occlusion), and both
-verified at **full ±1 stride + full −8° clench** — neutral is the painted
-open pose, so `jawRange` is [−8, 0]. Velociraptor onward uses the spec from
-the first generation.
-
-**Known limitation (owner-reviewed 2026-07-21, deferred):** at stride
-extremes the hip/thigh piece boundaries read as visible seams — the legs
-move as rigid cutouts, so the join lines show where they rotate out of the
-body. The owner judged this non-critical: the walk motion is a rigging
-showcase, not the product's core loop (mixing creature parts is). The real
-fix is promoting the hip junction to weighted mesh deformation — the same
-technique that makes the neck bend read as smooth and continuous — i.e.
-skinned joint blending rather than deeper cut tuning, which hit diminishing
-returns. IR2-class work; revisit when joints become product-visible.
-
-**Hybrid mixing PoC (2026-07-22):** cross-pack part swapping is live at
-`/rig-lab` ("Hybrid mix (PoC)" in the rig picker; deep link
-`?mix=body:trex,head:allosaurus`). One shared mechanism over the twelve
-layer slots: part groups (body = torso/neck/pelvis + motion program + seed;
-head, arms, legs, tail swappable) carried between packs by pure-translation
-anchors — head by *cover* (donor rear edge on base rear edge, so the base
-neck's cut stays concealed; pivot alignment left a paper gap), arms by
-shoulders, legs by hip-x + **ground-contact-y** (the packs stand ~35 px
-apart; feet must plant), tail by root pivot. Donor parts keep their own
-pivots and seam-tuned amplitudes; the base body's fields drive them
-(`evaluateHybridRigPose` in `packages/illustrated-rig`; a pure config is
-bit-identical to the species evaluator). The enclosed-hole scan — now
-committed as `tools/rig-scan/` — shows every mix flat across the pose
-sweep: cross-pack junctions are static, nothing opens with motion. Review
-matrix + measurements + findings: `docs/rebuild/rig-lab/hybrid/`. Key
-limits for IR2 (attachment rules): packs donate only what their master
-painted (the mostly-occluded Allosaurus far leg cannot fill the T. rex's
-far-leg opening), slim donors leave base-opening slivers (Allosaurus tail
-on T. rex pelvis), and junction palette steps argue for harmonized masters.
-
-### IR2 — One rig per terrestrial archetype
-
-Theropod, sauropod, ceratopsian, armored and ornithopod exemplars, followed by
-cross-archetype attachment and dominant-body rules.
-
-**Pre-design on the record (2026-07-22):** `IR2-JUNCTION-BRAINSTORM.md` —
-how to recover v2's morph-smoothness at part junctions (parts-first
-contact-sheet generation, neutral-value skin + runtime global paint,
-standardized sockets, two-level scale policy) with a cheap-first experiment
-sequence. Decisions D-021…D-023. **IR1 species expansion is paused until
-D-021 (junction architecture) resolves** — every pack generated under the
-current cut multiplies rework, and mixing is the core loop.
-
-**Probe phase CLOSED → socket era (owner call, 2026-07-23; D-024,
-`IR-LESSONS.md`).** The D-021 parts-first probe ran five sheet rounds and an
-assembled rig; verdict: independently generated *painted* parts assemble as
-a collage (baked light/palette + accidental junction geometry — structural,
-not tunable), while the closed-core z-contract, piece→master normalization
-and motion-stable junctions all PROVED out. The probe artifacts are archived
-out of the working tree; the goal is pinned as the Lego-style parts picker
-(Dream B — discrete parts + within-part morphs + runtime color/pattern;
-continuous cross-species raster morphing is explicitly dead). **IR2's entry
-gate is now the D-024 kill test:** T. rex + Triceratops authored to the
-socket contract (Template S: grayscale value + socket templates + one
-lighting contract + focused sheets), assembled, runtime-painted, and judged
-by the owner *as a cross-archetype hybrid* — before any scaling to the
-archetype exemplars.
-
-**Kill test species 1 assembled (2026-07-24):** the owner generated the
-first Template S set (S-M value master + head/body sheets) and the sliced
-pack `trex-sock-r0` is live at `/rig-lab?species=trex-sock` — a coherent
-grayscale T. rex through the full motion envelope on the first authoring
-round (two placement iterations, no re-generation). Identity beats the
-parts-first probe on every axis (IoU 0.735 vs 0.687, coverage 87.6 % vs
-80 %, bbox aspect Δ 2.5 % vs 5.7 %); the enclosed-hole scan falls with
-motion (449 neutral → 273 stress). Measurements + slicer learnings:
-`docs/rebuild/rig-lab/socket-era/`. Remaining for the kill test: runtime
-paint (D-023) and Triceratops on the quad template.
+The entire era (routes, package, packs, tools, generation bible) is
+preserved working on branch `archive/illustrated-rig-era`. The verdict and
+everything the era taught: `IR-LESSONS.md` and decision rows D-020…D-025.
 
 ## M2 — Share & remix (the growth loop)
 

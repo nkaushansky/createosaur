@@ -1,7 +1,7 @@
 import process from 'node:process';
 
 // Optional deploy prefix for staging the export under a subfolder (e.g.
-// nk00.com/private/rig-ir0). Unset → byte-identical to the normal root
+// nk00.com/private/<slug>). Unset → byte-identical to the normal root
 // build; trailingSlash only flips alongside it so plain Apache resolves
 // routes as folders without server config.
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
@@ -15,7 +15,6 @@ const nextConfig = {
   ...(basePath ? { basePath, trailingSlash: true } : {}),
   transpilePackages: [
     '@createosaur/genome',
-    '@createosaur/illustrated-rig',
     '@createosaur/renderer',
     '@createosaur/species-data',
   ],

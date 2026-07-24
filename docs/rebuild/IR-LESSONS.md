@@ -1,11 +1,46 @@
-# Illustrated Renderer — lessons learned & the socket era (D-024)
+# Illustrated Renderer era — lessons learned (TRACK CLOSED)
 
-**Status: phase conclusion, owner-agreed 2026-07-23.** The IR probe phase
-(IR0 → IR1 → hybrid PoC → D-021 parts-first probe) is CLOSED. This document
-harvests what it proved, declares what is dead, and defines the authoring
-contract for the next phase — the **socket era**. Dead experiments are
-archived out of the working tree (git history keeps everything; the archived
-files were last present at commit `457cd89`).
+**Status: the entire illustrated-rig era is CLOSED — owner call,
+2026-07-24 (D-025).** The whole era — `/rig-lab`, the
+`@createosaur/illustrated-rig` package, all packs (trex-r0-v2,
+allosaurus-r0-v2, trex-sock-r0), the rig tools (rig-pack, sheet-slicer,
+rig-scan, socket-template), and the asset-generation bible — is preserved
+intact and working on branch **`archive/illustrated-rig-era`** and removed
+from the main line. This document and the decision log are what the main
+line keeps.
+
+**Final verdict.** The socket-era T. rex was the era's best result — clean
+sheets on the first authoring round, every metric better than every
+predecessor (IoU 0.735, 87.6 % coverage, motion opens nothing) — and the
+owner's review still read it correctly as paper-cutout theater. That is the
+era's real lesson: **assembled-cutout presentation is structural, not
+tunable.** Near-realistic artwork makes every junction and rigid swing
+register as pieces sliding past each other; the more faithful the art, the
+worse the assembly reads. Teams that make 2D rigs look good author
+stylized art *designed* for rigging with corrective art per joint — the
+studio pipeline again. No junction contract, palette fix, or placement
+tuning changes this, which is why the kill test was stopped one species
+early instead of after Triceratops: the remaining steps (runtime paint,
+second species) addressed color and fit, and the failure was neither.
+
+**Where the dream went, not died:** photorealistic cohesion is what
+single-image generation gives *by construction* — nothing is assembled, so
+nothing can seam. The realism payoff belongs to the committed creature's
+generated portrait (the roadmap's M5 "generate real" moment), layered on
+the vector morphing toy that already works. The live render stays the
+procedural renderer.
+
+---
+
+The remainder of this document is the earlier phase-conclusion record
+(2026-07-23), kept as the era's history: what each probe proved, what died
+first, and the socket-era contract the final experiment ran under.
+
+The IR probe phase
+(IR0 → IR1 → hybrid PoC → D-021 parts-first probe) harvests below what it
+proved and defines the authoring contract of the final phase — the
+**socket era**. Earlier dead experiments were archived at commit `457cd89`;
+the full era now lives on `archive/illustrated-rig-era`.
 
 ## What the product is aiming at (the owner's call)
 
