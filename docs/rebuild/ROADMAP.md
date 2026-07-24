@@ -261,6 +261,17 @@ lighting contract + focused sheets), assembled, runtime-painted, and judged
 by the owner *as a cross-archetype hybrid* — before any scaling to the
 archetype exemplars.
 
+**Kill test species 1 assembled (2026-07-24):** the owner generated the
+first Template S set (S-M value master + head/body sheets) and the sliced
+pack `trex-sock-r0` is live at `/rig-lab?species=trex-sock` — a coherent
+grayscale T. rex through the full motion envelope on the first authoring
+round (two placement iterations, no re-generation). Identity beats the
+parts-first probe on every axis (IoU 0.735 vs 0.687, coverage 87.6 % vs
+80 %, bbox aspect Δ 2.5 % vs 5.7 %); the enclosed-hole scan falls with
+motion (449 neutral → 273 stress). Measurements + slicer learnings:
+`docs/rebuild/rig-lab/socket-era/`. Remaining for the kill test: runtime
+paint (D-023) and Triceratops on the quad template.
+
 ## M2 — Share & remix (the growth loop)
 
 - Creature pages `/c/:id` (server-rendered), OG image = the creature.

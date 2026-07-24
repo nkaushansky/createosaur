@@ -500,3 +500,22 @@ vs template (re-normalization factor) · each cut end within ~15 px of its
 guide (slicer snaps the rest; bigger misses → re-roll that sheet) · closed
 core (no interior transparency after keying) · style/value match to S-M by
 eye and value-histogram vs the ramp.
+
+### First-run learnings (trex-sock-r0, 2026-07-24)
+
+The first Template S species assembled clean on the second placement
+iteration — the contract works. Notes for the next species and template v2:
+
+- **The model redraws the furniture** despite "do not redraw": the scale bar
+  came back ~1.5× long. Harmless — the slicer normalizes against master
+  anatomy — but don't trust the bar as the normalizer.
+- **Guides and size labels get painted ON the art** where a part crosses
+  them; the slicer heals dashes and labels automatically (enclosed-magenta
+  inpaint), but template v2 should move the size labels outside the cells.
+- **S-M with the painted master attached reproduces its exact frame**
+  (bbox within a few px) — keep doing that: it makes the existing pivots
+  and deform constants transfer to the new pack unchanged.
+- Hind legs came back ~40 % under master scale (upscaled in the slice,
+  slightly softer texture). If a species' S-B legs look small relative to
+  its core, add "legs at the same scale as the core, filling their cells"
+  to the prompt.

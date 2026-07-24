@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   DEFAULT_RIG_PARAMS,
   SPECIES_RIG_DEFS,
+  TREX_SOCK_RIG_DEF,
   clampRigParams,
   hybridMotionRanges,
   parseHybridConfig,
@@ -46,6 +47,7 @@ function sourceFromLocation(): RigSource {
   const mix = parseHybridConfig(search.get('mix'));
   if (mix) return { kind: 'hybrid', config: mix };
   const species = search.get('species');
+  if (species === 'trex-sock') return { kind: 'parts', def: TREX_SOCK_RIG_DEF };
   return species !== null && species in SPECIES_RIG_DEFS
     ? { kind: 'species', species: species as keyof typeof SPECIES_RIG_DEFS }
     : { kind: 'species', species: 'trex' };
@@ -62,6 +64,7 @@ export function IllustratedRigLab() {
   const handleRef = useRef<RigHandle | null>(null);
   const ranges = useMemo(() => {
     if (source.kind === 'hybrid') return hybridMotionRanges(source.config);
+    if (source.kind === 'parts') return { strideRange: source.def.strideRange, jawRange: source.def.jawRange };
     const def = SPECIES_RIG_DEFS[source.species];
     return { strideRange: def.strideRange, jawRange: def.jawRange };
   }, [source]);

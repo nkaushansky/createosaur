@@ -5,6 +5,7 @@ import {
   PART_GROUPS,
   PRESET_NAMES,
   SPECIES_RIG_DEFS,
+  TREX_SOCK_RIG_DEF,
   pureConfig,
   type HybridRigConfig,
   type IllustratedRigParams,
@@ -162,10 +163,11 @@ export function RigControls({
         <select
           id="rig-species"
           className="select-input mt-1"
-          value={source.kind === 'hybrid' ? 'hybrid' : source.species}
+          value={source.kind === 'hybrid' ? 'hybrid' : source.kind === 'parts' ? 'trex-sock' : source.species}
           disabled={disabled}
           onChange={(e) => {
             if (e.target.value === 'hybrid') onSource({ kind: 'hybrid', config: MARQUEE_MIX });
+            else if (e.target.value === 'trex-sock') onSource({ kind: 'parts', def: TREX_SOCK_RIG_DEF });
             else onSource({ kind: 'species', species: e.target.value as SpeciesId });
           }}
         >
@@ -174,6 +176,7 @@ export function RigControls({
               {def.label}
             </option>
           ))}
+          <option value="trex-sock">{TREX_SOCK_RIG_DEF.label}</option>
           <option value="hybrid">Hybrid mix (PoC)</option>
         </select>
 

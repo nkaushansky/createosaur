@@ -8,7 +8,7 @@ import {
   partsEffectiveMotion,
   restPartsMesh,
 } from '../src/parts';
-import { TREX_PF_RIG_DEF } from '../src/parts-defs';
+import { TREX_SOCK_RIG_DEF } from '../src/parts-defs';
 import { validatePartsManifest } from '../src/manifest';
 import type { IllustratedRigParams } from '../src/types';
 
@@ -18,7 +18,7 @@ import type { IllustratedRigParams } from '../src/types';
  * evaluator does — determinism, a rest-identical neutral pose, planted feet,
  * pinned mesh ends, and a head that hands off cleanly to the neck.
  */
-const DEF = TREX_PF_RIG_DEF;
+const DEF = TREX_SOCK_RIG_DEF;
 const SEED = DEF.seed;
 
 function staticParams(motion: Partial<IllustratedRigParams> = {}): IllustratedRigParams {

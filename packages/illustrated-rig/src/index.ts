@@ -42,7 +42,7 @@ export {
   type PartsPivotId,
   type PartsRigDef,
 } from './parts';
-export { PARTS_RIG_DEFS, TREX_PF_RIG_DEF } from './parts-defs';
+export { PARTS_RIG_DEFS, TREX_SOCK_RIG_DEF } from './parts-defs';
 export {
   ALLOSAURUS_RIG_DEF,
   RIG_STAGE,

@@ -1,0 +1,10 @@
+z,layer_id,mesh,source,visible_pixels,bounds_x,bounds_y,bounds_width,bounds_height
+0,far-leg,false,layers/00-far-leg.png,56606,488,397,254,390
+1,tail,true,layers/01-tail.png,49722,930,334,606,173
+2,core,true,layers/02-core.png,158925,378,254,644,316
+3,far-arm,false,layers/03-far-arm.png,5422,376,468,64,161
+4,near-leg,false,layers/04-near-leg.png,55775,713,392,234,393
+5,near-arm,false,layers/05-near-arm.png,5531,420,465,60,161
+6,neck,true,layers/06-neck.png,49676,264,226,328,302
+7,jaw-lower,false,layers/07-jaw-lower.png,11693,47,350,214,79
+8,head-upper,false,layers/08-head-upper.png,43634,38,203,341,221

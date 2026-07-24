@@ -28,9 +28,12 @@ if (!outDir) {
   process.exit(1);
 }
 const slice = JSON.parse(readFileSync(slicePath, 'utf8'));
-const masterPath = join(REPO, 'apps', 'web', 'public', slice.trueMaster);
+// trueMaster resolves under apps/web/public first (pack-hosted masters), then
+// repo-relative (e.g. a docs/ value master that ships INTO the pack).
+const masterUnderPublic = join(REPO, 'apps', 'web', 'public', slice.trueMaster);
+const masterPath = existsSync(masterUnderPublic) ? masterUnderPublic : join(REPO, slice.trueMaster);
 
-for (const dir of ['layers', 'pattern-masks', 'value', 'debug']) {
+for (const dir of ['layers', 'pattern-masks', ...(slice.grayscale ? [] : ['value']), 'debug']) {
   mkdirSync(join(outDir, dir), { recursive: true });
 }
 
@@ -91,6 +94,22 @@ const result = await page.evaluate(async ({ sheetsB64, defaultSheet, masterB64, 
       if (i >= SW) stack.push(i - SW);
       if (i < SW * (SH - 1)) stack.push(i + SW);
     }
+    // Magenta socket guides (Template S) are background too — they sit flush
+    // against cut edges, so without this they'd merge into the piece. Global
+    // mask, not flood: dashes are islands the border flood never reaches.
+    // Threshold 12 (not 25): the guide labels' dark antialiased glyph cores
+    // have low absolute magentaness but still lean magenta; gray hide sits at
+    // ~0-5 so this stays safely below art. magMask is kept separately so
+    // extractPiece can inpaint guides that were drawn ON the art (a keyed
+    // dash over hide would otherwise punch a hole through the part).
+    const magentaness = (i) => Math.min(src[4 * i], src[4 * i + 2]) - src[4 * i + 1];
+    const magMask = new Uint8Array(SW * SH);
+    for (let i = 0; i < SW * SH; i++)
+      if (magentaness(i) > 12) {
+        bgMask[i] = 1;
+        magMask[i] = 1;
+      }
+
     // Soft-alpha: 0 on flooded green, a green-fringe-suppressing rim on pixels
     // adjacent to flooded background, 255 on solid art.
     const alpha = new Uint8Array(SW * SH);
@@ -134,7 +153,7 @@ const result = await page.evaluate(async ({ sheetsB64, defaultSheet, masterB64, 
       comps.push({ id, area, minX, minY, maxX, maxY, cx: sumX / area, cy: sumY / area });
     }
     const bigComps = comps.filter((c) => c.area > 800);
-    return { SW, SH, src, alpha, label, bigComps, bg: bgc };
+    return { SW, SH, src, alpha, label, magMask, bigComps, bg: bgc };
   }
 
   const processed = {};
@@ -143,7 +162,7 @@ const result = await page.evaluate(async ({ sheetsB64, defaultSheet, masterB64, 
   // ---- extract one piece's cropped RGBA canvas from its sheet ------------
   function extractPiece(piece) {
     const S = processed[piece.sheet ?? defaultSheet] ?? processed[defaultSheet];
-    const { SW, src, alpha, label, bigComps } = S;
+    const { SW, SH, src, alpha, label, magMask, bigComps } = S;
     // Match the component whose centroid is nearest the expected point.
     let best = null;
     let bestD = Infinity;
@@ -157,6 +176,36 @@ const result = await page.evaluate(async ({ sheetsB64, defaultSheet, masterB64, 
     const x1 = best.maxX - Math.round((best.maxX - best.minX + 1) * (crop.right ?? 0));
     const y0 = best.minY + Math.round((best.maxY - best.minY + 1) * (crop.top ?? 0));
     const y1 = best.maxY - Math.round((best.maxY - best.minY + 1) * (crop.bottom ?? 0));
+    // Guides drawn ON the art: a magenta-keyed pixel that is sandwiched by
+    // this component (clean art within `REACH` px on both sides, in a row or
+    // a column) is a dash/label over hide, not background — restore it with
+    // luma inpainted from its clean neighbours. Handles vertical cut lines,
+    // horizontal thigh guides and label text without per-piece config.
+    const REACH = 24;
+    const cleanLuma = (ni) => {
+      if (label[ni] !== best.id) return -1;
+      const nr = src[ni * 4];
+      const ng = src[ni * 4 + 1];
+      const nb = src[ni * 4 + 2];
+      return 0.299 * nr + 0.587 * ng + 0.114 * nb;
+    };
+    const inpaintAt = (sx, sy) => {
+      let a = -1;
+      let b2 = -1;
+      for (let d = 1; d <= REACH; d++) {
+        if (a < 0 && sx - d >= 0) a = cleanLuma(sy * SW + sx - d);
+        if (b2 < 0 && sx + d < SW) b2 = cleanLuma(sy * SW + sx + d);
+        if (a >= 0 && b2 >= 0) return Math.round((a + b2) / 2);
+      }
+      a = -1;
+      b2 = -1;
+      for (let d = 1; d <= REACH; d++) {
+        if (a < 0 && sy - d >= 0) a = cleanLuma((sy - d) * SW + sx);
+        if (b2 < 0 && sy + d < SH) b2 = cleanLuma((sy + d) * SW + sx);
+        if (a >= 0 && b2 >= 0) return Math.round((a + b2) / 2);
+      }
+      return -1;
+    };
     const pw = x1 - x0 + 1;
     const ph = y1 - y0 + 1;
     const pc = document.createElement('canvas');
@@ -164,23 +213,46 @@ const result = await page.evaluate(async ({ sheetsB64, defaultSheet, masterB64, 
     pc.height = ph;
     const pctx = pc.getContext('2d', { willReadFrequently: true });
     const pimg = pctx.createImageData(pw, ph);
+    const feather = piece.feather ?? {};
     for (let y = 0; y < ph; y++) {
       for (let x = 0; x < pw; x++) {
         const si = (y0 + y) * SW + (x0 + x);
         // Only pixels belonging to THIS component (drops touching neighbours).
-        const a = label[si] === best.id ? alpha[si] : 0;
+        let a = label[si] === best.id ? alpha[si] : 0;
         const di = (y * pw + x) * 4;
         const r = src[si * 4];
         let g = src[si * 4 + 1];
         const b = src[si * 4 + 2];
+        let inpaint = -1;
+        if (a === 0 && magMask[si]) {
+          inpaint = inpaintAt(x0 + x, y0 + y);
+          if (inpaint >= 0) a = 255;
+        }
+        // Cover-flap feather: soften a cut edge that lies OVER a neighbour
+        // (piece-local px ramps, applied after crop, before rotation/scale).
+        if (a > 0) {
+          if (feather.right && x > pw - 1 - feather.right) a = Math.round((a * (pw - 1 - x)) / feather.right);
+          if (feather.left && x < feather.left) a = Math.round((a * x) / feather.left);
+          if (feather.top && y < feather.top) a = Math.round((a * y) / feather.top);
+          if (feather.bottom && y > ph - 1 - feather.bottom) a = Math.round((a * (ph - 1 - y)) / feather.bottom);
+        }
         // Green despill: the chroma-key leaves a faint green rim on thin bright
         // features (tooth tips). Clamp green so it never exceeds both other
         // channels — a no-op on brown hide, a fringe-killer on the teeth.
         const mx = Math.max(r, b);
         if (g > mx) g = mx;
-        pimg.data[di] = r;
-        pimg.data[di + 1] = g;
-        pimg.data[di + 2] = b;
+        if (slice.grayscale) {
+          // Value pack (Template S): layers ARE the value art — neutralize to
+          // luma, killing residual green/magenta spill and guide halos.
+          const l = inpaint >= 0 ? inpaint : Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+          pimg.data[di] = l;
+          pimg.data[di + 1] = l;
+          pimg.data[di + 2] = l;
+        } else {
+          pimg.data[di] = inpaint >= 0 ? inpaint : r;
+          pimg.data[di + 1] = inpaint >= 0 ? inpaint : g;
+          pimg.data[di + 2] = inpaint >= 0 ? inpaint : b;
+        }
         pimg.data[di + 3] = a;
       }
     }
@@ -373,7 +445,8 @@ const ordered = [...result.layers].sort((a, b) => a.z - b.z);
 const manifestLayers = ordered.map((layer, i) => {
   const file = `layers/${String(i).padStart(2, '0')}-${layer.id}.png`;
   save(layer.colorDataUrl, join(outDir, file));
-  save(layer.valueDataUrl, join(outDir, `value/${String(i).padStart(2, '0')}-${layer.id}.png`));
+  // Grayscale packs (Template S) skip value/: the layers ARE the value art.
+  if (!slice.grayscale) save(layer.valueDataUrl, join(outDir, `value/${String(i).padStart(2, '0')}-${layer.id}.png`));
   for (const kind of ['solid', 'mottle', 'bands']) {
     mkdirSync(join(outDir, 'pattern-masks', layer.id), { recursive: true });
     save(layer.maskDataUrls[kind], join(outDir, 'pattern-masks', layer.id, `${kind}.png`));
@@ -401,7 +474,7 @@ save(result.reassembledDataUrl, join(outDir, 'debug', 'reassembled-transparent.p
 save(result.overMasterDataUrl, join(outDir, 'debug', 'identity-over-master.jpg'));
 save(result.holeMapDataUrl, join(outDir, 'debug', 'hidden-overlap-map.png'));
 // The pack's master underlay is the TRUE approved master (identity truth).
-save(`data:image/png;base64,${masterB64}`, join(outDir, 'trex-pf-master.png'));
+save(`data:image/png;base64,${masterB64}`, join(outDir, slice.masterFile ?? 'master.png'));
 
 const manifest = {
   rigId: slice.rigId,
@@ -422,9 +495,8 @@ const manifest = {
   verification: {
     note: 'Parts-first packs QA against the TRUE approved master by silhouette/identity tolerance, not byte reassembly (D-021).',
   },
-  limitations: [
-    'Assembled from the round-4 parts sheet; the master is the identity truth, not the pixel source.',
-    'Painted first rig; value/ carries the desaturated variant for the D-023 runtime-paint work.',
+  limitations: slice.limitations ?? [
+    'The master is the identity truth, not the pixel source.',
     'Closed-core architecture: parts draw OVER the core; no hidden-overlap backing is cut.',
   ],
 };

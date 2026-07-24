@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -7,12 +7,16 @@ import {
   ALLOSAURUS_R0_ASSET_SHA256,
   ALLOSAURUS_R0_PACK_PATH,
   ALLOSAURUS_RIG_DEF,
+  PARTS_LAYER_IDS,
   RIG_LAYER_IDS,
   TREX_R0_ASSET_SHA256,
   TREX_R0_PACK_PATH,
   TREX_RIG_DEF,
+  TREX_SOCK_RIG_DEF,
   runtimeAssetPaths,
+  validatePartsManifest,
   validateTrexR0Manifest,
+  type PartsLayerId,
   type RigLayerId,
   type SpeciesRigDef,
 } from '@createosaur/illustrated-rig';
@@ -115,6 +119,48 @@ describe.each(PACKS)('$name pack integrity', ({ path, table, def }) => {
     for (const relPath of runtimeLoads) {
       expect(recorded.has(relPath), `runtime fetch ${relPath} is not in the pack`).toBe(true);
     }
+  });
+});
+
+describe('trex-sock-r0 socket-era pack (D-024)', () => {
+  const dir = join(publicDir, TREX_SOCK_RIG_DEF.packPath);
+  const manifest = (): unknown => JSON.parse(readFileSync(join(dir, 'manifest.json'), 'utf8'));
+
+  it('manifest.json validates as a nine-piece parts rig', () => {
+    expect(validatePartsManifest(manifest())).toMatchObject({ ok: true });
+    expect(PARTS_LAYER_IDS).toHaveLength(9);
+  });
+
+  it("the def's layer bounds match the manifest exactly (mesh rest + pattern UVs depend on it)", () => {
+    const result = validatePartsManifest(manifest());
+    if (!result.ok) throw new Error('manifest invalid');
+    for (const layer of result.manifest.layers) {
+      expect(TREX_SOCK_RIG_DEF.layerBounds[layer.id as PartsLayerId], `bounds for ${layer.id}`).toEqual(layer.bounds);
+    }
+  });
+
+  it("the def's pack path and seed match the pack", () => {
+    const parsed = manifest() as { patterns: { seed: number } };
+    expect(TREX_SOCK_RIG_DEF.packPath).toBe('rigs/trex-sock-r0');
+    expect(TREX_SOCK_RIG_DEF.seed).toBe(parsed.patterns.seed);
+  });
+
+  it('every file the runtime loader fetches exists in the pack', () => {
+    const result = validatePartsManifest(manifest());
+    if (!result.ok) throw new Error('manifest invalid');
+    const runtimeLoads = [
+      'manifest.json',
+      TREX_SOCK_RIG_DEF.masterFile,
+      'debug/hidden-overlap-map.png',
+      ...result.manifest.layers.flatMap((layer) => [layer.source, ...Object.values(layer.patternMasks)]),
+    ];
+    for (const relPath of runtimeLoads) {
+      expect(existsSync(join(dir, relPath)), `runtime fetch ${relPath} missing`).toBe(true);
+    }
+  });
+
+  it('layers are grayscale value art shipped directly (no value/ dir in a Template S pack)', () => {
+    expect(existsSync(join(dir, 'value'))).toBe(false);
   });
 });
 

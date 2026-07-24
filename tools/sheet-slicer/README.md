@@ -79,6 +79,23 @@ limbs) sheets are exactly this: the socket-era slice manifest routes the
 head trio to sheet A and everything else to sheet B. (Proven on the archived
 probe pack, whose deep neck was spliced in from a second sheet.)
 
+## Template S (socket-era) handling
+
+- **`"grayscale": true`** (manifest root): pieces are luma-neutralized on
+  extraction (kills green/magenta spill outright) and the `value/` dir is
+  skipped — the layers ARE the value art.
+- **Magenta guide keying + enclosed inpaint**: socket guides are keyed as
+  background; a keyed pixel *enclosed by* a component (clean art within
+  24 px on both sides, row or column) is a dash/label painted ON the hide —
+  it is restored with luma inpainted from its neighbours instead of
+  punching a hole through the part.
+- **Per-piece `feather`** (`{left|right|top|bottom: px}`): alpha ramp on a
+  cut edge that lies OVER a neighbour — used for the head's rear cover flap.
+- First-run notes (trex-sock-r0): the model redraws template furniture (the
+  scale bar came back ~1.5× long), so normalize against master anatomy, not
+  the bar; the S-M value master reproducing the painted master's frame made
+  the def's pivots/deform constants transfer directly.
+
 ### Non-uniform scale (`scale: {x, y}`)
 
 A piece's `scale` may be a number (uniform) or `{x, y}`. Use the object form
